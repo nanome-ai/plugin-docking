@@ -11,7 +11,7 @@ class DockingMenu():
         self._modes = 9
         self._autobox_size = 4
         self._run_button = None
-        self._align = False
+        self._align = True
         self._replace = False
         self._scoring_only = False
 
