@@ -89,7 +89,11 @@ class DockingCalculations():
             self._request_pending = False
             self._running = False
             self._plugin.make_plugin_usable()
+            self._plugin.send_notification(nanome.util.NotificationTypes.error, "Docking error, check plugin")
+            return
+
         self._running = True
+        self._plugin.send_notification(nanome.util.NotificationTypes.message, "Docking started")
 
     def _check_docking(self):
         return self._smina_process.poll() != None
@@ -125,6 +129,7 @@ class DockingCalculations():
                     nanome.util.Logs.error(line.decode("utf-8"))
 
                 self._plugin.make_plugin_usable()
+                self._plugin.send_notification(nanome.util.NotificationTypes.error, "Docking error, check plugin")
                 return
         except:
             pass
@@ -158,3 +163,5 @@ class DockingCalculations():
         os.remove(self._docking_output.name)
         os.remove(self._ligand_output.name)
         os.remove(self._log_file.name)
+
+        self._plugin.send_notification(nanome.util.NotificationTypes.success, "Docking finished")
