@@ -126,11 +126,7 @@ class DockingCalculations():
                         nanome.util.Logs.debug(line)
             else:
                 for line in errors.splitlines():
-                    nanome.util.Logs.error(line.decode("utf-8"))
-
-                self._plugin.make_plugin_usable()
-                self._plugin.send_notification(nanome.util.NotificationTypes.error, "Docking error, check plugin")
-                return
+                    nanome.util.Logs.warning(line.decode("utf-8"))
         except:
             pass
 
@@ -145,6 +141,7 @@ class DockingCalculations():
             if self._align == True:
                 docked_ligands.transform.position = self._receptor.transform.position
                 docked_ligands.transform.rotation = self._receptor.transform.rotation
+                docked_ligands.rendering.boxed = True
 
         self._plugin.make_plugin_usable()
         if self._scoring:
