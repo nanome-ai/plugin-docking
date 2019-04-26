@@ -41,7 +41,7 @@ class DockingCalculations():
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
         self._log_file = tempfile.NamedTemporaryFile(delete=False)
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring):
+    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
         self.initialize()
         
         # Save all input files
@@ -58,6 +58,7 @@ class DockingCalculations():
         self._align = align
         self._replace = replace
         self._scoring = scoring
+        self._autobox = autobox
 
         # Start docking process
         self._running = False
@@ -77,7 +78,7 @@ class DockingCalculations():
             smina_args = ['./smina', '--autobox_ligand', self._site_input.name, '--score_only', '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', self._ligand_output.name]
         else:
             smina_args = ['./smina', '--autobox_ligand', self._site_input.name, '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', \
-                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes)]
+                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', '+' + str(self._autobox)]
         
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()

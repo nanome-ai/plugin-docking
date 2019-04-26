@@ -58,7 +58,7 @@ class Docking(nanome.PluginInstance):
             for molecule in ligand.molecules:
                 ligands.add_molecule(molecule)
 
-        self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only)
+        self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only, self._menu._autobox_size)
 
     # Function called every update tick of the Plugin
     def update(self):

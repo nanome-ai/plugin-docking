@@ -9,6 +9,7 @@ class DockingMenu():
         self._complex_list = []
         self._exhaustiveness = 8
         self._modes = 9
+        self._autobox_size = 4
         self._run_button = None
         self._align = False
         self._replace = False
@@ -147,6 +148,15 @@ class DockingMenu():
             if self._modes <= 0:
                 self._modes = 9
 
+        def autobox_changed(input):
+            try:
+                self._autobox_size = int(input.input_text)
+                nanome.util.Logs.debug("Autobox size set to", self._autobox_size)
+            except:
+                self._autobox_size = 4
+            if self._autobox_size <= 0:
+                self._autobox_size = 4
+
         def align_button_pressed_callback(button):
             self._align = not self._align
             button.selected = self._align
@@ -191,6 +201,9 @@ class DockingMenu():
 
         txt2 = menu.root.find_node("txt2", True).get_content()
         txt2.register_changed_callback(modes_changed)
+
+        txt3 = menu.root.find_node("txt3", True).get_content()
+        txt2.register_changed_callback(autobox_changed)
 
         align_btn = menu.root.find_node("Align", True).get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
