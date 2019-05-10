@@ -67,13 +67,13 @@ class Docking(nanome.PluginInstance):
 
     @staticmethod
     def convert_atoms_to_absolute_position(complex):
-        mat = complex.tranform.get_complex_to_workspace_matrix()
+        mat = complex.transform.get_complex_to_workspace_matrix()
         for atom in complex.atoms:
             atom.molecular.position = mat * atom.molecular.position
 
     @staticmethod
     def convert_atoms_to_relative_position(complex):
-        mat = complex.tranform.get_workspace_to_complex_matrix()
+        mat = complex.transform.get_workspace_to_complex_matrix()
         for atom in complex.atoms:
             atom.molecular.position = mat * atom.molecular.position
 
@@ -82,7 +82,8 @@ class Docking(nanome.PluginInstance):
         self._calculations.update()
 
     def add_result_to_workspace(self, result):
-        Docking.convert_atoms_to_relative_position(result)
+        for complex in result:
+            Docking.convert_atoms_to_relative_position(complex)
         self.add_to_workspace(result)
 
     def display_scoring_result(self, result):
