@@ -13,6 +13,7 @@ class Docking(nanome.PluginInstance):
     # Function called when Nanome connects to the Plugin, after its instantiation
     def start(self):
         self._menu.build_menu()
+        self.request_complex_list(self.on_complex_list_received)
 
     # Function called when user clicks on the "Run" button in Nanome
     def on_run(self):
@@ -26,9 +27,11 @@ class Docking(nanome.PluginInstance):
         nanome.util.Logs.debug("Advanced Settings")
         self.open_menu()
 
-    def request_refresh(self):
+    def on_complex_added(self):
         self.request_complex_list(self.on_complex_list_received)
-        nanome.util.Logs.debug("Complex list requested")
+
+    def on_complex_removed(self):
+        self.request_complex_list(self.on_complex_list_received)
 
     def open_menu(self):
         menu = nanome.ui.Menu.get_plugin_menu()
@@ -40,7 +43,6 @@ class Docking(nanome.PluginInstance):
 
     # Function called when Nanome returns the complex list after a request
     def on_complex_list_received(self, complexes):
-        nanome.util.Logs.debug("Complex list received:", complexes)
         self._menu.change_complex_list(complexes)
 
     def run_docking(self, receptor, ligand_list, site):
