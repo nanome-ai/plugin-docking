@@ -38,7 +38,7 @@ class DockingMenu():
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
-        self._receptor_checkmark.file_path = "Checkmark.png"
+        self._receptor_checkmark.file_path = "checkmark.png"
         self._plugin.update_content(self._receptor_checkmark)
 
     def ligand_pressed(self, button):
@@ -50,9 +50,9 @@ class DockingMenu():
             self._selected_ligands.remove(button)
         self._plugin.update_content(button)
         if len(self._selected_ligands) != 0:
-            self._ligand_checkmark.file_path = "Checkmark.png"
+            self._ligand_checkmark.file_path = "checkmark.png"
         else:
-            self._ligand_checkmark.file_path = "None.png"
+            self._ligand_checkmark.file_path = "none.png"
         self._plugin.update_content(self._ligand_checkmark)
 
     def site_pressed(self, button):
@@ -63,7 +63,7 @@ class DockingMenu():
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
-        self._site_checkmark.file_path = "Checkmark.png"
+        self._site_checkmark.file_path = "checkmark.png"
         self._plugin.update_content(self._site_checkmark)
 
     def change_complex_list(self, complex_list):
@@ -79,9 +79,9 @@ class DockingMenu():
         self._selected_ligands = []
         self._selected_site = None
         self._complex_list.items = []
-        self._receptor_checkmark.file_path = "None.png"
-        self._ligand_checkmark.file_path = "None.png"
-        self._site_checkmark.file_path = "None.png"
+        self._receptor_checkmark.file_path = "none.png"
+        self._ligand_checkmark.file_path = "none.png"
+        self._site_checkmark.file_path = "none.png"
 
         for complex in complex_list:
             clone = self._complex_item_prefab.clone()
@@ -212,11 +212,11 @@ class DockingMenu():
         self._score_panel = menu.root.find_node("LeftSideScore", True)
 
         # images
-        self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image("None.png")
+        self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image("none.png")
         self._receptor_checkmark.scaling_option = ScalingOptions.fit
-        self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image("None.png")
+        self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image("none.png")
         self._ligand_checkmark.scaling_option = ScalingOptions.fit
-        self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image("None.png")
+        self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image("none.png")
         self._site_checkmark.scaling_option = ScalingOptions.fit
 
         # texts
