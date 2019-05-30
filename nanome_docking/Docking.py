@@ -82,7 +82,7 @@ class Autodock4Docking(Docking):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
 
-if __name__ == "__main__":
+def main():
     name = None
     cl = None
     for arg in sys.argv:
@@ -101,3 +101,6 @@ if __name__ == "__main__":
     plugin = nanome.Plugin(name + " Docking", "Run docking using " + name + ". Lets user choose the receptor, ligands, and diverse options", "Docking", True)
     plugin.set_plugin_class(cl)
     plugin.run('127.0.0.1', 8888)
+
+if __name__ == "__main__":
+    main()
