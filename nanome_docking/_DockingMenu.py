@@ -1,6 +1,5 @@
 import nanome
-from nanome.util.image_settings import ScalingOptions
-
+from nanome.api.ui.image import Image as Image
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -16,15 +15,29 @@ class DockingMenu():
         self._replace = False
         self._scoring_only = False
         self._tab = None
+        self._autobox_enabled = True
 
     def _run_docking(self):
-        if self._selected_receptor == None or self._selected_site == None or len(self._selected_ligands) == 0:
-            nanome.util.Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
-            return
+        if self._selected_receptor == None or len(self._selected_ligands) == 0:
+            if self._autobox_enabled == True and self._selected_site == None:
+                nanome.util.Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
+                return
         ligands = []
         for item in self._selected_ligands:
             ligands.append(item.complex)
-        self._plugin.run_docking(self._selected_receptor.complex, ligands, self._selected_site.complex)
+        site = None
+        if self._autobox_enabled:
+            site = self._selected_site.complex
+        self._plugin.run_docking(self._selected_receptor.complex, ligands, site)
+
+    def disable_autobox(self):
+        self._site_btn.unusable = True
+        self._score_btn.unusable = True
+        self._txt1.unusable = True # Doesn't do anything for now
+        self._txt2.unusable = True
+        self._txt3.unusable = True
+        self._autobox_enabled = False
+        self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = not state
@@ -203,7 +216,7 @@ class DockingMenu():
 
         # loading menus
         menu = nanome.ui.Menu.io.from_json("_docking_menu.json")
-        nanome.ui.Menu.set_plugin_menu(menu)
+        self._plugin.menu = menu
 
         # registering and saving special nodes
 
@@ -213,21 +226,21 @@ class DockingMenu():
 
         # images
         self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image("none.png")
-        self._receptor_checkmark.scaling_option = ScalingOptions.fit
+        self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
         self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image("none.png")
-        self._ligand_checkmark.scaling_option = ScalingOptions.fit
+        self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
         self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image("none.png")
-        self._site_checkmark.scaling_option = ScalingOptions.fit
+        self._site_checkmark.scaling_option = Image.ScalingOptions.fit
 
         # texts
-        txt1 = menu.root.find_node("ExhaustivenessInput", True).get_content()
-        txt1.register_changed_callback(exhaustiveness_changed)
+        self._txt1 = menu.root.find_node("ExhaustivenessInput", True).get_content()
+        self._txt1.register_changed_callback(exhaustiveness_changed)
 
-        txt2 = menu.root.find_node("ModesInput", True).get_content()
-        txt2.register_changed_callback(modes_changed)
+        self._txt2 = menu.root.find_node("ModesInput", True).get_content()
+        self._txt2.register_changed_callback(modes_changed)
 
-        txt3 = menu.root.find_node("AutoboxInput", True).get_content()
-        txt3.register_changed_callback(autobox_changed)
+        self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
+        self._txt3.register_changed_callback(autobox_changed)
 
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
@@ -238,15 +251,15 @@ class DockingMenu():
         ligand_btn = menu.root.find_node("LigandButton", True).get_content()
         ligand_btn.register_pressed_callback(tab_button_pressed_callback)
 
-        site_btn = menu.root.find_node("SiteButton", True).get_content()
-        site_btn.register_pressed_callback(tab_button_pressed_callback)
+        self._site_btn = menu.root.find_node("SiteButton", True).get_content()
+        self._site_btn.register_pressed_callback(tab_button_pressed_callback)
 
         align_btn = menu.root.find_node("AlignButton", True).get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
 
-        score_btn = menu.root.find_node("ScoringButton", True).get_content()
-        score_btn.register_pressed_callback(scoring_button_pressed_callback)
+        self._score_btn = menu.root.find_node("ScoringButton", True).get_content()
+        self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
 
         close_score_btn = menu.root.find_node("CloseScoreButton", True).get_content()
         close_score_btn.register_pressed_callback(close_score_pressed_callback)
@@ -264,5 +277,5 @@ class DockingMenu():
 
         # Update the menu
         self._menu = menu
-        self._plugin.update_menu(self._menu)
+        self._plugin.update_menu(menu)
         nanome.util.Logs.debug("Constructed plugin menu")

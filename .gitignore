@@ -3,3 +3,5 @@ __pycache__
 build/
 nanome_docking.egg-info/
 dist/
+*.pyc
+nanome
