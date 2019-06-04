@@ -8,6 +8,8 @@ import tempfile
 import re
 from timeit import default_timer as timer
 
+from nanome.util import Logs
+
 # TMP
 from nanome._internal._structure._io._pdb.save import Options as PDBOptions
 from nanome._internal._structure._io._sdf.save import Options as SDFOptions
@@ -27,23 +29,24 @@ class DockingCalculations():
 
     def initialize(self):
         # TODO: Read and write in a folder unique per plugin instance
-        self._protein_input = os.getcwd() + ("/protein.pdb")
-        self._protein_input_converted = os.getcwd() + ("/protein.pdbqt")
-        self._ligand_input = os.getcwd() + ("/ligand.pdb")
-        self._ligand_input_converted = os.getcwd() + ("/ligand.pdbqt")
-        self._ligand_output = os.getcwd() + ("/output.pdb")
-        self._bond_output = os.getcwd() + ("/output.sdf")
-        self._autogrid_input = os.getcwd() + ("/grid.gpf")
-        self._autodock_input = os.getcwd() + ("/dock.dpf")
-        self._autodock_input = os.getcwd() + ("/dock.dpf")
-        self._autodock_log = os.getcwd() + ("/dock_log.dlg")
+        self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        self._protein_input_converted = tempfile.NamedTemporaryFile(delete=False, suffix=".pdbqt")
+        self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        self._ligands_input_converted = tempfile.NamedTemporaryFile(delete=False, suffix=".pdbqt")
+        self._ligands_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        self._bond_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
+        self._autogrid_input = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf")
+        self._autodock_input = tempfile.NamedTemporaryFile(delete=False, suffix=".dpf")
+        self._autogrid_log = tempfile.NamedTemporaryFile(delete=False, suffix=".glg")
+        self._autodock_log = tempfile.NamedTemporaryFile(delete=False, suffix=".dlf")
 
-    def start_docking(self, receptor, ligand, site, exhaustiveness, modes, align, replace):
+    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
+        self.initialize()
         # Save all input files
-        receptor.io.to_pdb(self._protein_input, self._pdb_options)
-        nanome.util.Logs.debug("Saved PDB", self._protein_input)
-        ligand.io.to_pdb(self._ligand_input, self._pdb_options)
-        nanome.util.Logs.debug("Saved PDB", self._ligand_input)
+        receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
+        nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
+        ligands.io.to_pdb(self._ligands_input.name, self._pdb_options)
+        nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
 
         self._receptor = receptor
         self._site = site
@@ -118,8 +121,8 @@ class DockingCalculations():
 
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['py', '-2.5', 'prepare_ligand4.py', '-l', self._ligand_input, '-o', self._ligand_input_converted]
-        rec_args = ['py', '-2.5', 'prepare_receptor4.py', '-r', self._protein_input, '-o', self._protein_input_converted]
+        lig_args = ['py', '-2.5', 'prepare_ligand4.py', '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['py', '-2.5', 'prepare_receptor4.py', '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
         
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
@@ -145,8 +148,8 @@ class DockingCalculations():
 
     def _start_parameters_preparation(self):
         # Awful situation here
-        grid_args = ['py', '-2.5', 'prepare_gpf4.py', '-l', self._ligand_input_converted, '-r', self._protein_input_converted, '-o', self._autogrid_input]
-        dock_args = ['py', '-2.5', 'prepare_dpf42.py', '-l', self._ligand_input_converted, '-r', self._protein_input_converted, '-o', self._autodock_input]
+        grid_args = ['py', '-2.5', 'prepare_gpf4.py', '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
+        dock_args = ['py', '-2.5', 'prepare_dpf42.py', '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
         
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
@@ -164,7 +167,7 @@ class DockingCalculations():
         if self._check_process_error(self._grid_process) or self._check_process_error(self._dock_process):
             return
 
-        f = open(self._autodock_input, 'a')
+        f = open(self._autodock_input.name, 'a')
         f.write("write_all\n")
         f.close()
 
@@ -175,11 +178,20 @@ class DockingCalculations():
     # Autogrid
 
     def _start_grid(self):
-        args = ['autogrid4', '-p', self._autogrid_input, '-l', 'grid_log.glg']
+        full_name = self._autogrid_input.name
+        delimiter = full_name.rfind('\\')
+        path = full_name[:delimiter]
+        name = full_name[delimiter + 1:]
+
+        full_name_log = self._autogrid_log.name
+        delimiter_log = full_name_log.rfind('\\')
+        name_log = full_name_log[delimiter_log + 1:]
+
+        args = ['autogrid4', '-p', name, '-l', name_log]
         
         nanome.util.Logs.debug("Start Autogrid")
         self._start_timer = timer()
-        self._autogrid_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._autogrid_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
         self._running = True
 
     def _check_grid(self):
@@ -187,7 +199,7 @@ class DockingCalculations():
 
     def _grid_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Ran Autogrid in", end - self._start_timer, "seconds")
+        nanome.util.Logs.debug("Ran Autogrid in", end - self._start_timer, "seconds. Logs: ", self._autogrid_log.name)
 
         if self._check_process_error(self._autogrid_process):
             return
@@ -199,11 +211,20 @@ class DockingCalculations():
     # Autodock
 
     def _start_docking(self):
-        args = ['autodock4', '-p', self._autodock_input, '-l', self._autodock_log]
+        full_name_input = self._autodock_input.name
+        delimiter_input = full_name_input.rfind('\\')
+        path = full_name_input[:delimiter_input]
+        name_input = full_name_input[delimiter_input + 1:]
+
+        full_name_log = self._autodock_log.name
+        delimiter_log = full_name_log.rfind('\\')
+        name_log = full_name_log[delimiter_log + 1:]
+
+        args = ['autodock4', '-p', name_input, '-l', name_log]
         
         nanome.util.Logs.debug("Start Autodock")
         self._start_timer = timer()
-        self._autodock_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._autodock_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
         self._running = True
 
     def _check_docking(self):
@@ -211,25 +232,20 @@ class DockingCalculations():
 
     def _docking_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Ran Autodock in", end - self._start_timer, "seconds")
+        nanome.util.Logs.debug("Ran Autodock in", end - self._start_timer, "seconds. Logs:", self._autodock_log.name)
 
         if self._check_process_error(self._autodock_process):
             return
 
         # Conversion
 
-        with open(self._autodock_log) as origin_file, open(self._ligand_output, 'w') as destination_file:
+        with open(self._autodock_log.name) as origin_file, open(self._ligands_output.name, 'w') as destination_file:
             for line in origin_file:
                 if line.startswith('DOCKED'):
                     str = line[8:]
                     if str.startswith('ROOT') or str.startswith('ENDROOT'):
                         continue
-                    idx = str.find('+')
-                    if idx >= 0:
-                        str = str[:idx - 1]
-                    idx = str.find('-')
-                    if idx >= 0:
-                        str = str[:idx - 1]
+                    str = str.replace('+', ' ')
                     destination_file.write(str)
                     if not str.endswith('\n'):
                         destination_file.write('\n')
@@ -241,7 +257,7 @@ class DockingCalculations():
     # Add Bonds
 
     def _start_bonds(self):
-        args = ['obabel', '-ipdb', self._ligand_output, '-osdf', '-O' + self._bond_output]
+        args = ['obabel', '-ipdb', self._ligands_output.name, '-osdf', '-O' + self._bond_output.name]
         
         nanome.util.Logs.debug("Start Bonds")
         self._start_timer = timer()
@@ -264,8 +280,8 @@ class DockingCalculations():
         self._running = False
         self._bond_pending = False
 
-        docked_ligands = nanome.structure.Complex.io.from_sdf(self._bond_output)
-        nanome.util.Logs.debug("Read SDF", self._bond_output)
+        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
+        nanome.util.Logs.debug("Read SDF", self._bond_output.name)
 
         docked_ligands.molecular.name = "Docking"
         docked_ligands.rendering.visible = True
