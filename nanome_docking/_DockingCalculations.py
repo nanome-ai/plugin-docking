@@ -7,9 +7,12 @@ import subprocess
 import tempfile
 from timeit import default_timer as timer
 
-# TMP
-from nanome._internal._structure._io._pdb.save import Options as PDBOptions
-from nanome._internal._structure._io._sdf.save import Options as SDFOptions
+from nanome.util.enums import NotificationTypes
+
+SDFOPTIONS = nanome.api.structure.Complex.io.SDFSaveOptions()
+SDFOPTIONS.write_bonds = True
+PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
+PDBOPTIONS.write_bonds = True
 
 def not_dollars(line):
     return b'$$$$' != line.strip(b'\n')
@@ -28,10 +31,6 @@ class DockingCalculations():
         self._plugin = plugin
         self._request_pending = False
         self._running = False
-        self._pdb_options = PDBOptions()
-        self._pdb_options.write_bonds = True
-        self._sdf_options = SDFOptions()
-        self._sdf_options.write_bonds = True
 
     def initialize(self):
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
@@ -45,11 +44,11 @@ class DockingCalculations():
         self.initialize()
         
         # Save all input files
-        receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
+        receptor.io.to_pdb(self._protein_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
-        ligands.io.to_sdf(self._ligands_input.name, self._sdf_options)
+        ligands.io.to_sdf(self._ligands_input.name, SDFOPTIONS)
         nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
-        site.io.to_sdf(self._site_input.name, self._sdf_options)
+        site.io.to_sdf(self._site_input.name, SDFOPTIONS)
         nanome.util.Logs.debug("Saved SDF", self._site_input.name)
 
         self._exhaustiveness = exhaustiveness
@@ -74,10 +73,11 @@ class DockingCalculations():
             self._docking_finished()
 
     def _start_docking(self):
+        exe_path = os.path.join(os.path.dirname(__file__), 'smina')
         if self._scoring:
-            smina_args = ['./smina', '--autobox_ligand', self._site_input.name, '--score_only', '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', self._ligand_output.name]
+            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '--score_only', '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', self._ligand_output.name]
         else:
-            smina_args = ['./smina', '--autobox_ligand', self._site_input.name, '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', \
+            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', '+' + str(self._autobox)]
         
         nanome.util.Logs.debug("Run SMINA")
@@ -89,11 +89,11 @@ class DockingCalculations():
             self._request_pending = False
             self._running = False
             self._plugin.make_plugin_usable()
-            self._plugin.send_notification(nanome.util.NotificationTypes.error, "Docking error, check plugin")
+            self._plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
             return
 
         self._running = True
-        self._plugin.send_notification(nanome.util.NotificationTypes.message, "Docking started")
+        self._plugin.send_notification(NotificationTypes.message, "Docking started")
 
     def _check_docking(self):
         return self._smina_process.poll() != None
@@ -132,7 +132,7 @@ class DockingCalculations():
 
         if not self._scoring:
             self._reassemble_ligs()
-        docked_ligands = nanome.structure.Complex.io.from_sdf(self._ligand_output.name)
+        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._ligand_output.name)
         nanome.util.Logs.debug("Read SDF", self._ligand_output.name)
 
         if not self._scoring:
@@ -161,4 +161,4 @@ class DockingCalculations():
         os.remove(self._ligand_output.name)
         os.remove(self._log_file.name)
 
-        self._plugin.send_notification(nanome.util.NotificationTypes.success, "Docking finished")
+        self._plugin.send_notification(NotificationTypes.success, "Docking finished")

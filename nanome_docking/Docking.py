@@ -1,7 +1,7 @@
 import nanome
-from _DockingCalculations import DockingCalculations as Smina
-from _DockingCalculationsAutodock4 import DockingCalculations as Autodock4
-from _DockingMenu import DockingMenu
+from ._DockingCalculations import DockingCalculations as Smina
+from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
+from ._DockingMenu import DockingMenu
 import sys
 from nanome.util import Logs
 
