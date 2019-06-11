@@ -102,17 +102,24 @@ class DockingCalculations():
                 for line in results.splitlines():
                     nanome.util.Logs.debug(line.decode("utf-8"))
             else:
+                error = False
                 for line in errors.splitlines():
-                    nanome.util.Logs.error(line.decode("utf-8"))
-                self._preparation_pending = False
-                self._parameters_preparation_pending = False
-                self._grid_pending = False
-                self._docking_pending = False
-                self._bond_pending = False
-                self._running = False
-                self._plugin.make_plugin_usable()
-                nanome.util.Logs.error("Error. Abort docking")
-                return True
+                    str = line.decode("utf-8")
+                    if "warning" in str.lower():
+                        nanome.util.Logs.warning(str)
+                    else:
+                        nanome.util.Logs.error(str)
+                        error = True
+                if error:
+                    self._preparation_pending = False
+                    self._parameters_preparation_pending = False
+                    self._grid_pending = False
+                    self._docking_pending = False
+                    self._bond_pending = False
+                    self._running = False
+                    self._plugin.make_plugin_usable()
+                    nanome.util.Logs.error("Error. Abort docking")
+                    return True
         except:
             pass
         return False
@@ -121,8 +128,8 @@ class DockingCalculations():
 
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['py', '-2.5', 'prepare_ligand4.py', '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['py', '-2.5', 'prepare_receptor4.py', '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
+        lig_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
         
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
@@ -148,8 +155,8 @@ class DockingCalculations():
 
     def _start_parameters_preparation(self):
         # Awful situation here
-        grid_args = ['py', '-2.5', 'prepare_gpf4.py', '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
-        dock_args = ['py', '-2.5', 'prepare_dpf42.py', '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
+        grid_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
+        dock_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
         
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
