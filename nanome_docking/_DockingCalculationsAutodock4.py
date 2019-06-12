@@ -107,10 +107,10 @@ class DockingCalculations():
                     str = line.decode("utf-8")
                     if "warning" in str.lower():
                         nanome.util.Logs.warning(str)
-                    else:
+                    elif str.trim() != "":
                         nanome.util.Logs.error(str)
                         error = True
-                if error:
+                if error == True:
                     self._preparation_pending = False
                     self._parameters_preparation_pending = False
                     self._grid_pending = False
