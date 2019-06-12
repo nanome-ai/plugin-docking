@@ -3,9 +3,10 @@ from ._DockingCalculations import DockingCalculations as Smina
 from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingMenu import DockingMenu
 import sys
-from nanome.util import Logs
 
 __metaclass__ = type
+
+
 class Docking(nanome.PluginInstance):
     def __init__(self):
         self._menu = DockingMenu(self)
@@ -54,13 +55,17 @@ class Docking(nanome.PluginInstance):
 
         def on_complexes_received(complexes):
             receptor = complexes[0]
+            self._receptor = receptor
+            Docking.convert_atoms_to_absolute_position(receptor)
             starting_lig_idx = 1
             site = None
             if has_site:
                 site = complexes[1]
+                Docking.convert_atoms_to_absolute_position(site)
                 starting_lig_idx = 2
             ligands = nanome.structure.Complex()
             for ligand in complexes[starting_lig_idx:]:
+                Docking.convert_atoms_to_absolute_position(ligand)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
             self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only, self._menu._autobox_size)
@@ -68,32 +73,50 @@ class Docking(nanome.PluginInstance):
         if self._menu._run_button.unusable == True:
             return
         self._menu.make_plugin_usable(False)
+
         request_list = [receptor.index]
         if has_site:
             request_list.append(site.index)
         request_list += [x.index for x in ligand_list]
         self.request_complexes(request_list, on_complexes_received)
 
+    @staticmethod
+    def convert_atoms_to_absolute_position(complex):
+        mat = complex.transform.get_complex_to_workspace_matrix()
+        for atom in complex.atoms:
+            atom.molecular.position = mat * atom.molecular.position
+
+    @staticmethod
+    def convert_atoms_to_relative_position(complex, reference):
+        mat = reference.transform.get_workspace_to_complex_matrix()
+        for atom in complex.atoms:
+            atom.molecular.position = mat * atom.molecular.position
+
     # Function called every update tick of the Plugin
     def update(self):
         self._calculations.update()
 
     def add_result_to_workspace(self, result):
+        for complex in result:
+            Docking.convert_atoms_to_relative_position(complex, self._receptor)
         self.add_to_workspace(result)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)
+
 
 class SminaDocking(Docking):
     def __init__(self):
         super(SminaDocking, self).__init__()
         self._calculations = Smina(self)
 
+
 class Autodock4Docking(Docking):
     def __init__(self):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
         self._autobox = False
+
 
 def main():
     name = None
@@ -109,11 +132,11 @@ def main():
         nanome.util.Logs.error("Please pass the docking software to use as an argument: smina|autodock4")
         sys.exit(1)
 
-
     # Create the plugin, register Docking as the class to instantiate, and start listening
     plugin = nanome.Plugin(name + " Docking", "Run docking using " + name + ". Lets user choose the receptor, ligands, and diverse options", "Docking", True)
     plugin.set_plugin_class(cl)
     plugin.run('127.0.0.1', 8888)
+
 
 if __name__ == "__main__":
     main()
