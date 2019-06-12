@@ -55,6 +55,7 @@ class Docking(nanome.PluginInstance):
 
         def on_complexes_received(complexes):
             receptor = complexes[0]
+            self._receptor = receptor
             Docking.convert_atoms_to_absolute_position(receptor)
             starting_lig_idx = 1
             site = None
@@ -77,7 +78,7 @@ class Docking(nanome.PluginInstance):
         if has_site:
             request_list.append(site.index)
         request_list += [x.index for x in ligand_list]
-        self.request_complexes(request_list, self.on_complexes_received)
+        self.request_complexes(request_list, on_complexes_received)
 
     @staticmethod
     def convert_atoms_to_absolute_position(complex):
@@ -86,8 +87,8 @@ class Docking(nanome.PluginInstance):
             atom.molecular.position = mat * atom.molecular.position
 
     @staticmethod
-    def convert_atoms_to_relative_position(complex):
-        mat = complex.transform.get_workspace_to_complex_matrix()
+    def convert_atoms_to_relative_position(complex, reference):
+        mat = reference.transform.get_workspace_to_complex_matrix()
         for atom in complex.atoms:
             atom.molecular.position = mat * atom.molecular.position
 
@@ -97,7 +98,7 @@ class Docking(nanome.PluginInstance):
 
     def add_result_to_workspace(self, result):
         for complex in result:
-            Docking.convert_atoms_to_relative_position(complex)
+            Docking.convert_atoms_to_relative_position(complex, self._receptor)
         self.add_to_workspace(result)
 
     def display_scoring_result(self, result):
