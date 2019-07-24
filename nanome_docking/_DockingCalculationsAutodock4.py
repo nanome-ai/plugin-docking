@@ -1,14 +1,9 @@
 import nanome
-import gzip
-import itertools
-import operator
 import os
 import subprocess
 import tempfile
 import re
 from timeit import default_timer as timer
-
-from nanome.util import Logs
 
 # TMP
 from nanome._internal._structure._io._pdb.save import Options as PDBOptions
@@ -130,7 +125,7 @@ class DockingCalculations():
         # Awful situation here
         lig_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
         rec_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
-        
+
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
         self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -157,7 +152,7 @@ class DockingCalculations():
         # Awful situation here
         grid_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
         dock_args = ['py', '-2.5', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
-        
+
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
         self._grid_process = subprocess.Popen(grid_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -195,7 +190,7 @@ class DockingCalculations():
         name_log = full_name_log[delimiter_log + 1:]
 
         args = ['autogrid4', '-p', name, '-l', name_log]
-        
+
         nanome.util.Logs.debug("Start Autogrid")
         self._start_timer = timer()
         self._autogrid_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
@@ -228,7 +223,7 @@ class DockingCalculations():
         name_log = full_name_log[delimiter_log + 1:]
 
         args = ['autodock4', '-p', name_input, '-l', name_log]
-        
+
         nanome.util.Logs.debug("Start Autodock")
         self._start_timer = timer()
         self._autodock_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
@@ -253,9 +248,16 @@ class DockingCalculations():
                     if str.startswith('ROOT') or str.startswith('ENDROOT'):
                         continue
                     str = str.replace('+', ' ')
-                    destination_file.write(str)
                     if not str.endswith('\n'):
-                        destination_file.write('\n')
+                        str += '\n'
+                    str = re.sub("([0-9]{3}) HD *\n", r"\1 H \n", str)
+                    str = re.sub("([0-9]{3}) N.*A *\n", r"\1 N \n", str)
+                    str = re.sub("([0-9]{3}) O.*A *\n", r"\1 O \n", str)
+                    str = re.sub("([0-9]{3}) S.*A *\n", r"\1 S \n", str)
+                    str = re.sub("([0-9]{3}) A.* *\n", r"\1 C \n", str)
+                    str = re.sub("([0-9]{3} [A-G][a-g]) \n", r"\1\n", str)
+                    str = re.sub("([0-9]{3}) ([A-G][a-g])\n", r"\1\2\n", str)
+                    destination_file.write(str)
 
         self._running = False
         self._docking_pending = False
@@ -265,7 +267,7 @@ class DockingCalculations():
 
     def _start_bonds(self):
         args = ['obabel', '-ipdb', self._ligands_output.name, '-osdf', '-O' + self._bond_output.name]
-        
+
         nanome.util.Logs.debug("Start Bonds")
         self._start_timer = timer()
         self._obabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
