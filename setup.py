@@ -6,7 +6,7 @@ README = (pathlib.Path(__file__).parent / "README.md").read_text()
 setup(
 	name = 'nanome-docking',
 	packages=find_packages(),
-	version = '0.1.1',
+	version = '0.1.2',
 	license='MIT',
 	description = 'Nanome Plugin to dock ligands to a receptor',
 	long_description = README,
