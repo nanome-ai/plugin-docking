@@ -5,6 +5,7 @@ import operator
 import os
 import subprocess
 import tempfile
+import stat
 from timeit import default_timer as timer
 
 from nanome.util.enums import NotificationTypes
@@ -13,6 +14,12 @@ SDFOPTIONS = nanome.api.structure.Complex.io.SDFSaveOptions()
 SDFOPTIONS.write_bonds = True
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
+
+SMINA_PATH = os.path.join(os.path.dirname(__file__), 'smina')
+try:
+    os.chmod(SMINA_PATH, stat.S_IXGRP | stat.S_IEXEC)
+except:
+    pass
 
 def not_dollars(line):
     return b'$$$$' != line.strip(b'\n')
@@ -42,7 +49,7 @@ class DockingCalculations():
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
         self.initialize()
-        
+
         # Save all input files
         receptor.io.to_pdb(self._protein_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
@@ -79,13 +86,13 @@ class DockingCalculations():
         else:
             smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', '+' + str(self._autobox)]
-        
+
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
-            nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions")
+            nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions. Path:", SMINA_PATH)
             self._request_pending = False
             self._running = False
             self._plugin.make_plugin_usable()
