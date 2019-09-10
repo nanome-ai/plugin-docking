@@ -1,7 +1,9 @@
 import nanome
 from ._DockingCalculations import DockingCalculations as Smina
 from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
+from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
 from ._DockingMenu import DockingMenu
+from ._DockingMenuRhodium import DockingMenuRhodium
 import sys
 
 __metaclass__ = type
@@ -9,7 +11,7 @@ __metaclass__ = type
 
 class Docking(nanome.PluginInstance):
     def __init__(self):
-        self._menu = DockingMenu(self)
+        self._menu = None
         self._calculations = None
         self._autobox = True
 
@@ -23,10 +25,10 @@ class Docking(nanome.PluginInstance):
     # Function called when user clicks on the "Run" button in Nanome
     def on_run(self):
         menu = self._menu
-        if menu._selected_receptor == None or menu._selected_site == None or menu._selected_ligands == []:
+        if menu.is_ready_for_docking():
             self.open_menu()
         else:
-            self.run_docking(menu._selected_receptor[1], menu._selected_ligands, menu._selected_site[1])
+            self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
 
     def on_advanced_settings(self):
         nanome.util.Logs.debug("Advanced Settings")
@@ -50,7 +52,7 @@ class Docking(nanome.PluginInstance):
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
-    def run_docking(self, receptor, ligand_list, site):
+    def run_docking(self, receptor, ligands, site, params):
         has_site = site != None
 
         def on_complexes_received(complexes):
@@ -68,7 +70,7 @@ class Docking(nanome.PluginInstance):
                 Docking.convert_atoms_to_absolute_position(ligand)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
-            self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only, self._menu._autobox_size)
+            self._calculations.start_docking(receptor, ligands, site, params)
 
         if self._menu._run_button.unusable == True:
             return
@@ -77,7 +79,7 @@ class Docking(nanome.PluginInstance):
         request_list = [receptor.index]
         if has_site:
             request_list.append(site.index)
-        request_list += [x.index for x in ligand_list]
+        request_list += [x.index for x in ligands]
         self.request_complexes(request_list, on_complexes_received)
 
     @staticmethod
@@ -109,13 +111,21 @@ class SminaDocking(Docking):
     def __init__(self):
         super(SminaDocking, self).__init__()
         self._calculations = Smina(self)
+        self._menu = DockingMenu(self)
 
 
 class Autodock4Docking(Docking):
     def __init__(self):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
+        self._menu = DockingMenu(self)
         self._autobox = False
+
+class RhodiumDocking(Docking):
+    def __init__(self):
+        super(RhodiumDocking, self).__init__()
+        self._calculations = Rhodium(self)
+        self._menu = DockingMenuRhodium(self)
 
 
 def main():
@@ -128,8 +138,11 @@ def main():
         elif arg == "autodock4":
             name = "Autodock 4"
             cl = Autodock4Docking
+        elif arg == "rhodium":
+            name = "Rhodium"
+            cl = RhodiumDocking
     if name == None:
-        nanome.util.Logs.error("Please pass the docking software to use as an argument: smina|autodock4")
+        nanome.util.Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
         sys.exit(1)
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
