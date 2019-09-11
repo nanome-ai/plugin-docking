@@ -16,45 +16,85 @@ class DockingCalculations():
 
     def start_docking(self, receptor, ligands, site, params):
         self.initialize()
-
-        receptor.io.to_pdb(self._protein_input.name)
-        nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
-        ligands.io.to_sdf(self._ligands_input.name)
-        nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
-
+        self._ligands = ligands
         self._receptor = receptor
         self._params = params
+        self.prepare_receptor(receptor)
 
-        # Start docking process
-        self._start_docking()
+    def update(self):
+        return
 
     def initialize(self):
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        self._protein_converted_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
+        self._ligands_converted_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
         self._docking_output = tempfile.NamedTemporaryFile()
         self._docking_output.close()
 
     def clean_files(self, docking_result):
+        self._protein_input.close()
+        self._protein_converted_input.close()
+        self._ligands_input.close()
+        self._ligands_converted_input.close()
         os.remove(self._protein_input.name)
+        os.remove(self._protein_converted_input.name)
         os.remove(self._ligands_input.name)
+        os.remove(self._ligands_converted_input.name)
         os.remove(self._docking_output.name + ".csv")
         for entry in docking_result:
             os.remove(entry[0])
         pass
 
-    def update(self):
-        return
+    def prepare_receptor(self, receptor):
+        residues_to_remove = []
+        for residue in receptor.residues:
+            if residue.name == "HOH":
+                residues_to_remove.append(residue)
+
+        for residue in residues_to_remove:
+            residue.parent.remove_residue(residue)
+
+        receptor.io.to_pdb(self._protein_input.name)
+
+        proc = Process()
+        proc.executable_path = 'obabel'
+        proc.args = ['-ipdb', self._protein_input.name,
+            '-opdb', '-O' + self._protein_converted_input.name, '-h']
+        proc.on_done = self.receptor_ready
+        proc.start()
+
+    def receptor_ready(self, return_value):
+        self._ligands.io.to_sdf(self._ligands_input.name)
+        self._start_conversion()
+
+    def _start_conversion(self):
+        proc = Process()
+        proc.executable_path = 'obabel'
+        proc.args = ['-isdf', self._ligands_input.name,
+            '-osdf', '-O' + self._ligands_converted_input.name]
+        proc.on_done = self._conversion_finished
+        proc.start()
+
+    def _conversion_finished(self, return_value):
+        self._start_docking()
 
     def _start_docking(self):
-        self.__proc = Process()
-        self.__proc.executable_path = RHODIUM_PATH
-        self.__proc.args = [self._protein_input.name, self._ligands_input.name,
+        proc = Process()
+        proc.executable_path = RHODIUM_PATH
+        proc.args = [self._protein_converted_input.name, self._ligands_converted_input.name,
             '--outfile', self._docking_output.name,
             '--refine', str(self._params['poses']),
             '--resolution', str(self._params['grid_resolution']),
             '--refine', str(self._params['poses']),
             '--nr', str(self._params['rotamers'])]
-        self.__proc.output_text = True
+        proc.output_text = True
+        proc.on_output = self._on_docking_output
+        proc.on_error = self._on_docking_error
+        proc.on_done = self._docking_finished
+        proc.cwd_path = os.path.dirname(__file__)
+
+        Logs.debug("Start docking:", proc.args)
 
         if self._params['ignore_hetatoms']:
             args += ['--ignore_pdb_hetatm']
@@ -62,9 +102,7 @@ class DockingCalculations():
         nanome.util.Logs.debug("Run Rhodium")
         self._start_timer = timer()
         try:
-            self.__proc.on_error = self._docking_error
-            self.__proc.on_done = self._docking_finished
-            self.__proc.start()
+            proc.start()
         except:
             nanome.util.Logs.error("Couldn't execute Rhodium, please check if executable is in the plugin folder and has permissions. Path:", exe_path, traceback.format_exc())
             self._plugin.make_plugin_usable()
@@ -73,7 +111,11 @@ class DockingCalculations():
 
         self._plugin.send_notification(NotificationTypes.message, "Docking started")
 
-    def _docking_error(self, error):
+    def _on_docking_output(self, output):
+        Logs.debug("Docking output:", output)
+        pass
+
+    def _on_docking_error(self, error):
         Logs.error("Docking error:", error)
 
     def read_csv(self):
