@@ -13,6 +13,7 @@ RHODIUM_PATH = os.path.join(os.path.dirname(__file__), 'Rh_x64.exe')
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
+        self.__docking_running = False
 
     def start_docking(self, receptor, ligands, site, params):
         self.initialize()
@@ -22,7 +23,13 @@ class DockingCalculations():
         self.prepare_receptor(receptor)
 
     def update(self):
-        return
+        if self.__docking_running == False:
+            return
+
+        self.__process.communicate()
+        if self.__process.poll() != None:
+            self.__docking_running = False
+            self._docking_finished()
 
     def initialize(self):
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
@@ -43,6 +50,7 @@ class DockingCalculations():
         os.remove(self._ligands_converted_input.name)
         os.remove(self._docking_output.name + ".csv")
         for entry in docking_result:
+            os.chmod(entry[0], 0o777)
             os.remove(entry[0])
         pass
 
@@ -80,29 +88,21 @@ class DockingCalculations():
         self._start_docking()
 
     def _start_docking(self):
-        proc = Process()
-        proc.executable_path = RHODIUM_PATH
-        proc.args = [self._protein_converted_input.name, self._ligands_converted_input.name,
+        args = [RHODIUM_PATH, self._protein_converted_input.name, self._ligands_converted_input.name,
             '--outfile', self._docking_output.name,
             '--refine', str(self._params['poses']),
             '--resolution', str(self._params['grid_resolution']),
             '--refine', str(self._params['poses']),
             '--nr', str(self._params['rotamers'])]
-        proc.output_text = True
-        proc.on_output = self._on_docking_output
-        proc.on_error = self._on_docking_error
-        proc.on_done = self._docking_finished
-        proc.cwd_path = os.path.dirname(__file__)
-
-        Logs.debug("Start docking:", proc.args)
 
         if self._params['ignore_hetatoms']:
             args += ['--ignore_pdb_hetatm']
 
-        nanome.util.Logs.debug("Run Rhodium")
+        Logs.debug("Start Rhodium:", args)
+
         self._start_timer = timer()
         try:
-            proc.start()
+            self.__process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=os.path.dirname(__file__))
         except:
             nanome.util.Logs.error("Couldn't execute Rhodium, please check if executable is in the plugin folder and has permissions. Path:", exe_path, traceback.format_exc())
             self._plugin.make_plugin_usable()
@@ -110,6 +110,7 @@ class DockingCalculations():
             return
 
         self._plugin.send_notification(NotificationTypes.message, "Docking started")
+        self.__docking_running = True
 
     def _on_docking_output(self, output):
         Logs.debug("Docking output:", output)
@@ -135,8 +136,12 @@ class DockingCalculations():
     def assemble_result(self, docking_output):
         docked_ligands = nanome.api.structure.Complex()
         for entry in docking_output:
-            complex = nanome.structure.Complex.io.from_sdf(path=entry[0])
-            docked_ligands.add_molecule(complex.molecules[0])
+            complex = nanome.structure.Complex.io.from_pdb(path=entry[0])
+            molecule = next(complex.molecules)
+            molecule._associated['score'] = entry[1]
+            molecule._associated['affinity'] = entry[2]
+            molecule._associated['pose_population'] = entry[3]
+            docked_ligands.add_molecule(molecule)
 
         def bonds_added(complex_arr):
             docked_ligands_bonded = complex_arr[0]
@@ -153,7 +158,7 @@ class DockingCalculations():
         self._plugin.add_bonds([docked_ligands], bonds_added)
 
 
-    def _docking_finished(self, return_value):
+    def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
 
