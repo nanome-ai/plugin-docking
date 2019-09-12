@@ -15,13 +15,20 @@ class DockingCalculations():
         self._plugin = plugin
         self.__docking_running = False
 
+    # Entry point, where everything starts
     def start_docking(self, receptor, ligands, site, params):
+        # Create temporary files
         self.initialize()
+
         self._ligands = ligands
         self._receptor = receptor
         self._params = params
+
         self.prepare_receptor(receptor)
 
+    # Docking process needs to be check manually in an update loop for now
+    # This is due to a current bug with the plugin system Process API with process outputting a lot of text
+    # In the future, no update loop will be needed to check when Rhodium has ended
     def update(self):
         if self.__docking_running == False:
             return
@@ -55,6 +62,7 @@ class DockingCalculations():
         pass
 
     def prepare_receptor(self, receptor):
+        # Remove waters
         residues_to_remove = []
         for residue in receptor.residues:
             if residue.name == "HOH":
@@ -63,8 +71,10 @@ class DockingCalculations():
         for residue in residues_to_remove:
             residue.parent.remove_residue(residue)
 
+        # Write pdb file for openbabel
         receptor.io.to_pdb(self._protein_input.name)
 
+        # Use openbabel to add hydrogens
         proc = Process()
         proc.executable_path = 'obabel'
         proc.args = ['-ipdb', self._protein_input.name,
@@ -72,11 +82,14 @@ class DockingCalculations():
         proc.on_done = self.receptor_ready
         proc.start()
 
+    # Callback when obabel is done
     def receptor_ready(self, return_value):
         self._ligands.io.to_sdf(self._ligands_input.name)
         self._start_conversion()
 
     def _start_conversion(self):
+        # Temporary solution to convert sdf V3000 to V2000
+        # A V2000 writer will be added to the plugin system
         proc = Process()
         proc.executable_path = 'obabel'
         proc.args = ['-isdf', self._ligands_input.name,
@@ -88,6 +101,7 @@ class DockingCalculations():
         self._start_docking()
 
     def _start_docking(self):
+        # Start process manually, because of problem described above Update function
         args = [RHODIUM_PATH, self._protein_converted_input.name, self._ligands_converted_input.name,
             '--outfile', self._docking_output.name,
             '--refine', str(self._params['poses']),
@@ -104,20 +118,13 @@ class DockingCalculations():
         try:
             self.__process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=os.path.dirname(__file__))
         except:
-            nanome.util.Logs.error("Couldn't execute Rhodium, please check if executable is in the plugin folder and has permissions. Path:", exe_path, traceback.format_exc())
+            nanome.util.Logs.error("Couldn't execute Rhodium, please check if executable is in the plugin folder and has permissions. Path:", RHODIUM_PATH, traceback.format_exc())
             self._plugin.make_plugin_usable()
             self._plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
             return
 
         self._plugin.send_notification(NotificationTypes.message, "Docking started")
         self.__docking_running = True
-
-    def _on_docking_output(self, output):
-        Logs.debug("Docking output:", output)
-        pass
-
-    def _on_docking_error(self, error):
-        Logs.error("Docking error:", error)
 
     def read_csv(self):
         result = []
@@ -134,13 +141,18 @@ class DockingCalculations():
         return result
 
     def assemble_result(self, docking_output):
+        # docking_output contains the lines from the csv file
+
         docked_ligands = nanome.api.structure.Complex()
         for entry in docking_output:
+            # Read complex from pdb and extract molecule from it
             complex = nanome.structure.Complex.io.from_pdb(path=entry[0])
             molecule = next(complex.molecules)
+            # Write docking information in the molecule
             molecule._associated['score'] = entry[1]
             molecule._associated['affinity'] = entry[2]
             molecule._associated['pose_population'] = entry[3]
+            # Add it to the result complex
             docked_ligands.add_molecule(molecule)
 
         def bonds_added(complex_arr):
@@ -155,16 +167,18 @@ class DockingCalculations():
             nanome.util.Logs.debug("Update workspace")
             self._plugin.add_result_to_workspace([docked_ligands_bonded])
 
-        self._plugin.add_bonds([docked_ligands], bonds_added)
+            # Docking process is over, clean files and make plugin available again
+            self.clean_files(docking_output)
+            self._plugin.make_plugin_usable()
+            self._plugin.send_notification(NotificationTypes.success, "Docking finished")
 
+        # Add bonds to the result complex
+        self._plugin.add_bonds([docked_ligands], bonds_added)
 
     def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
 
+        # When Rhodium finished, read csv, then assemble result ligands
         docking_output = self.read_csv()
         self.assemble_result(docking_output)
-
-        self.clean_files(docking_output)
-        self._plugin.make_plugin_usable()
-        self._plugin.send_notification(NotificationTypes.success, "Docking finished")

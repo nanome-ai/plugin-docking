@@ -15,28 +15,34 @@ class Docking(nanome.PluginInstance):
         self._calculations = None
         self._autobox = True
 
-    # Function called when Nanome connects to the Plugin, after its instantiation
+    # Called when Nanome connects to the Plugin, after its instantiation
     def start(self):
         self._menu.build_menu()
         if self._autobox == False:
             self._menu.disable_autobox()
+        # Request shallow complex (name, position, orientation), to display them in a list
         self.request_complex_list(self.on_complex_list_received)
 
-    # Function called when user clicks on the "Run" button in Nanome
+    # Called when user clicks on the "Run" button in Nanome
     def on_run(self):
         menu = self._menu
-        if menu.is_ready_for_docking():
+        # If menu doesn't have Receptor and Ligands selected, open it
+        # Else, just start docking
+        if menu.is_ready_for_docking() == False:
             self.open_menu()
         else:
             self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
 
+    # Called when user click on the "Advanced Settings" button in Nanome
     def on_advanced_settings(self):
         nanome.util.Logs.debug("Advanced Settings")
         self.open_menu()
 
+    # Called when a complex is added to the workspace in Nanome
     def on_complex_added(self):
         self.request_complex_list(self.on_complex_list_received)
 
+    # Called when a complex is removed from the workspace in Nanome
     def on_complex_removed(self):
         self.request_complex_list(self.on_complex_list_received)
 
@@ -48,14 +54,19 @@ class Docking(nanome.PluginInstance):
     def make_plugin_usable(self):
         self._menu.make_plugin_usable()
 
-    # Function called when Nanome returns the complex list after a request
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
     def run_docking(self, receptor, ligands, site, params):
+        # Change the plugin to be "unusable"
+        if self._menu._run_button.unusable == True:
+            return
+        self._menu.make_plugin_usable(False)
+
         has_site = site != None
 
         def on_complexes_received(complexes):
+            # When deep complexes data are received, unpack them and prepare ligand for docking
             receptor = complexes[0]
             self._receptor = receptor
             Docking.convert_atoms_to_absolute_position(receptor)
@@ -72,10 +83,7 @@ class Docking(nanome.PluginInstance):
                     ligands.add_molecule(molecule)
             self._calculations.start_docking(receptor, ligands, site, params)
 
-        if self._menu._run_button.unusable == True:
-            return
-        self._menu.make_plugin_usable(False)
-
+        # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
         if has_site:
             request_list.append(site.index)
@@ -94,7 +102,7 @@ class Docking(nanome.PluginInstance):
         for atom in complex.atoms:
             atom.molecular.position = mat * atom.molecular.position
 
-    # Function called every update tick of the Plugin
+    # Called every update tick of the Plugin
     def update(self):
         self._calculations.update()
 
