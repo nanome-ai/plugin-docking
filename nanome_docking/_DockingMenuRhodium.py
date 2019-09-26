@@ -8,9 +8,10 @@ class DockingMenuRhodium():
         self._plugin = docking_plugin
         self._selected_receptor = None
         self._selected_ligands = []
-        self._grid_resolution = 1.4
-        self._poses = 96
-        self._rotamer = 3
+        self._selected_site = None
+        self._grid_resolution = 2.5
+        self._poses = 128
+        self._rotamer = 6
         self._run_button = None
         self._align = True
         self._ignore_hetatoms = False
@@ -29,11 +30,14 @@ class DockingMenuRhodium():
         return ligands
 
     def get_site(self):
-        return None
+        if self._selected_site == None:
+            return None
+        return self._selected_site.complex
 
     def get_params(self):
         return { "receptor":self._selected_receptor,
                 "ligands":self._selected_ligands,
+                "site":self._selected_site,
                 "grid_resolution":self._grid_resolution,
                 "poses":self._poses,
                 "rotamers":self._rotamer,
@@ -44,7 +48,7 @@ class DockingMenuRhodium():
     def _run_docking(self):
         if self._selected_receptor == None or len(self._selected_ligands) == 0:
             nanome.util.Logs.warning("Trying to run docking without having one receptor, and at least one ligand selected")
-            self._plugin.send_notification(NotificationTypes.error, "Please select a receptor, and at least one ligand")
+            self._plugin.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a receptor, and at least one ligand")
             return
         ligands = []
         for item in self._selected_ligands:
@@ -80,18 +84,40 @@ class DockingMenuRhodium():
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
 
+    def site_pressed(self, button):
+        lastSelected = self._selected_site
+        if lastSelected == button:
+            button.selected = False
+            self._plugin.update_content(button)
+            self._selected_site = None
+            self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+            self._plugin.update_content(self._site_checkmark)
+            return
+        elif lastSelected != None:
+            lastSelected.selected = False
+            self._plugin.update_content(lastSelected)
+        button.selected = True
+        self._selected_site = button
+        self._plugin.update_content(button)
+        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+        self._plugin.update_content(self._site_checkmark)
+
     def change_complex_list(self, complex_list):
         def complex_pressed(button):
             if self._tab.text.value_idle == "Receptor":
                 self.receptor_pressed(button)
             elif self._tab.text.value_idle == "Ligand":
                 self.ligand_pressed(button)
+            elif self._tab.text.value_idle == "Site":
+                self.site_pressed(button)
 
         self._selected_receptor = None
         self._selected_ligands = []
+        self._selected_site = None
         self._complex_list.items = []
         self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
 
         for complex in complex_list:
             clone = self._complex_item_prefab.clone()
@@ -156,6 +182,13 @@ class DockingMenuRhodium():
                         btn.selected = True
                     else:
                         btn.selected = False
+            elif button.text.value_idle == "Site":
+                for item in self._complex_list.items:
+                    btn = item.get_children()[0].get_content()
+                    if btn == self._selected_site:
+                        btn.selected = True
+                    else:
+                        btn.selected = False
 
             self._plugin.update_menu(self._menu)
 
@@ -182,10 +215,15 @@ class DockingMenuRhodium():
 
         # images
         none_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        logo_path = os.path.join(os.path.dirname(__file__), 'swri_logo.png')
         self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
         self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
         self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image(none_path)
         self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
+        self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image(none_path)
+        self._site_checkmark.scaling_option = Image.ScalingOptions.fit
+        logo_image = menu.root.find_node("LogoImage", True).add_new_image(logo_path)
+        logo_image.scaling_option = Image.ScalingOptions.fit
 
         # texts
         txt1 = menu.root.find_node("GridResolutionInput", True).get_content()
@@ -206,6 +244,9 @@ class DockingMenuRhodium():
         ligand_btn = menu.root.find_node("LigandButton", True).get_content()
         ligand_btn.register_pressed_callback(tab_button_pressed_callback)
 
+        site_btn = menu.root.find_node("SiteButton", True).get_content()
+        site_btn.register_pressed_callback(tab_button_pressed_callback)
+
         align_btn = menu.root.find_node("AlignButton", True).get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
@@ -218,6 +259,7 @@ class DockingMenuRhodium():
         self._complex_list = menu.root.find_node("ComplexList", True).get_content()
         self._receptor_tab = menu.root.find_node("ReceptorButton", True).get_content()
         self._ligand_tab = menu.root.find_node("LigandButton", True).get_content()
+        self._site_tab = menu.root.find_node("SiteButton", True).get_content()
 
         # Update the menu
         self._menu = menu

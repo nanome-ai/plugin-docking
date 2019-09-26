@@ -22,6 +22,7 @@ class DockingCalculations():
 
         self._ligands = ligands
         self._receptor = receptor
+        self._site = site
         self._params = params
 
         self.prepare_receptor(receptor)
@@ -42,7 +43,7 @@ class DockingCalculations():
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._protein_converted_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
-        self._ligands_converted_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
+        self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._docking_output = tempfile.NamedTemporaryFile()
         self._docking_output.close()
 
@@ -50,11 +51,11 @@ class DockingCalculations():
         self._protein_input.close()
         self._protein_converted_input.close()
         self._ligands_input.close()
-        self._ligands_converted_input.close()
+        self._site_input.close()
         os.remove(self._protein_input.name)
         os.remove(self._protein_converted_input.name)
         os.remove(self._ligands_input.name)
-        os.remove(self._ligands_converted_input.name)
+        os.remove(self._site_input.name)
         os.remove(self._docking_output.name + ".csv")
         for entry in docking_result:
             os.chmod(entry[0], 0o777)
@@ -85,24 +86,13 @@ class DockingCalculations():
     # Callback when obabel is done
     def receptor_ready(self, return_value):
         self._ligands.io.to_sdf(self._ligands_input.name)
-        self._start_conversion()
-
-    def _start_conversion(self):
-        # Temporary solution to convert sdf V3000 to V2000
-        # A V2000 writer will be added to the plugin system
-        proc = Process()
-        proc.executable_path = 'obabel'
-        proc.args = ['-isdf', self._ligands_input.name,
-            '-osdf', '-O' + self._ligands_converted_input.name]
-        proc.on_done = self._conversion_finished
-        proc.start()
-
-    def _conversion_finished(self, return_value):
+        if self._site != None:
+            self._site.io.to_sdf(self._site_input.name)
         self._start_docking()
 
     def _start_docking(self):
         # Start process manually, because of problem described above Update function
-        args = [RHODIUM_PATH, self._protein_converted_input.name, self._ligands_converted_input.name,
+        args = [RHODIUM_PATH, self._protein_converted_input.name, self._ligands_input.name,
             '--outfile', self._docking_output.name,
             '--refine', str(self._params['poses']),
             '--resolution', str(self._params['grid_resolution']),
@@ -111,6 +101,9 @@ class DockingCalculations():
 
         if self._params['ignore_hetatoms']:
             args += ['--ignore_pdb_hetatm']
+
+        if self._site != None:
+            args += ['--usegrid', self._site_input.name]
 
         Logs.debug("Start Rhodium:", args)
 
