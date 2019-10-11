@@ -1,3 +1,5 @@
+import traceback
+
 import nanome
 import gzip
 import itertools
@@ -38,29 +40,24 @@ class DockingCalculations():
         self._plugin = plugin
         self._request_pending = False
         self._running = False
+        self._started_conversion = False
+        self._started_docking = False
 
     def initialize(self):
-        self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
+        self._receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
+        self._ligands_pdb_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
         self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
         self._docking_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf.gz")
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf")
         self._log_file = tempfile.NamedTemporaryFile(delete=False)
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
-        self.initialize()
-
-        # Save all input files
-        receptor.io.to_pdb(self._protein_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
-        ligands.io.to_sdf(self._ligands_input.name, SDFOPTIONS)
-        nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
-        site.io.to_sdf(self._site_input.name, SDFOPTIONS)
-        nanome.util.Logs.debug("Saved SDF", self._site_input.name)
-
         self._exhaustiveness = exhaustiveness
         self._modes = modes
         self._receptor = receptor
+        self._ligands = ligands
+        self._site = site
         self._align = align
         self._replace = replace
         self._scoring = scoring
@@ -68,23 +65,47 @@ class DockingCalculations():
 
         # Start docking process
         self._running = False
+        self._started_conversion = False
         self._request_pending = True
 
     def update(self):
         if self._request_pending == False:
             return
 
-        if self._running == False:
+        if not self._running and not self._started_conversion:
+            self._start_converting()
+            self._started_conversion = True
+        elif self._check_conversion() and not self._started_docking:
             self._start_docking()
+            self._started_docking = True
         elif self._check_docking():
             self._docking_finished()
+
+    def _start_converting(self):
+        self.initialize()
+         # Save all input files
+        self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
+        nanome.util.Logs.debug("Saved PDB", self._receptor_input.name)
+        self._ligands.io.to_sdf(self._ligands_input.name, SDFOPTIONS)
+        nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
+        self._site.io.to_sdf(self._site_input.name, SDFOPTIONS)
+        nanome.util.Logs.debug("Saved SDF", self._site_input.name)
+
+        args = ['obabel', '-isdf', self._ligands_input.name, '-opdb', '-O' + self._ligands_pdb_input.name]
+        self._obabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+    def _check_conversion(self):
+        poll = self._obabel_process.poll()
+        if poll == None:
+            self._obabel_process.communicate()
+        return poll != None
 
     def _start_docking(self):
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
         if self._scoring:
-            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '--score_only', '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', self._ligand_output.name]
+            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '--score_only', '-r', self._receptor_input.name, '--ligand', self._ligands_input.name, '--out', self._ligand_output.name]
         else:
-            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '-r', self._protein_input.name, '--ligand', self._ligands_input.name, '--out', \
+            smina_args = [exe_path, '--autobox_ligand', self._site_input.name, '-r', self._receptor_input.name, '--ligand', self._ligands_pdb_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', '+' + str(self._autobox)]
 
         nanome.util.Logs.debug("Run SMINA")
@@ -107,6 +128,7 @@ class DockingCalculations():
                         
     def _reassemble_ligs(self):
         generators = parse_molecules(self._docking_output.name)
+
         fout = open(self._ligand_output.name, 'w')
             
         try:
@@ -124,18 +146,16 @@ class DockingCalculations():
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
         self._request_pending = False
-        
         try:
             (results, errors) = self._smina_process.communicate()
             if len(errors) == 0:
-                for result in results:
-                    for line in result.split('\n'):
-                        nanome.util.Logs.debug(line)
+                for line in results.decode().splitlines():
+                    nanome.util.Logs.debug(line)
             else:
-                for line in errors.splitlines():
+                for line in errors.decode().splitlines():
                     nanome.util.Logs.warning(line.decode("utf-8"))
-        except:
-            pass
+        except Exception as e:
+            print(traceback.format_exc())
 
         if not self._scoring:
             self._reassemble_ligs()
@@ -146,8 +166,10 @@ class DockingCalculations():
             docked_ligands.molecular.name = "Docking"
             docked_ligands.rendering.visible = True
             if self._align == True:
-                docked_ligands.transform.position = self._receptor.transform.position
-                docked_ligands.transform.rotation = self._receptor.transform.rotation
+                mat = self._site.transform.get_complex_to_workspace_matrix()
+                docked_ligands.transform.position = self._site.transform.position
+                docked_ligands.transform.rotation = self._site.transform.rotation
+                self._site.transform.position = self._site.transform.position
                 docked_ligands.rendering.boxed = True
 
         self._plugin.make_plugin_usable()
@@ -161,7 +183,7 @@ class DockingCalculations():
         self._docking_output.close()
         self._ligand_output.close()
         self._log_file.close()
-        os.remove(self._protein_input.name)
+        os.remove(self._receptor_input.name)
         os.remove(self._ligands_input.name)
         os.remove(self._site_input.name)
         os.remove(self._docking_output.name)

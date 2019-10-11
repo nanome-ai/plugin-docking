@@ -266,10 +266,9 @@ class DockingCalculations():
     # Add Bonds
 
     def _start_bonds(self):
-        args = ['obabel', '-ipdb', self._ligands_output.name, '-osdf', '-O' + self._bond_output.name]
-
         nanome.util.Logs.debug("Start Bonds")
         self._start_timer = timer()
+        args = ['obabel', '-ipdb', self._ligands_output.name, '-osdf', '-O' + self._bond_output.name]
         self._obabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self._running = True
 
