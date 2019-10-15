@@ -70,7 +70,7 @@ class DockingCalculations():
                 residues_to_remove.append(residue)
 
         for residue in residues_to_remove:
-            residue.parent.remove_residue(residue)
+            residue.chain.remove_residue(residue)
 
         # Write pdb file for openbabel
         receptor.io.to_pdb(self._protein_input.name)
