@@ -31,25 +31,25 @@ def dprint(*msg):
         print(*msg)
 
 def not_dollars(line):
-    return b'$$$$' != line.strip(b'\n')
+    return '$$$$' != line.strip('\n')
 
 def parse_molecules(file, self):
     dprint("parsing output...")
     nanome.util.Logs.debug("Parsing output", file)
     print("file:", file)
-    with gzip.open(file) as lines:
+    with open(file) as lines:
         while True:
             block = list(itertools.takewhile(not_dollars, lines ))
             if not block:
                 break
-            yield block + [b'$$$$\n']
+            yield block + ['$$$$\n']
 
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
         self._request_pending = False
         self._running = False
-        self._started_conversion = False
+        self._structures_written = False
         self._started_docking = False
 
         dprint("flags set")
@@ -57,11 +57,11 @@ class DockingCalculations():
     def initialize(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self._receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf", dir=self.temp_dir.name)
+        self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._ligands_pdb_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf", dir=self.temp_dir.name)
-        self._docking_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf.gz", dir=self.temp_dir.name)
-        self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf", dir=self.temp_dir.name)
+        self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
+        self._docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=self.temp_dir.name)
+        self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._log_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir.name)
 
         dprint("temp files created")
@@ -79,7 +79,7 @@ class DockingCalculations():
 
         # Start docking process
         self._running = False
-        self._started_conversion = False
+        self._structures_written = False
         self._started_docking = False
         self._request_pending = True
 
@@ -90,28 +90,25 @@ class DockingCalculations():
             # dprint("request not pending, doing nothing")
             return
 
-        if not self._running and not self._started_conversion:
-            self._start_converting()
-            self._started_conversion = True
-        elif self._check_conversion() and not self._started_docking:
+        if not self._running and not self._structures_written:
+            self.write_structures_to_file()
+            self._structures_written = True
+        elif not self._started_docking:
             self._start_docking()
             self._started_docking = True
         elif self._check_docking():
             self._docking_finished()
 
-    def _start_converting(self):
+    def write_structures_to_file(self):
         dprint("beginning input file conversion...")
         self.initialize()
          # Save all input files
         self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._receptor_input.name)
-        self._ligands.io.to_sdf(self._ligands_input.name, SDFOPTIONS)
+        self._ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
-        self._site.io.to_sdf(self._site_input.name, SDFOPTIONS)
+        self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved SDF", self._site_input.name)
-
-        args = ['obabel', '-isdf', self._ligands_input.name, '-opdb', '-O' + self._ligands_pdb_input.name]
-        self._obabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
     def _check_conversion(self):
         poll = self._obabel_process.poll()
@@ -122,17 +119,27 @@ class DockingCalculations():
     def _start_docking(self):
         dprint("starting docking...")
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
+
+        receptor_input_name = os.path.join(os.path.dirname(__file__), '1OYT-receptor.pdb')
+        ligand_input_name = os.path.join(os.path.dirname(__file__), '1OYT-FSN.pdb')
+        
         if self._scoring:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--score_only', '--out', self._ligand_output.name]
         else:
-            smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_pdb_input.name, '--autobox_ligand', self._site_input.name, '--out', \
-                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
+            print("receptor:", self._receptor_input.name)
+            print("ligands:", self._ligands_input.name)
 
+            smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
+                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
+            # smina_args = [exe_path, '-r', receptor_input_name, '-l', ligand_input_name, '--autobox_ligand', ligand_input_name, '--out', \
+            #     self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            print("started smina")
         except:
+            print("uh oh.")
             nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions. Path:", SMINA_PATH)
             self._request_pending = False
             self._running = False
@@ -145,17 +152,17 @@ class DockingCalculations():
 
     def _check_docking(self):
         return self._smina_process.poll() != None
-                        
+
     def _reassemble_ligs(self):
         dprint("reassembling ligands...")
         generators = parse_molecules(self._docking_output.name, self)
-
         fout = open(self._ligand_output.name, 'w')
             
         try:
             for gen in generators:
+                print("gen:", gen)
                 for line in gen:
-                    str = line.decode("utf-8").strip('\n')
+                    str = lines.strip('\n')
                     fout.write(''.join(str))
                     fout.write('\n')
         except StopIteration:
@@ -183,9 +190,10 @@ class DockingCalculations():
             print(traceback.format_exc())
 
         if not self._scoring:
-            self._reassemble_ligs()
-        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._ligand_output.name)
-        nanome.util.Logs.debug("Read SDF", self._ligand_output.name)
+            pass
+            # self._reassemble_ligs()
+        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
+        nanome.util.Logs.debug("Read PDB", self._docking_output.name)
 
         if not self._scoring:
             docked_ligands.molecular.name = "Docking"
@@ -199,9 +207,6 @@ class DockingCalculations():
             nanome.util.Logs.debug("Update workspace")
             self._plugin.add_result_to_workspace([docked_ligands], self._align)
 
-        self._docking_output.close()
-        self._ligand_output.close()
-        self._log_file.close()
         # shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")

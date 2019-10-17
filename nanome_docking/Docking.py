@@ -79,18 +79,20 @@ class Docking(nanome.PluginInstance):
             # When deep complexes data are received, unpack them and prepare ligand for docking
             receptor = complexes[0]
             self._receptor = receptor
-            convert_atoms_to_absolute_position(receptor)
+            # convert_atoms_to_absolute_position(receptor)
+            m_workspace_to_receptor = receptor.get_workspace_to_complex_matrix()
             starting_lig_idx = 1
             site = None
             if has_site:
                 site = complexes[1]
                 self._site = site
-                self._site_wtc_mat = site.get_workspace_to_complex_matrix()
                 convert_atoms_to_absolute_position(site)
+                convert_atoms_to_relative_position(site, m_workspace_to_receptor)
                 starting_lig_idx = 2
             ligands = nanome.structure.Complex()
             for ligand in complexes[starting_lig_idx:]:
                 convert_atoms_to_absolute_position(ligand)
+                convert_atoms_to_relative_position(ligand, m_workspace_to_receptor)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
             self._calculations.start_docking(receptor, ligands, site, **params)
@@ -110,8 +112,9 @@ class Docking(nanome.PluginInstance):
         for complex in results:
             # reference = site if site != None else self._receptor
             # print("reference:", [chain.name for chain in reference.chains])
-            convert_atoms_to_relative_position(complex, self._site_wtc_mat)
-           
+            complex.position = self._receptor.position
+            complex.rotation = self._receptor.rotation
+
             if align:
                 mat = complex.get_complex_to_workspace_matrix()
                 # get global atom pos
