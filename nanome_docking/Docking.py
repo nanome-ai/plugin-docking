@@ -8,6 +8,16 @@ import sys
 
 __metaclass__ = type
 
+def convert_atoms_to_absolute_position(complex):
+    mat = complex.get_complex_to_workspace_matrix()
+    for atom in complex.atoms:
+        atom.position = mat * atom.position
+
+def convert_atoms_to_relative_position(complex, mat):
+    # mat = reference.get_workspace_to_complex_matrix()
+    for atom in complex.atoms:
+        atom.position = mat * atom.position
+
 
 class Docking(nanome.PluginInstance):
     def __init__(self):
@@ -69,18 +79,18 @@ class Docking(nanome.PluginInstance):
             # When deep complexes data are received, unpack them and prepare ligand for docking
             receptor = complexes[0]
             self._receptor = receptor
-            Docking.convert_atoms_to_absolute_position(receptor)
+            convert_atoms_to_absolute_position(receptor)
             starting_lig_idx = 1
             site = None
             if has_site:
                 site = complexes[1]
                 self._site = site
                 self._site_wtc_mat = site.get_workspace_to_complex_matrix()
-                Docking.convert_atoms_to_absolute_position(site)
+                convert_atoms_to_absolute_position(site)
                 starting_lig_idx = 2
             ligands = nanome.structure.Complex()
             for ligand in complexes[starting_lig_idx:]:
-                Docking.convert_atoms_to_absolute_position(ligand)
+                convert_atoms_to_absolute_position(ligand)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
             self._calculations.start_docking(receptor, ligands, site, **params)
@@ -92,18 +102,6 @@ class Docking(nanome.PluginInstance):
         request_list += [x.index for x in ligands]
         self.request_complexes(request_list, on_complexes_received)
 
-    @staticmethod
-    def convert_atoms_to_absolute_position(complex):
-        mat = complex.get_complex_to_workspace_matrix()
-        for atom in complex.atoms:
-            atom.position = mat * atom.position
-
-    @staticmethod
-    def convert_atoms_to_relative_position(complex, mat):
-        # mat = reference.get_workspace_to_complex_matrix()
-        for atom in complex.atoms:
-            atom.position = mat * atom.position
-
     # Called every update tick of the Plugin
     def update(self):
         self._calculations.update()
@@ -112,11 +110,11 @@ class Docking(nanome.PluginInstance):
         for complex in results:
             # reference = site if site != None else self._receptor
             # print("reference:", [chain.name for chain in reference.chains])
-            Docking.convert_atoms_to_relative_position(complex, self._site_wtc_mat)
-
+            convert_atoms_to_relative_position(complex, self._site_wtc_mat)
+           
             if align:
-                # get global atom pos
                 mat = complex.get_complex_to_workspace_matrix()
+                # get global atom pos
                 global_pos = [mat * atom.position for atom in complex.atoms]
                 # align bounding box
                 complex.position = self._site.position
