@@ -2,7 +2,6 @@ import traceback
 
 import nanome
 import shutil
-import gzip
 import itertools
 import operator
 import os
@@ -156,8 +155,8 @@ class DockingCalculations():
             else:
                 for line in errors.decode().splitlines():
                     nanome.util.Logs.warning(line)
-        except Exception as e:
-            nanome.util.Logs.debug(traceback.format_exc())
+        except:
+            nanome.util.Logs.warning(traceback.format_exc())
 
         if not self._scoring:
             pass
