@@ -106,16 +106,11 @@ class DockingCalculations():
     def _start_docking(self):
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
 
-        receptor_input_name = os.path.join(os.path.dirname(__file__), '1OYT-receptor.pdb')
-        ligand_input_name = os.path.join(os.path.dirname(__file__), '1OYT-FSN.pdb')
-        
         if self._scoring:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--score_only', '--out', self._ligand_output.name]
         else:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
-            # smina_args = [exe_path, '-r', receptor_input_name, '-l', ligand_input_name, '--autobox_ligand', ligand_input_name, '--out', \
-            #     self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
