@@ -60,13 +60,12 @@ class Docking(nanome.PluginInstance):
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
-    def run_docking(self, receptor, ligand_list, site):
+    def run_docking(self, receptor, ligand_list, site, params):
         has_site = site != None
 
         def on_complexes_received(complexes):
             receptor = complexes[0]
             self._receptor = receptor
-            # convert_atoms_to_absolute_position(receptor)
             m_workspace_to_receptor = receptor.get_workspace_to_complex_matrix()
             starting_lig_idx = 1
             site = None
@@ -96,8 +95,6 @@ class Docking(nanome.PluginInstance):
 
     def add_result_to_workspace(self, results, align=False):
         for complex in results:
-            # reference = site if site != None else self._receptor
-            # print("reference:", [chain.name for chain in reference.chains])
             complex.position = self._receptor.position
             complex.rotation = self._receptor.rotation
 
