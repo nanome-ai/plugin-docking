@@ -298,5 +298,6 @@ class DockingCalculations():
             docked_ligands.transform.rotation = self._receptor.transform.rotation
 
         nanome.util.Logs.debug("Update workspace")
-        self._plugin.make_plugin_usable()
+        # TODO: verify this shouldn't be here anymore (test)
+        # self._plugin.make_plugin_usable()
         self._plugin.add_result_to_workspace([docked_ligands])

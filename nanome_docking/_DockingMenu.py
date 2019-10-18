@@ -50,7 +50,7 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = not state | self.refresh_run_btn_enabled(False)
+        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(False)
         self._plugin.update_content(self._run_button)
 
     def receptor_pressed(self, button):
@@ -64,7 +64,7 @@ class DockingMenu():
         self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
 
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
     def ligand_pressed(self, button):
         if button.selected == False:
@@ -80,7 +80,7 @@ class DockingMenu():
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
 
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
     def site_pressed(self, button):
         lastSelected = self._selected_site
@@ -93,9 +93,9 @@ class DockingMenu():
         self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._site_checkmark)
         
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
     
-    def refresh_run_btn_enabled(self, update=True):
+    def refresh_run_btn_unusable(self, update=True):
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and self._selected_site != None:
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
@@ -117,13 +117,7 @@ class DockingMenu():
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
 
-        self._selected_receptor = None
-        self._selected_ligands = []
-        self._selected_site = None
-        self._complex_list.items = []
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self.reset(update_menu=False)
 
         for complex in complex_list:
             clone = self._complex_item_prefab.clone()
@@ -137,7 +131,8 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
-        self.reset_menu()
+        nanome.util.Logs.debug("resetting the menu...")
+        self.reset()
 
         for molecule in result.molecules:
             clone = self._score_item_prefab.clone()
@@ -146,10 +141,14 @@ class DockingMenu():
             lbl.text_value = molecule.name + " - " + molecule._associated["> <minimizedAffinity>"]
             self._score_list.items.append(clone)
 
-    def reset_menu(self):
+    def reset(self, update_menu=True):
         self._selected_receptor = None
         self._selected_ligands = []
-        self._selected_site == None
+        self._selected_site = None
+        self._complex_list.items = []
+        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
 
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
@@ -305,7 +304,7 @@ class DockingMenu():
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
         # lists
         self._complex_list = menu.root.find_node("ComplexList", True).get_content()

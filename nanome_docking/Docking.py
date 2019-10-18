@@ -110,8 +110,6 @@ class Docking(nanome.PluginInstance):
 
     def add_result_to_workspace(self, results, align=False):
         for complex in results:
-            # reference = site if site != None else self._receptor
-            # print("reference:", [chain.name for chain in reference.chains])
             complex.position = self._receptor.position
             complex.rotation = self._receptor.rotation
 

@@ -162,7 +162,8 @@ class DockingCalculations():
 
             # Docking process is over, clean files and make plugin available again
             self.clean_files(docking_output)
-            self._plugin.make_plugin_usable()
+            # TODO: Verify this shouldn't be here anymore (test)
+            # self._plugin.make_plugin_usable(True)
             self._plugin.send_notification(NotificationTypes.success, "Docking finished")
 
         # Add bonds to the result complex

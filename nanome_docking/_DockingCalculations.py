@@ -31,7 +31,6 @@ def not_dollars(line):
 
 def parse_molecules(file, self):
     nanome.util.Logs.debug("Parsing output", file)
-    print("file:", file)
     with open(file) as lines:
         while True:
             block = list(itertools.takewhile(not_dollars, lines ))
@@ -115,8 +114,6 @@ class DockingCalculations():
         if self._scoring:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--score_only', '--out', self._ligand_output.name]
         else:
-            print("receptor:", self._receptor_input.name)
-            print("ligands:", self._ligands_input.name)
 
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
@@ -124,9 +121,7 @@ class DockingCalculations():
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            print("started smina")
         except:
-            print("uh oh.")
             nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions. Path:", SMINA_PATH)
             self._request_pending = False
             self._running = False
@@ -146,7 +141,6 @@ class DockingCalculations():
             
         try:
             for gen in generators:
-                print("gen:", gen)
                 for line in gen:
                     str = lines.strip('\n')
                     fout.write(''.join(str))
@@ -164,11 +158,9 @@ class DockingCalculations():
             (results, errors) = self._smina_process.communicate()
             if len(errors) == 0:
                 for line in results.decode().splitlines():
-                    print("result line:", line)
                     nanome.util.Logs.debug(line)
             else:
                 for line in errors.decode().splitlines():
-                    print("error line:", line)
                     nanome.util.Logs.warning(line)
         except Exception as e:
             print(traceback.format_exc())
@@ -183,7 +175,6 @@ class DockingCalculations():
             docked_ligands.molecular.name = "Docking"
             docked_ligands.rendering.visible = True
             
-        self._plugin.make_plugin_usable()
         if self._scoring:
             nanome.util.Logs.debug("Display scoring result")
             self._plugin.display_scoring_result(docked_ligands)
