@@ -193,6 +193,6 @@ class DockingCalculations():
             nanome.util.Logs.debug("Update workspace")
             self._plugin.add_result_to_workspace([docked_ligands], self._align)
 
-        # shutil.rmtree(self.temp_dir.name)
+        shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
