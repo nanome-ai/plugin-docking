@@ -11,13 +11,21 @@ class DockingMenu():
         self._selected_site = None
         self._exhaustiveness = 8
         self._modes = 9
-        self._autobox_size = 4
+        self._autobox = 4
+        self._run_button = None
         self._run_button = None
         self._align = True
         self._replace = False
-        self._scoring_only = False
+        self._scoring = False
         self._tab = None
         self._autobox_enabled = True
+    
+    def get_params(self):
+        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
+        for key, value in params.items():
+            newvalue = getattr(self, "_"+key)
+            params[key] = newvalue
+        return params
 
     def _run_docking(self):
         if self._selected_receptor == None or len(self._selected_ligands) == 0:
@@ -30,7 +38,7 @@ class DockingMenu():
         site = None
         if self._autobox_enabled:
             site = self._selected_site.complex
-        self._plugin.run_docking(self._selected_receptor.complex, ligands, site)
+        self._plugin.run_docking(self._selected_receptor.complex, ligands, site, self.get_params())
 
     def disable_autobox(self):
         self._site_btn.unusable = True
@@ -42,7 +50,7 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = not state
+        self._run_button.unusable = not state | self.refresh_run_btn_enabled(False)
         self._plugin.update_content(self._run_button)
 
     def receptor_pressed(self, button):
@@ -55,6 +63,8 @@ class DockingMenu():
         self._plugin.update_content(button)
         self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
+
+        self.refresh_run_btn_enabled()
 
     def ligand_pressed(self, button):
         if button.selected == False:
@@ -70,6 +80,8 @@ class DockingMenu():
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
 
+        self.refresh_run_btn_enabled()
+
     def site_pressed(self, button):
         lastSelected = self._selected_site
         if lastSelected != None:
@@ -80,6 +92,21 @@ class DockingMenu():
         self._plugin.update_content(button)
         self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._site_checkmark)
+        
+        self.refresh_run_btn_enabled()
+    
+    def refresh_run_btn_enabled(self, update=True):
+        if self._selected_receptor != None and len(self._selected_ligands) > 0 and self._selected_site != None:
+            self._run_button.text.value_unusable = "Running..."
+            self._run_button.unusable = False
+        else:
+            self._run_button.text.value_unusable = "Run"
+            self._run_button.unusable = True
+
+        if update:
+            self._plugin.update_content(self._run_button)
+        
+        return self._run_button.unusable
 
     def change_complex_list(self, complex_list):
         def complex_pressed(button):
@@ -102,7 +129,7 @@ class DockingMenu():
             clone = self._complex_item_prefab.clone()
             ln_btn = clone.get_children()[0]
             btn = ln_btn.get_content()
-            btn.set_all_text(complex.molecular.name)
+            btn.set_all_text(complex.full_name)
             btn.complex = complex
             btn.register_pressed_callback(complex_pressed)
             self._complex_list.items.append(clone)
@@ -110,6 +137,8 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
+        self.reset_menu()
+
         for molecule in result.molecules:
             clone = self._score_item_prefab.clone()
             ln_lbl = clone.get_children()[0]
@@ -117,12 +146,18 @@ class DockingMenu():
             lbl.text_value = molecule.molecular.name + " - " + molecule._associated["> <minimizedAffinity>"]
             self._score_list.items.append(clone)
 
+    def reset_menu(self):
+        self._selected_receptor = None
+        self._selected_ligands = []
+        self._selected_site == None
+
+        self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
     def build_menu(self):
         # defining callbacks
         def run_button_pressed_callback(button):
-            if self._scoring_only:
+            if self._scoring:
                 self._docking_param_panel.enabled = False
                 self._score_panel.enabled = True
                 self._score_list.items = []
@@ -149,12 +184,12 @@ class DockingMenu():
 
         def autobox_changed(input):
             try:
-                self._autobox_size = int(input.input_text)
-                nanome.util.Logs.debug("Autobox size set to", self._autobox_size)
+                self._autobox = int(input.input_text)
+                nanome.util.Logs.debug("Autobox size set to", self._autobox)
             except:
-                self._autobox_size = 4
-            if self._autobox_size <= 0:
-                self._autobox_size = 4
+                self._autobox = 4
+            if self._autobox <= 0:
+                self._autobox = 4
 
         def tab_button_pressed_callback(button):
             if self._tab == button:
@@ -199,21 +234,20 @@ class DockingMenu():
             self._plugin.update_menu(self._menu)
 
         def scoring_button_pressed_callback(button):
-            self._scoring_only = not self._scoring_only
-            button.selected = self._scoring_only
+            self._scoring = not self._scoring
+            button.selected = self._scoring
             self._plugin.update_content(button)
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
         self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
         child = self._complex_item_prefab.create_child_node()
-        child.forward_dist = 0.002
         child.add_new_button()
 
         self._score_item_prefab = nanome.ui.LayoutNode()
         self._score_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
         child = self._score_item_prefab.create_child_node()
-        child.forward_dist = 0.002
+        # child.forward_dist = 0.002
         child.add_new_label()
 
         # loading menus
@@ -270,6 +304,8 @@ class DockingMenu():
         run_button = menu.root.find_node("RunButton", True).get_content()
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
+        self._run_button.enabled = False
+        self.refresh_run_btn_enabled()
 
         # lists
         self._complex_list = menu.root.find_node("ComplexList", True).get_content()

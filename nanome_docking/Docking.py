@@ -6,6 +6,16 @@ import sys
 
 __metaclass__ = type
 
+def convert_atoms_to_absolute_position(complex):
+    mat = complex.get_complex_to_workspace_matrix()
+    for atom in complex.atoms:
+        atom.position = mat * atom.position
+
+def convert_atoms_to_relative_position(complex, mat):
+    # mat = reference.get_workspace_to_complex_matrix()
+    for atom in complex.atoms:
+        atom.position = mat * atom.position
+
 
 class Docking(nanome.PluginInstance):
     def __init__(self):
@@ -56,23 +66,23 @@ class Docking(nanome.PluginInstance):
         def on_complexes_received(complexes):
             receptor = complexes[0]
             self._receptor = receptor
-            Docking.convert_atoms_to_absolute_position(receptor)
+            # convert_atoms_to_absolute_position(receptor)
+            m_workspace_to_receptor = receptor.get_workspace_to_complex_matrix()
             starting_lig_idx = 1
             site = None
             if has_site:
                 site = complexes[1]
-                Docking.convert_atoms_to_absolute_position(site)
+                self._site = site
+                convert_atoms_to_absolute_position(site)
+                convert_atoms_to_relative_position(site, m_workspace_to_receptor)
                 starting_lig_idx = 2
             ligands = nanome.structure.Complex()
             for ligand in complexes[starting_lig_idx:]:
-                Docking.convert_atoms_to_absolute_position(ligand)
+                convert_atoms_to_absolute_position(ligand)
+                convert_atoms_to_relative_position(ligand, m_workspace_to_receptor)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
-            self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only, self._menu._autobox_size)
-
-        if self._menu._run_button.unusable == True:
-            return
-        self._menu.make_plugin_usable(False)
+            self._calculations.start_docking(receptor, ligands, site, **params)
 
         request_list = [receptor.index]
         if has_site:
@@ -80,30 +90,35 @@ class Docking(nanome.PluginInstance):
         request_list += [x.index for x in ligand_list]
         self.request_complexes(request_list, on_complexes_received)
 
-    @staticmethod
-    def convert_atoms_to_absolute_position(complex):
-        mat = complex.transform.get_complex_to_workspace_matrix()
-        for atom in complex.atoms:
-            atom.molecular.position = mat * atom.molecular.position
-
-    @staticmethod
-    def convert_atoms_to_relative_position(complex, reference):
-        mat = reference.transform.get_workspace_to_complex_matrix()
-        for atom in complex.atoms:
-            atom.molecular.position = mat * atom.molecular.position
-
-    # Function called every update tick of the Plugin
+    # Called every update tick of the Plugin
     def update(self):
         self._calculations.update()
 
-    def add_result_to_workspace(self, result):
-        for complex in result:
-            Docking.convert_atoms_to_relative_position(complex, self._receptor)
-        self.add_to_workspace(result)
+    def add_result_to_workspace(self, results, align=False):
+        for complex in results:
+            # reference = site if site != None else self._receptor
+            # print("reference:", [chain.name for chain in reference.chains])
+            complex.position = self._receptor.position
+            complex.rotation = self._receptor.rotation
+
+            if align:
+                mat = complex.get_complex_to_workspace_matrix()
+                # get global atom pos
+                global_pos = [mat * atom.position for atom in complex.atoms]
+                # align bounding box
+                complex.position = self._site.position
+                complex.rotation = self._site.rotation
+                # restore atom pos
+                mat = complex.get_workspace_to_complex_matrix()
+                for (atom, pos) in zip(complex.atoms, global_pos):
+                    atom.position = mat * pos
+
+                complex.boxed = True
+
+        self.add_to_workspace(results)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)
-
 
 class SminaDocking(Docking):
     def __init__(self):
