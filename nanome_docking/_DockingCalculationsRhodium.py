@@ -150,12 +150,12 @@ class DockingCalculations():
 
         def bonds_added(complex_arr):
             docked_ligands_bonded = complex_arr[0]
-            docked_ligands_bonded.molecular.name = "Docking"
-            docked_ligands_bonded.rendering.visible = True
+            docked_ligands_bonded.name = "Docking"
+            docked_ligands_bonded.visible = True
             if self._params['align'] == True:
                 docked_ligands_bonded.transform.position = self._receptor.transform.position
                 docked_ligands_bonded.transform.rotation = self._receptor.transform.rotation
-                docked_ligands_bonded.rendering.boxed = True
+                docked_ligands_bonded.boxed = True
 
             nanome.util.Logs.debug("Update workspace")
             self._plugin.add_result_to_workspace([docked_ligands_bonded])

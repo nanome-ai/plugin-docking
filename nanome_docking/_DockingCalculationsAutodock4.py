@@ -291,8 +291,8 @@ class DockingCalculations():
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
         nanome.util.Logs.debug("Read SDF", self._bond_output.name)
 
-        docked_ligands.molecular.name = "Docking"
-        docked_ligands.rendering.visible = True
+        docked_ligands.name = "Docking"
+        docked_ligands.visible = True
         if self._align == True:
             docked_ligands.transform.position = self._receptor.transform.position
             docked_ligands.transform.rotation = self._receptor.transform.rotation

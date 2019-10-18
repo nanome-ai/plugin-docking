@@ -143,7 +143,7 @@ class DockingMenu():
             clone = self._score_item_prefab.clone()
             ln_lbl = clone.get_children()[0]
             lbl = ln_lbl.get_content()
-            lbl.text_value = molecule.molecular.name + " - " + molecule._associated["> <minimizedAffinity>"]
+            lbl.text_value = molecule.name + " - " + molecule._associated["> <minimizedAffinity>"]
             self._score_list.items.append(clone)
 
     def reset_menu(self):

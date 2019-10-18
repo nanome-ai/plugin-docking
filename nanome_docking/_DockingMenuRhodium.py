@@ -123,7 +123,7 @@ class DockingMenuRhodium():
             clone = self._complex_item_prefab.clone()
             ln_btn = clone.get_children()[0]
             btn = ln_btn.get_content()
-            btn.set_all_text(complex.molecular.name)
+            btn.set_all_text(complex.name)
             btn.complex = complex
             btn.register_pressed_callback(complex_pressed)
             self._complex_list.items.append(clone)
