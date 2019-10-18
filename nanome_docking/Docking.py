@@ -61,6 +61,8 @@ class Docking(nanome.PluginInstance):
             site = None
             if has_site:
                 site = complexes[1]
+                self._site = site
+                self._site_wtc_mat = site.get_workspace_to_complex_matrix()
                 Docking.convert_atoms_to_absolute_position(site)
                 starting_lig_idx = 2
             ligands = nanome.structure.Complex()
@@ -78,28 +80,44 @@ class Docking(nanome.PluginInstance):
 
     @staticmethod
     def convert_atoms_to_absolute_position(complex):
-        mat = complex.transform.get_complex_to_workspace_matrix()
+        mat = complex.get_complex_to_workspace_matrix()
         for atom in complex.atoms:
-            atom.molecular.position = mat * atom.molecular.position
+            atom.position = mat * atom.position
 
     @staticmethod
-    def convert_atoms_to_relative_position(complex, reference):
-        mat = reference.transform.get_workspace_to_complex_matrix()
+    def convert_atoms_to_relative_position(complex, mat):
+        # mat = reference.get_workspace_to_complex_matrix()
         for atom in complex.atoms:
-            atom.molecular.position = mat * atom.molecular.position
+            atom.position = mat * atom.position
 
     # Function called every update tick of the Plugin
     def update(self):
         self._calculations.update()
 
-    def add_result_to_workspace(self, results):
+    def add_result_to_workspace(self, results, align=False):
         for complex in results:
-            Docking.convert_atoms_to_relative_position(complex, self._receptor)
+            # reference = site if site != None else self._receptor
+            # print("reference:", [chain.name for chain in reference.chains])
+            Docking.convert_atoms_to_relative_position(complex, self._site_wtc_mat)
+
+            if align:
+                # get global atom pos
+                mat = complex.get_complex_to_workspace_matrix()
+                global_pos = [mat * atom.position for atom in complex.atoms]
+                # align bounding box
+                complex.position = self._site.position
+                complex.rotation = self._site.rotation
+                # restore atom pos
+                mat = complex.get_workspace_to_complex_matrix()
+                for (atom, pos) in zip(complex.atoms, global_pos):
+                    atom.position = mat * pos
+
+                complex.boxed = True
+
         self.add_to_workspace(results)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)
-
 
 class SminaDocking(Docking):
     def __init__(self):
