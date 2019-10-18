@@ -68,11 +68,7 @@ class Docking(nanome.PluginInstance):
                 Docking.convert_atoms_to_absolute_position(ligand)
                 for molecule in ligand.molecules:
                     ligands.add_molecule(molecule)
-            self._calculations.start_docking(receptor, ligands, site, self._menu._exhaustiveness, self._menu._modes, self._menu._align, self._menu._replace, self._menu._scoring_only, self._menu._autobox_size)
-
-        if self._menu._run_button.unusable == True:
-            return
-        self._menu.make_plugin_usable(False)
+            self._calculations.start_docking(receptor, ligands, site, **params)
 
         request_list = [receptor.index]
         if has_site:
@@ -96,10 +92,10 @@ class Docking(nanome.PluginInstance):
     def update(self):
         self._calculations.update()
 
-    def add_result_to_workspace(self, result):
-        for complex in result:
+    def add_result_to_workspace(self, results):
+        for complex in results:
             Docking.convert_atoms_to_relative_position(complex, self._receptor)
-        self.add_to_workspace(result)
+        self.add_to_workspace(results)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)

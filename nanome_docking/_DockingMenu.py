@@ -11,13 +11,20 @@ class DockingMenu():
         self._selected_site = None
         self._exhaustiveness = 8
         self._modes = 9
-        self._autobox_size = 4
+        self._autobox = 4
         self._run_button = None
         self._align = True
         self._replace = False
-        self._scoring_only = False
+        self._scoring = False
         self._tab = None
         self._autobox_enabled = True
+    
+    def get_params(self):
+        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
+        for key, value in params.items():
+            newvalue = getattr(self, "_"+key)
+            params[key] = newvalue
+        return params
 
     def _run_docking(self):
         if self._selected_receptor == None or len(self._selected_ligands) == 0:
@@ -30,7 +37,7 @@ class DockingMenu():
         site = None
         if self._autobox_enabled:
             site = self._selected_site.complex
-        self._plugin.run_docking(self._selected_receptor.complex, ligands, site)
+        self._plugin.run_docking(self._selected_receptor.complex, ligands, site, self.get_params())
 
     def disable_autobox(self):
         self._site_btn.unusable = True
@@ -122,7 +129,7 @@ class DockingMenu():
     def build_menu(self):
         # defining callbacks
         def run_button_pressed_callback(button):
-            if self._scoring_only:
+            if self._scoring:
                 self._docking_param_panel.enabled = False
                 self._score_panel.enabled = True
                 self._score_list.items = []
@@ -149,12 +156,12 @@ class DockingMenu():
 
         def autobox_changed(input):
             try:
-                self._autobox_size = int(input.input_text)
-                nanome.util.Logs.debug("Autobox size set to", self._autobox_size)
+                self._autobox = int(input.input_text)
+                nanome.util.Logs.debug("Autobox size set to", self._autobox)
             except:
-                self._autobox_size = 4
-            if self._autobox_size <= 0:
-                self._autobox_size = 4
+                self._autobox = 4
+            if self._autobox <= 0:
+                self._autobox = 4
 
         def tab_button_pressed_callback(button):
             if self._tab == button:
@@ -199,21 +206,20 @@ class DockingMenu():
             self._plugin.update_menu(self._menu)
 
         def scoring_button_pressed_callback(button):
-            self._scoring_only = not self._scoring_only
-            button.selected = self._scoring_only
+            self._scoring = not self._scoring
+            button.selected = self._scoring
             self._plugin.update_content(button)
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
         self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
         child = self._complex_item_prefab.create_child_node()
-        child.forward_dist = 0.002
         child.add_new_button()
 
         self._score_item_prefab = nanome.ui.LayoutNode()
         self._score_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
         child = self._score_item_prefab.create_child_node()
-        child.forward_dist = 0.002
+        # child.forward_dist = 0.002
         child.add_new_label()
 
         # loading menus
