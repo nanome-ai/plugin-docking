@@ -13,8 +13,6 @@ from timeit import default_timer as timer
 
 from nanome.util.enums import NotificationTypes
 
-DEBUG = True
-
 SDFOPTIONS = nanome.api.structure.Complex.io.SDFSaveOptions()
 SDFOPTIONS.write_bonds = True
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
