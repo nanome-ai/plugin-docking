@@ -1,5 +1,6 @@
 import traceback
-
+import math
+import re
 import nanome
 import shutil
 import gzip
@@ -26,18 +27,6 @@ try:
 except:
     pass
 
-def not_dollars(line):
-    return '$$$$' != line.strip('\n')
-
-def parse_molecules(file, self):
-    nanome.util.Logs.debug("Parsing output", file)
-    with open(file) as lines:
-        while True:
-            block = list(itertools.takewhile(not_dollars, lines ))
-            if not block:
-                break
-            yield block + ['$$$$\n']
-
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
@@ -57,7 +46,6 @@ class DockingCalculations():
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._log_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir.name)
 
-
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
         self._exhaustiveness = exhaustiveness
         self._modes = modes
@@ -74,7 +62,6 @@ class DockingCalculations():
         self._structures_written = False
         self._started_docking = False
         self._request_pending = True
-
 
     def update(self):
         if self._request_pending == False:
@@ -95,7 +82,7 @@ class DockingCalculations():
         self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._receptor_input.name)
         self._ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved SDF", self._ligands_input.name)
+        nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved SDF", self._site_input.name)
         
@@ -116,7 +103,8 @@ class DockingCalculations():
         else:
 
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
-                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--seed', '0']
+                self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--atom_term_data']
+        
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
@@ -134,21 +122,6 @@ class DockingCalculations():
 
     def _check_docking(self):
         return self._smina_process.poll() != None
-
-    def _reassemble_ligs(self):
-        generators = parse_molecules(self._docking_output.name, self)
-        fout = open(self._ligand_output.name, 'w')
-            
-        try:
-            for gen in generators:
-                for line in gen:
-                    str = lines.strip('\n')
-                    fout.write(''.join(str))
-                    fout.write('\n')
-        except StopIteration:
-            pass
-                
-        fout.close()
     
     def _docking_finished(self):
         end = timer()
@@ -157,7 +130,7 @@ class DockingCalculations():
         try:
             (results, errors) = self._smina_process.communicate()
             if len(errors) == 0:
-                for line in results.decode().splitlines():
+                for index,line in enumerate(results.decode().splitlines()):
                     nanome.util.Logs.debug(line)
             else:
                 for line in errors.decode().splitlines():
@@ -165,15 +138,17 @@ class DockingCalculations():
         except Exception as e:
             print(traceback.format_exc())
 
-        if not self._scoring:
-            pass
-            # self._reassemble_ligs()
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
         nanome.util.Logs.debug("Read PDB", self._docking_output.name)
+        for line in open(self._docking_output.name):
+            print(line)
+        for i, molecule in enumerate(docked_ligands.molecules):
+            nanome.util.Logs.debug("molecule " + str(i))
+            self.apply_interaction_labels(molecule)
 
         if not self._scoring:
-            docked_ligands.molecular.name = "Docking"
-            docked_ligands.rendering.visible = True
+            docked_ligands.name = "Docking"
+            docked_ligands.visible = True
             
         if self._scoring:
             nanome.util.Logs.debug("Display scoring result")
@@ -185,3 +160,19 @@ class DockingCalculations():
         shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
+
+    def apply_interaction_labels(self, molecule):
+        num_rgx = '(-?(?:\d+)?\.?\d+)'
+        pattern = re.compile('\<{},{},{}\> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
+        for associated in molecule.associateds:
+            interaction_terms = associated['> <atomic_interaction_terms>']
+            interaction_values = re.findall(pattern, interaction_terms)
+            atom_count = len([atom for atom in molecule.atoms])
+            print("atom count ({}) == interaction_value count ({})".format(atom_count, len(interaction_values)))
+            for i, atom in enumerate(molecule.atoms):
+                if i < len(interaction_values) - 1:
+                    atom.position
+                    nanome.util.Logs.debug("interaction values for atom " + str(i) + ": "+ str(interaction_values[i]))
+                    atom.label_text = str(interaction_values[i][5])
+                    atom.labeled = True
+                    nanome.util.Logs.debug("atom " + str(i) + " interaction term: " + atom.label_text)
