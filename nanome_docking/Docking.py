@@ -4,6 +4,7 @@ from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
 from ._DockingMenu import DockingMenu
 from ._DockingMenuRhodium import DockingMenuRhodium
+import functools
 import sys
 
 __metaclass__ = type
@@ -67,42 +68,72 @@ class Docking(nanome.PluginInstance):
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
-    def run_docking(self, receptor, ligands, site, params):
-        # Change the plugin to be "unusable"
-        if self._menu._run_button.unusable == True:
-            return
-        self._menu.make_plugin_usable(False)
+    def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
+        combined_ligands = nanome.structure.Complex()
+        combined_ligands.names = []
+        print("ligands:", individual_ligands)
+        for ligand in individual_ligands:
+                convert_atoms_to_absolute_position(ligand)
+                convert_atoms_to_relative_position(ligand, receptor.m_workspace_to_complex)
+                combined_ligands.names.append(ligand.name)
+                for molecule in ligand.molecules:
+                    combined_ligands.add_molecule(molecule)
+        self._calculations.start_docking(receptor, combined_ligands, site, **params)
 
-        has_site = site != None
+    def replace_conformer(self, complexes, callback, existing=True):
+        for i in range(len(complexes)):
+            complex_index = complexes[i].index
+            complexes[i] = complexes[i].convert_to_frames()
+            complexes[i].index = complex_index
+        # send frame-based complexes to nanome, request them back
+        # complex_indices = 
 
-        def on_complexes_received(complexes):
+        rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
+
+        request_docking_results = functools.partial(self.request_docking_results, callback)
+        rerequest_complexes = functools.partial(self.request_complex_list, request_docking_results) if not existing else rerequest_complexes
+        
+        self.update_structures_deep(complexes, rerequest_complexes)
+
+    def request_docking_results(self, callback, all_complexes):
+        docking_results_index = all_complexes[len(all_complexes)-1].index
+        print("docking results id:", docking_results_index)
+        self.request_complexes([docking_results_index], callback)
+
+    def set_and_convert_structures(self, has_site, params, complexes):
             # When deep complexes data are received, unpack them and prepare ligand for docking
             receptor = complexes[0]
+            receptor.m_workspace_to_complex = receptor.get_workspace_to_complex_matrix()
             self._receptor = receptor
             # convert_atoms_to_absolute_position(receptor)
-            m_workspace_to_receptor = receptor.get_workspace_to_complex_matrix()
             starting_lig_idx = 1
             site = None
             if has_site:
                 site = complexes[1]
                 self._site = site
                 convert_atoms_to_absolute_position(site)
-                convert_atoms_to_relative_position(site, m_workspace_to_receptor)
+                convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
                 starting_lig_idx = 2
-            ligands = nanome.structure.Complex()
-            for ligand in complexes[starting_lig_idx:]:
-                convert_atoms_to_absolute_position(ligand)
-                convert_atoms_to_relative_position(ligand, m_workspace_to_receptor)
-                for molecule in ligand.molecules:
-                    ligands.add_molecule(molecule)
-            self._calculations.start_docking(receptor, ligands, site, **params)
+            # convert ligands to frame representation
+            ligands = complexes[starting_lig_idx:]
+            combine_ligs_and_start_docking = functools.partial(self.combine_ligands_start_docking, receptor, site, params)
+            self.replace_conformer(ligands, combine_ligs_and_start_docking)
+
+    def run_docking(self, receptor, ligands, site, params):
+        print("params:", str(params))
+        # Change the plugin to be "unusable"
+        if self._menu._run_button.unusable == True:
+            return
+        self._menu.make_plugin_usable(False)
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
-        if has_site:
+        if site != None:
             request_list.append(site.index)
         request_list += [x.index for x in ligands]
-        self.request_complexes(request_list, on_complexes_received)
+
+        setup_structures = functools.partial(self.set_and_convert_structures, site != None, params)
+        self.request_complexes(request_list, setup_structures)
 
     # Called every update tick of the Plugin
     def update(self):

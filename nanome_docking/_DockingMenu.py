@@ -9,19 +9,34 @@ class DockingMenu():
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
-        self._exhaustiveness = 8
-        self._modes = 9
+        self._exhaustiveness = 10
+        self._modes = 5
         self._autobox = 4
         self._run_button = None
         self._run_button = None
         self._align = True
         self._replace = False
         self._scoring = False
+        self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
-    
+
+    def get_receptor(self):
+        return self._selected_receptor.complex
+
+    def get_ligands(self):
+        ligands = []
+        for item in self._selected_ligands:
+            ligands.append(item.complex)
+        return ligands
+
+    def get_site(self):
+        if self._selected_site == None:
+            return None
+        return self._selected_site.complex
+
     def get_params(self):
-        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
+        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
         for key, value in params.items():
             newvalue = getattr(self, "_"+key)
             params[key] = newvalue
@@ -237,6 +252,11 @@ class DockingMenu():
             button.selected = self._scoring
             self._plugin.update_content(button)
 
+        def visual_scores_button_pressed_callback(button):
+            self._visual_scores = not self._visual_scores
+            button.selected = self._visual_scores
+            self._plugin.update_content(button)
+
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
         self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
@@ -296,6 +316,9 @@ class DockingMenu():
 
         self._score_btn = menu.root.find_node("ScoringButton", True).get_content()
         self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
+
+        self._display_score_btn = menu.root.find_node("VisualScoresButton", True).get_content()
+        self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
 
         close_score_btn = menu.root.find_node("CloseScoreButton", True).get_content()
         close_score_btn.register_pressed_callback(close_score_pressed_callback)

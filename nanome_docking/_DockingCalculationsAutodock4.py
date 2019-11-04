@@ -35,7 +35,7 @@ class DockingCalculations():
         self._autogrid_log = tempfile.NamedTemporaryFile(delete=False, suffix=".glg")
         self._autodock_log = tempfile.NamedTemporaryFile(delete=False, suffix=".dlf")
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
+    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
         self.initialize()
         # Save all input files
         receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
@@ -47,6 +47,7 @@ class DockingCalculations():
         self._site = site
         self._align = align
         self._replace = replace
+        self._display_scoring = display_scoring
 
         # Start docking process
         self._running = False

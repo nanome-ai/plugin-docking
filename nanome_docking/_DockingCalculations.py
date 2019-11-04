@@ -40,13 +40,12 @@ class DockingCalculations():
         self.temp_dir = tempfile.TemporaryDirectory()
         self._receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
-        self._ligands_pdb_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=self.temp_dir.name)
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._log_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir.name)
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, autobox):
+    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
         self._exhaustiveness = exhaustiveness
         self._modes = modes
         self._receptor = receptor
@@ -55,6 +54,7 @@ class DockingCalculations():
         self._align = align
         self._replace = replace
         self._scoring = scoring
+        self._visual_scores = visual_scores
         self._autobox = autobox
 
         # Start docking process
@@ -84,7 +84,7 @@ class DockingCalculations():
         self._ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved SDF", self._site_input.name)
+        nanome.util.Logs.debug("Saved PDB", self._site_input.name)
         
     def _check_conversion(self):
         poll = self._obabel_process.poll()
@@ -122,57 +122,89 @@ class DockingCalculations():
 
     def _check_docking(self):
         return self._smina_process.poll() != None
+
+    def _resume_docking_finished(self, docking_results):
+        docking_results = docking_results[0]
+        print("docking results:", [molecule for molecule in docking_results.molecules])
+        nanome.util.Logs.debug("Read SDF", self._docking_output.name)
+        for i, molecule in enumerate(docking_results.molecules):
+            nanome.util.Logs.debug("molecule " + str(i))
+            self.set_scores(i, molecule)
+
+        if self._visual_scores:
+            self.visualize_scores(docking_results)
+
+        if not self._scoring:
+            if len(self._ligands.names) > 1:
+                docking_results.name += "Docking Results"
+            elif len(self._ligands.names) == 1:
+                docking_results.name = self._ligands.names[0] + " (Docked)"
+            docking_results.visible = True
+            
+        if self._scoring:
+            nanome.util.Logs.debug("Display scoring result")
+            self._plugin.display_scoring_result(docking_results)
+        else:
+            nanome.util.Logs.debug("Update workspace")
+            self._plugin.add_result_to_workspace([docking_results], self._align)
+
+        shutil.rmtree(self.temp_dir.name)
+
+        self._plugin.send_notification(NotificationTypes.success, "Docking finished")
     
     def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
         self._request_pending = False
-        try:
-            (results, errors) = self._smina_process.communicate()
-            if len(errors) == 0:
-                for index,line in enumerate(results.decode().splitlines()):
-                    nanome.util.Logs.debug(line)
-            else:
-                for line in errors.decode().splitlines():
-                    nanome.util.Logs.warning(line)
-        except Exception as e:
-            print(traceback.format_exc())
 
-        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
-        nanome.util.Logs.debug("Read PDB", self._docking_output.name)
-        for line in open(self._docking_output.name):
-            print(line)
-        for i, molecule in enumerate(docked_ligands.molecules):
-            nanome.util.Logs.debug("molecule " + str(i))
-            self.apply_interaction_labels(molecule)
+        docking_results = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
+        docking_results.index = 0
+        print("docked_ligand molecules:", [molecule for molecule in docking_results.molecules])
+        self._plugin.replace_conformer([docking_results], self._resume_docking_finished, existing=False)
 
-        if not self._scoring:
-            docked_ligands.name = "Docking"
-            docked_ligands.visible = True
-            
-        if self._scoring:
-            nanome.util.Logs.debug("Display scoring result")
-            self._plugin.display_scoring_result(docked_ligands)
-        else:
-            nanome.util.Logs.debug("Update workspace")
-            self._plugin.add_result_to_workspace([docked_ligands], self._align)
+    def update_min_max_scores(self, molecule, score):
+        min_score = molecule.min_atom_score
+        max_score = molecule.max_atom_score
+        molecule.min_atom_score = score if score < min_score else min_score
+        molecule.max_atom_score = score if score > max_score else max_score
 
-        shutil.rmtree(self.temp_dir.name)
+    def set_scores(self, lig_i, molecule):
+        molecule.min_atom_score = float('inf')
+        molecule.max_atom_score = float('-inf')
 
-        self._plugin.send_notification(NotificationTypes.success, "Docking finished")
-
-    def apply_interaction_labels(self, molecule):
-        num_rgx = '(-?(?:\d+)?\.?\d+)'
-        pattern = re.compile('\<{},{},{}\> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
+        num_rgx = '(-?[\d.]+(?:e[+-]\d+)?)'
+        pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
+            pose_score = associated['> <minimizedAffinity>']
+            for residue in molecule.residues:
+                print("pose score:", pose_score)
+                residue.label_text = pose_score + " kcal/mol"
+                residue.labeled = True
             interaction_terms = associated['> <atomic_interaction_terms>']
             interaction_values = re.findall(pattern, interaction_terms)
             atom_count = len([atom for atom in molecule.atoms])
-            print("atom count ({}) == interaction_value count ({})".format(atom_count, len(interaction_values)))
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
-                    atom.position
                     nanome.util.Logs.debug("interaction values for atom " + str(i) + ": "+ str(interaction_values[i]))
-                    atom.label_text = str(interaction_values[i][5])
+                    atom.score = float(interaction_values[i][5])
+                    self.update_min_max_scores(molecule, atom.score)
+
+    
+    def visualize_scores(self, ligand_complex):
+        for molecule in ligand_complex.molecules:
+            for atom in molecule.atoms:
+                if hasattr(atom, "score"):
+                    atom.atom_mode = nanome.api.structure.Atom.AtomRenderingMode.Point
+                    denominator = -molecule.min_atom_score if atom.score < 0 else molecule.max_atom_score
+                    norm_score = atom.score / denominator
+                    atom.atom_scale = norm_score * 1.5 + 0.1
+                    atom.label_text = self.truncate(atom.score, 3)
                     atom.labeled = True
-                    nanome.util.Logs.debug("atom " + str(i) + " interaction term: " + atom.label_text)
+
+    def truncate(self, f, n):
+        '''Truncates/pads a float f to n decimal places without rounding'''
+        s = '{}'.format(f)
+        if 'e' in s or 'E' in s:
+            return '{0:.{1}f}'.format(f, n)
+        i, p, d = s.partition('.')
+        return '.'.join([i, (d+'0'*n)[:n]])
