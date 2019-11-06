@@ -34,6 +34,7 @@ class DockingCalculations():
         self._running = False
         self._structures_written = False
         self._started_docking = False
+        self.requires_site = True
 
 
     def initialize(self):

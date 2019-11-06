@@ -111,7 +111,8 @@ class DockingMenu():
         self.refresh_run_btn_unusable()
     
     def refresh_run_btn_unusable(self, update=True):
-        if self._selected_receptor != None and len(self._selected_ligands) > 0 and self._selected_site != None:
+        site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
+        if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met:
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
         else:
@@ -167,6 +168,11 @@ class DockingMenu():
 
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
+
+    def open_menu(self):
+        self._plugin.menu = self._menu
+        self._plugin.menu.enabled = True
+        self._plugin.update_menu(self._plugin.menu)
 
     def build_menu(self):
         # defining callbacks
