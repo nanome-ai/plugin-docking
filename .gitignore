@@ -5,3 +5,4 @@ nanome_docking.egg-info/
 dist/
 *.pyc
 nanome
+nanome_docking/Rh_x64.exe

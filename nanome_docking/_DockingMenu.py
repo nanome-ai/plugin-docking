@@ -9,19 +9,41 @@ class DockingMenu():
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
-        self._exhaustiveness = 8
-        self._modes = 9
+        self._exhaustiveness = 10
+        self._modes = 5
         self._autobox = 4
         self._run_button = None
         self._run_button = None
         self._align = True
         self._replace = False
         self._scoring = False
+        self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
     
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
+        for key, value in params.items():
+            newvalue = getattr(self, "_"+key)
+            params[key] = newvalue
+        return params
+
+    def get_receptor(self):
+        return self._selected_receptor.complex
+
+    def get_ligands(self):
+        ligands = []
+        for item in self._selected_ligands:
+            ligands.append(item.complex)
+        return ligands
+
+    def get_site(self):
+        if self._selected_site == None:
+            return None
+        return self._selected_site.complex
+
+    def get_params(self):
+        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
         for key, value in params.items():
             newvalue = getattr(self, "_"+key)
             params[key] = newvalue
@@ -50,7 +72,7 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = not state | self.refresh_run_btn_enabled(False)
+        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(False)
         self._plugin.update_content(self._run_button)
 
     def receptor_pressed(self, button):
@@ -64,7 +86,7 @@ class DockingMenu():
         self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
 
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
     def ligand_pressed(self, button):
         if button.selected == False:
@@ -80,7 +102,7 @@ class DockingMenu():
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
 
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
     def site_pressed(self, button):
         lastSelected = self._selected_site
@@ -93,10 +115,11 @@ class DockingMenu():
         self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._site_checkmark)
         
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
     
-    def refresh_run_btn_enabled(self, update=True):
-        if self._selected_receptor != None and len(self._selected_ligands) > 0 and self._selected_site != None:
+    def refresh_run_btn_unusable(self, update=True):
+        site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
+        if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met:
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
         else:
@@ -117,13 +140,7 @@ class DockingMenu():
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
 
-        self._selected_receptor = None
-        self._selected_ligands = []
-        self._selected_site = None
-        self._complex_list.items = []
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self.reset(update_menu=False)
 
         for complex in complex_list:
             clone = self._complex_item_prefab.clone()
@@ -137,22 +154,31 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
-        self.reset_menu()
+        self.reset()
 
         for molecule in result.molecules:
             clone = self._score_item_prefab.clone()
             ln_lbl = clone.get_children()[0]
             lbl = ln_lbl.get_content()
-            lbl.text_value = molecule.molecular.name + " - " + molecule._associated["> <minimizedAffinity>"]
+            lbl.text_value = molecule.name + " - " + molecule._associated["> <minimizedAffinity>"]
             self._score_list.items.append(clone)
 
-    def reset_menu(self):
+    def reset(self, update_menu=True):
         self._selected_receptor = None
         self._selected_ligands = []
-        self._selected_site == None
+        self._selected_site = None
+        self._complex_list.items = []
+        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
 
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
+
+    def open_menu(self):
+        self._plugin.menu = self._menu
+        self._plugin.menu.enabled = True
+        self._plugin.update_menu(self._plugin.menu)
 
     def build_menu(self):
         # defining callbacks
@@ -238,6 +264,11 @@ class DockingMenu():
             button.selected = self._scoring
             self._plugin.update_content(button)
 
+        def visual_scores_button_pressed_callback(button):
+            self._visual_scores = not self._visual_scores
+            button.selected = self._visual_scores
+            self._plugin.update_content(button)
+
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
         self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
@@ -298,6 +329,9 @@ class DockingMenu():
         self._score_btn = menu.root.find_node("ScoringButton", True).get_content()
         self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
 
+        self._display_score_btn = menu.root.find_node("VisualScoresButton", True).get_content()
+        self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
+
         close_score_btn = menu.root.find_node("CloseScoreButton", True).get_content()
         close_score_btn.register_pressed_callback(close_score_pressed_callback)
 
@@ -305,7 +339,7 @@ class DockingMenu():
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
-        self.refresh_run_btn_enabled()
+        self.refresh_run_btn_unusable()
 
         # lists
         self._complex_list = menu.root.find_node("ComplexList", True).get_content()

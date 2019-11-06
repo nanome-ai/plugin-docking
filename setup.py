@@ -1,12 +1,13 @@
-import pathlib
+import os
 from setuptools import find_packages, setup
 
-README = (pathlib.Path(__file__).parent / "README.md").read_text()
+with open(os.path.join(os.path.dirname(__file__), "README.md"), 'r') as file:
+	README = file.read()
 
 setup(
 	name = 'nanome-docking',
 	packages=find_packages(),
-	version = '0.1.4',
+	version = '0.1.5',
 	license='MIT',
 	description = 'Nanome Plugin to dock ligands to a receptor',
 	long_description = README,
