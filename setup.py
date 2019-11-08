@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.md"), 'r') as file:
 setup(
 	name = 'nanome-docking',
 	packages=find_packages(),
-	version = '0.1.5',
+	version = '0.2.0',
 	license='MIT',
 	description = 'Nanome Plugin to dock ligands to a receptor',
 	long_description = README,
