@@ -14,6 +14,8 @@ from timeit import default_timer as timer
 
 from nanome.util.enums import NotificationTypes
 
+from .ComplexUtils import ComplexUtils
+
 DEBUG = True
 
 SDFOPTIONS = nanome.api.structure.Complex.io.SDFSaveOptions()
@@ -50,6 +52,7 @@ class DockingCalculations():
         self._exhaustiveness = exhaustiveness
         self._modes = modes
         self._receptor = receptor
+        self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._ligands = ligands
         self._site = site
         self._align = align
@@ -83,7 +86,7 @@ class DockingCalculations():
          # Save all input files
         self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._receptor_input.name)
-        self._ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
+        self._combined_ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._site_input.name)
@@ -129,15 +132,10 @@ class DockingCalculations():
             nanome.util.Logs.debug("molecule " + str(i))
             self.set_scores(i, molecule)
 
+        docking_results.set_current_frame(0)
+
         if self._visual_scores:
             self.visualize_scores(docking_results)
-
-        if not self._scoring:
-            if len(self._ligands.names) > 1:
-                docking_results.name += "Docking Results"
-            elif len(self._ligands.names) == 1:
-                docking_results.name = self._ligands.names[0] + " (Docked)"
-            docking_results.visible = True
             
         if self._scoring:
             nanome.util.Logs.debug("Display scoring result")
@@ -149,14 +147,30 @@ class DockingCalculations():
         shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
+
+    def make_ligands_invisible(self):
+        for ligand in self._ligands:
+            ligand.visible = False
+
+        self._plugin.update_structures_shallow(self._ligands)
     
     def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
         self._request_pending = False
 
+        self.make_ligands_invisible()
+
         docking_results = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
-        docking_results.index = 0
+        docking_results.index = -1
+        if not self._scoring:
+            docking_results.visible = True
+            docking_results.locked = True
+            if len(self._combined_ligands.names) > 1:
+                docking_results.name += "Docking Results"
+            elif len(self._combined_ligands.names) == 1:
+                docking_results.name = self._combined_ligands.names[0] + " (Docked)"
+            
         self._plugin.replace_conformer([docking_results], self._resume_docking_finished, existing=False)
 
     def update_min_max_scores(self, molecule, score):
@@ -195,7 +209,7 @@ class DockingCalculations():
                     norm_score = atom.score / denominator
                     atom.atom_scale = norm_score * 1.5 + 0.1
                     atom.label_text = self.truncate(atom.score, 3)
-                    atom.labeled = True
+                    # atom.labeled = True
 
     def truncate(self, f, n):
         '''Truncates/pads a float f to n decimal places without rounding'''

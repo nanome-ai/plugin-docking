@@ -8,6 +8,8 @@ import traceback
 import subprocess
 from timeit import default_timer as timer
 
+from .ComplexUtils import ComplexUtils
+
 RHODIUM_PATH = os.path.join(os.path.dirname(__file__), 'Rh_x64.exe')
 
 class DockingCalculations():
@@ -21,7 +23,7 @@ class DockingCalculations():
         # Create temporary files
         self.initialize()
 
-        self._ligands = ligands
+        self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._receptor = receptor
         self._site = site
         self._params = params
@@ -86,7 +88,7 @@ class DockingCalculations():
 
     # Callback when obabel is done
     def receptor_ready(self, return_value):
-        self._ligands.io.to_sdf(self._ligands_input.name)
+        self._combined_ligands.io.to_sdf(self._ligands_input.name)
         if self._site != None:
             self._site.io.to_sdf(self._site_input.name)
         self._start_docking()

@@ -7,19 +7,9 @@ from ._DockingMenuRhodium import DockingMenuRhodium
 import functools
 import sys
 
+from .ComplexUtils import ComplexUtils
+
 __metaclass__ = type
-
-def convert_atoms_to_absolute_position(complex):
-    mat = complex.get_complex_to_workspace_matrix()
-    for atom in complex.atoms:
-        atom.position = mat * atom.position
-
-def convert_atoms_to_relative_position(complex, mat):
-    # mat = reference.get_workspace_to_complex_matrix()
-    for atom in complex.atoms:
-        atom.position = mat * atom.position
-
-
 class Docking(nanome.PluginInstance):
     def __init__(self):
         self._menu = None
@@ -69,24 +59,15 @@ class Docking(nanome.PluginInstance):
         self._menu.change_complex_list(complexes)
 
     def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
-        combined_ligands = nanome.structure.Complex()
-        combined_ligands.names = []
-        for ligand in individual_ligands:
-                convert_atoms_to_absolute_position(ligand)
-                convert_atoms_to_relative_position(ligand, receptor.m_workspace_to_complex)
-                combined_ligands.names.append(ligand.name)
-                for molecule in ligand.molecules:
-                    combined_ligands.add_molecule(molecule)
-        self._calculations.start_docking(receptor, combined_ligands, site, **params)
+        self._calculations.start_docking(receptor, individual_ligands, site, **params)
 
     def replace_conformer(self, complexes, callback, existing=True):
         for i in range(len(complexes)):
             complex_index = complexes[i].index
             complexes[i] = complexes[i].convert_to_frames()
             complexes[i].index = complex_index
-        
-        rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
 
+        rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
         request_docking_results = functools.partial(self.request_docking_results, callback)
         rerequest_complexes = functools.partial(self.request_complex_list, request_docking_results) if not existing else rerequest_complexes
         
@@ -106,8 +87,8 @@ class Docking(nanome.PluginInstance):
             if has_site:
                 site = complexes[1]
                 self._site = site
-                convert_atoms_to_absolute_position(site)
-                convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
+                ComplexUtils.convert_atoms_to_absolute_position(site)
+                ComplexUtils.convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
                 starting_lig_idx = 2
             # convert ligands to frame representation
             ligands = complexes[starting_lig_idx:]

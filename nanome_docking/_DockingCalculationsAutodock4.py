@@ -10,6 +10,8 @@ from timeit import default_timer as timer
 from nanome._internal._structure._io._pdb.save import Options as PDBOptions
 from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 
+from .ComplexUtils import ComplexUtils
+
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
@@ -47,7 +49,7 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
 
         self._receptor = receptor
-        self._ligands = ligands
+        self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._site = site
         self._align = align
         self._replace = replace
@@ -237,6 +239,8 @@ class DockingCalculations():
         # Conversion
 
         with open(self._autodock_log.name) as origin_file, open(self._ligands_output.name, 'w') as destination_file:
+            print("ligand output file:", self._ligands_output.name)
+
             for line in origin_file:
                 if line.startswith('DOCKED'):
                     str = line[8:]
@@ -286,7 +290,7 @@ class DockingCalculations():
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
         nanome.util.Logs.debug("Read SDF", self._bond_output.name)
 
-        docked_ligands.name = self._ligands[0].full_name + " (Docked)"
+        docked_ligands.name = self._combined_ligands.full_name + " (Docked)"
         docked_ligands.visible = True
         if self._align == True:
             docked_ligands.transform.position = self._receptor.transform.position
@@ -297,4 +301,4 @@ class DockingCalculations():
         # self._plugin.make_plugin_usable()
         self._plugin.add_result_to_workspace([docked_ligands])
 
-        shutil.rmtree(self.temp_dir.name)
+        # shutil.rmtree(self.temp_dir.name)
