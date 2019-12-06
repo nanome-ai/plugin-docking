@@ -15,6 +15,8 @@ class DockingCalculations():
         self._plugin = plugin
         self.__docking_running = False
 
+        self.requires_site = False
+
     # Entry point, where everything starts
     def start_docking(self, receptor, ligands, site, params):
         # Create temporary files

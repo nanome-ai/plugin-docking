@@ -22,6 +22,8 @@ class DockingCalculations():
         self._sdf_options = SDFOptions()
         self._sdf_options.write_bonds = True
 
+        self.requires_site = False
+
     def initialize(self):
         # TODO: Read and write in a folder unique per plugin instance
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb")
@@ -47,7 +49,7 @@ class DockingCalculations():
         self._site = site
         self._align = align
         self._replace = replace
-        self._display_scoring = display_scoring
+        self._visual_Scores = visual_scores
 
         # Start docking process
         self._running = False
