@@ -169,6 +169,11 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
+    def open_menu(self):
+        self._plugin.menu = self._menu
+        self._plugin.menu.enabled = True
+        self._plugin.update_menu(self._plugin.menu)
+
     def build_menu(self):
         # defining callbacks
         def run_button_pressed_callback(button):

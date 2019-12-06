@@ -14,6 +14,7 @@ class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
         self.__docking_running = False
+        self.requires_site = False
 
         self.requires_site = False
 
