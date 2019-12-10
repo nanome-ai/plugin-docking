@@ -52,8 +52,8 @@ class DockingCalculations():
         self._exhaustiveness = exhaustiveness
         self._modes = modes
         self._receptor = receptor
-        self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._ligands = ligands
+        self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._site = site
         self._align = align
         self._replace = replace
@@ -90,7 +90,7 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._site_input.name)
-        
+
     def _check_conversion(self):
         poll = self._obabel_process.poll()
         if poll == None:
@@ -99,14 +99,14 @@ class DockingCalculations():
 
     def _start_docking(self):
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
-        
+
         if self._scoring:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--score_only', '--out', self._ligand_output.name]
         else:
 
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--atom_term_data']
-        
+
         nanome.util.Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
@@ -136,7 +136,14 @@ class DockingCalculations():
 
         if self._visual_scores:
             self.visualize_scores(docking_results)
-            
+
+        if not self._scoring:
+            if len(self._ligands.names) > 1:
+                docking_results.name += "Docking Results"
+            elif len(self._ligands.names) == 1:
+                docking_results.name = self._ligands.names[0] + " (Docked)"
+            docking_results.visible = True
+
         if self._scoring:
             nanome.util.Logs.debug("Display scoring result")
             self._plugin.display_scoring_result(docking_results)
@@ -151,7 +158,6 @@ class DockingCalculations():
     def make_ligands_invisible(self):
         for ligand in self._ligands:
             ligand.visible = False
-
         self._plugin.update_structures_shallow(self._ligands)
     
     def _docking_finished(self):
@@ -199,7 +205,7 @@ class DockingCalculations():
                     atom.score = float(interaction_values[i][5])
                     self.update_min_max_scores(molecule, atom.score)
 
-    
+
     def visualize_scores(self, ligand_complex):
         for molecule in ligand_complex.molecules:
             for atom in molecule.atoms:

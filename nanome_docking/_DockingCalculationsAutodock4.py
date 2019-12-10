@@ -26,6 +26,8 @@ class DockingCalculations():
         self._sdf_options.write_bonds = True
         self.requires_site = False
 
+        self.requires_site = False
+
     def initialize(self):
         # TODO: Read and write in a folder unique per plugin instance
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -42,18 +44,19 @@ class DockingCalculations():
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
         self.initialize()
-        # Save all input files
-        receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
-        nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
-        ligands.io.to_pdb(self._ligands_input.name, self._pdb_options)
-        nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
-
         self._receptor = receptor
+        self._ligands =  ligands
         self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._site = site
         self._align = align
         self._replace = replace
         self._visual_scores = visual_scores
+
+        # Save all input files
+        receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
+        nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
+        self._combined_ligands.io.to_pdb(self._ligands_input.name, self._pdb_options)
+        nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
 
         # Start docking process
         self._running = False
@@ -130,8 +133,8 @@ class DockingCalculations():
 
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
+        lig_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
 
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
@@ -157,8 +160,9 @@ class DockingCalculations():
 
     def _start_parameters_preparation(self):
         # Awful situation here
-        grid_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
-        dock_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
+        print("protein input converted name:", self._protein_input_converted.name)
+        grid_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
+        dock_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
 
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
@@ -229,12 +233,20 @@ class DockingCalculations():
     def _check_docking(self):
         return self._autodock_process.poll() != None
 
+    def make_ligands_invisible(self):
+        for ligand in self._ligands:
+            ligand.visible = False
+        self._plugin.update_structures_shallow(self._ligands)
+
     def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Ran Autodock in", end - self._start_timer, "seconds. Logs:", self._autodock_log.name)
 
         if self._check_process_error(self._autodock_process):
             return
+
+        # make ligands invisible
+        self.make_ligands_invisible()
 
         # Conversion
 
@@ -289,8 +301,11 @@ class DockingCalculations():
 
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
         nanome.util.Logs.debug("Read SDF", self._bond_output.name)
-
-        docked_ligands.name = self._combined_ligands.full_name + " (Docked)"
+        if len(self._combined_ligands.names) == 1:
+            docked_ligands.name = self._combined_ligands.names[0] + " (Docked)"
+        else:
+            docked_ligands.name == "Docking Results"
+            
         docked_ligands.visible = True
         if self._align == True:
             docked_ligands.transform.position = self._receptor.transform.position

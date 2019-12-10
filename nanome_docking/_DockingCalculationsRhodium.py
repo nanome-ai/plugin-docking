@@ -18,6 +18,8 @@ class DockingCalculations():
         self.__docking_running = False
         self.requires_site = False
 
+        self.requires_site = False
+
     # Entry point, where everything starts
     def start_docking(self, receptor, ligands, site, params):
         # Create temporary files
