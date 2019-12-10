@@ -128,8 +128,8 @@ class DockingCalculations():
 
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
+        lig_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
 
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
@@ -156,8 +156,8 @@ class DockingCalculations():
     def _start_parameters_preparation(self):
         # Awful situation here
         print("protein input converted name:", self._protein_input_converted.name)
-        grid_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
-        dock_args = ['python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
+        grid_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
+        dock_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
 
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
@@ -286,8 +286,11 @@ class DockingCalculations():
 
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
         nanome.util.Logs.debug("Read SDF", self._bond_output.name)
-
-        docked_ligands.name = self._ligands[0].full_name + " (Docked)"
+        if len(self._ligands.names) == 1:
+            docked_ligands.name = self._ligands.names[0] + " (Docked)"
+        else:
+            docked_ligands.name == "Docking Results"
+            
         docked_ligands.visible = True
         if self._align == True:
             docked_ligands.transform.position = self._receptor.transform.position
