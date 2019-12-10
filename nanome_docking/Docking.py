@@ -86,13 +86,13 @@ class Docking(nanome.PluginInstance):
             complexes[i] = complexes[i].convert_to_frames()
             complexes[i].index = complex_index
         # send frame-based complexes to nanome, request them back
-        # complex_indices = 
+        # complex_indices =
 
         rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
 
         request_docking_results = functools.partial(self.request_docking_results, callback)
         rerequest_complexes = functools.partial(self.request_complex_list, request_docking_results) if not existing else rerequest_complexes
-        
+
         self.update_structures_deep(complexes, rerequest_complexes)
 
     def request_docking_results(self, callback, all_complexes):

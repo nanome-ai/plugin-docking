@@ -24,6 +24,8 @@ class DockingCalculations():
         self._sdf_options.write_bonds = True
         self.requires_site = False
 
+        self.requires_site = False
+
     def initialize(self):
         # TODO: Read and write in a folder unique per plugin instance
         self.temp_dir = tempfile.TemporaryDirectory()

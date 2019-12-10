@@ -107,9 +107,9 @@ class DockingMenu():
         self._plugin.update_content(button)
         self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._site_checkmark)
-        
+
         self.refresh_run_btn_unusable()
-    
+
     def refresh_run_btn_unusable(self, update=True):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met:
@@ -121,7 +121,7 @@ class DockingMenu():
 
         if update:
             self._plugin.update_content(self._run_button)
-        
+
         return self._run_button.unusable
 
     def change_complex_list(self, complex_list):
