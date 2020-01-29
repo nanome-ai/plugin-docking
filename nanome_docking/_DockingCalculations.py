@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import stat
 from timeit import default_timer as timer
+from functools import partial
 
 from nanome.util.enums import NotificationTypes
 
@@ -66,7 +67,6 @@ class DockingCalculations():
         self._structures_written = False
         self._started_docking = False
         self._request_pending = True
-
 
     def update(self):
         if self._request_pending == False:
@@ -125,6 +125,13 @@ class DockingCalculations():
     def _check_docking(self):
         return self._smina_process.poll() != None
 
+    def readd_bonds(self, complex, callback):
+        for residue in complex.residues:
+            for bond in residue.bonds:
+                residue.remove_bond(bond)
+            for atom in residue.atoms:
+                atom._bonds = []
+
     def _resume_docking_finished(self, docking_results):
         docking_results = docking_results[0]
         nanome.util.Logs.debug("Read SDF", self._docking_output.name)
@@ -144,6 +151,12 @@ class DockingCalculations():
                 docking_results.name = self._ligands.names[0] + " (Docked)"
             docking_results.visible = True
 
+        # # TODO: Check this for readd_bonds param correctness
+        # replace_conformer = partial(self._plugin.replace_conformer, callback=partial(self._plugin.add_result_to_workspace, align=self._align))
+        # self.readd_bonds(docking_results, replace_conformer)
+
+        # self._plugin.add_bonds([complex], callback)
+
         if self._scoring:
             nanome.util.Logs.debug("Display scoring result")
             self._plugin.display_scoring_result(docking_results)
@@ -159,7 +172,7 @@ class DockingCalculations():
         for ligand in self._ligands:
             ligand.visible = False
         self._plugin.update_structures_shallow(self._ligands)
-    
+
     def _docking_finished(self):
         end = timer()
         nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
@@ -176,7 +189,7 @@ class DockingCalculations():
                 docking_results.name += "Docking Results"
             elif len(self._combined_ligands.names) == 1:
                 docking_results.name = self._combined_ligands.names[0] + " (Docked)"
-            
+
         self._plugin.replace_conformer([docking_results], self._resume_docking_finished, existing=False)
 
     def update_min_max_scores(self, molecule, score):
