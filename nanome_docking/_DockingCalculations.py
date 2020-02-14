@@ -145,10 +145,10 @@ class DockingCalculations():
             self.visualize_scores(docking_results)
 
         if not self._scoring:
-            if len(self._ligands.names) > 1:
+            if len(self._combined_ligands.names) > 1:
                 docking_results.name += "Docking Results"
-            elif len(self._ligands.names) == 1:
-                docking_results.name = self._ligands.names[0] + " (Docked)"
+            elif len(self._combined_ligands.names) == 1:
+                docking_results.name = self._combined_ligands.names[0] + " (Docked)"
             docking_results.visible = True
 
         # # TODO: Check this for readd_bonds param correctness
