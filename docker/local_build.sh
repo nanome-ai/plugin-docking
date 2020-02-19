@@ -1,1 +1,0 @@
-docker build -f docking.Dockerfile -t docking:latest ..
