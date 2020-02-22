@@ -13,7 +13,7 @@ $ pip install nanome-docking
 To start the plugin:
 
 ```sh
-$ nanome-docking smina -a plugin_server_address
+$ nanome-docking smina -a <plugin_server_address>
 ```
 
 Runs only on Linux
@@ -21,7 +21,7 @@ Runs only on Linux
 OR
 
 ```sh
-$ nanome-docking autodock4 -a plugin_server_address
+$ nanome-docking autodock4 -a <plugin_server_address>
 ```
 
 Runs on Windows, and needs Autodock4 to be installed on the computer and in the PATH variable.
@@ -35,6 +35,16 @@ In Nanome:
 - Choose exhaustiveness, number of results and size of the box to generate around the site molecule (Smina only)
 - If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
 - Click on Run
+
+### Docker Usage
+
+To run in a Docker container:
+
+```sh
+$ cd docker
+$ ./build.sh
+$ ./deploy.sh -a <plugin_server_address> smina
+```
 
 ### License
 
