@@ -4,8 +4,10 @@ if [ "$(docker ps -aq -f name=docking)" != "" ]; then
     docker rm -f docking
 fi
 
+ARGS=("smina" $*)
+
 docker run -d \
 --name docking \
 --restart unless-stopped \
--e ARGS="$*" \
+-e ARGS="$ARGS" \
 docking
