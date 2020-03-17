@@ -1,4 +1,5 @@
 FROM nanome/nanobabel
+ENV ARGS="-a plugins.nanome.ai"
 
 RUN apt install software-properties-common
 RUN add-apt-repository -y ppa:deadsnakes/ppa
