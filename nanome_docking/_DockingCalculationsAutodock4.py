@@ -1,6 +1,7 @@
 import nanome
 import os
 import shutil
+import shlex
 import subprocess
 import tempfile
 import re
@@ -279,21 +280,22 @@ class DockingCalculations():
     def _start_bonds(self):
         nanome.util.Logs.debug("Start Bonds")
         self._start_timer = timer()
-        args = ['obabel', '-ipdb', self._ligands_output.name, '-osdf', '-O' + self._bond_output.name]
-        self._obabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
+        args = shlex.split(cmd)
+        self._nanobabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self._running = True
 
     def _check_bonds(self):
-        poll = self._obabel_process.poll()
+        poll = self._nanobabel_process.poll()
         if poll == None:
-            self._obabel_process.communicate()
+            self._nanobabel_process.communicate()
         return poll != None
 
     def _bonds_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Ran OpenBabel in", end - self._start_timer, "seconds")
+        nanome.util.Logs.debug("Ran Nanobabel in", end - self._start_timer, "seconds")
 
-        # if self._check_process_error(self._obabel_process, check_only_errors=True):
+        # if self._check_process_error(self._nanobabel_process, check_only_errors=True):
         #     return
 
         self._running = False

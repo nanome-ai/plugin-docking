@@ -82,13 +82,13 @@ class DockingCalculations():
 
         # Use openbabel to add hydrogens
         proc = Process()
-        proc.executable_path = 'obabel'
-        proc.args = ['-ipdb', self._protein_input.name,
-            '-opdb', '-O' + self._protein_converted_input.name, '-h']
+        proc.executable_path = 'nanobabel'
+        proc.args = ['convert', '-i', self._protein_input.name,
+            '-o', self._protein_converted_input.name, '-h']
         proc.on_done = self.receptor_ready
         proc.start()
 
-    # Callback when obabel is done
+    # Callback when nanobabel is done
     def receptor_ready(self, return_value):
         self._combined_ligands.io.to_sdf(self._ligands_input.name)
         if self._site != None:

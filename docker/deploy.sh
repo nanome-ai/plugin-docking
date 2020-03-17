@@ -9,5 +9,5 @@ ARGS=("smina" $*)
 docker run -d \
 --name docking \
 --restart unless-stopped \
--e ARGS="$ARGS" \
+-e ARGS="${ARGS[*]}" \
 docking

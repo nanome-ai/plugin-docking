@@ -92,9 +92,9 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._site_input.name)
 
     def _check_conversion(self):
-        poll = self._obabel_process.poll()
+        poll = self._nanobabel_process.poll()
         if poll == None:
-            self._obabel_process.communicate()
+            self._nanobabel_process.communicate()
         return poll != None
 
     def _start_docking(self):
