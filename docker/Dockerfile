@@ -8,6 +8,8 @@ RUN apt install -y python3.7
 RUN apt install -y python3-pip
 
 RUN pip3 install --upgrade pip
+
+ARG CACHEBUST
 RUN python3.7 -m pip install nanome
 
 COPY . /app

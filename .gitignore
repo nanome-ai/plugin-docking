@@ -3,6 +3,7 @@ __pycache__
 build/
 nanome_docking.egg-info/
 dist/
+docker/.cachebust
 *.pyc
 nanome
 nanome_docking/Rh_x64.exe
