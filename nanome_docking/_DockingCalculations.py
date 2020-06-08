@@ -134,6 +134,8 @@ class DockingCalculations():
 
     def _resume_docking_finished(self, docking_results):
         docking_results = docking_results[0]
+        docking_results._remarks['minimizedAffinity'] = ''
+        docking_results._remarks['atomic_interaction_terms'] = ''
         nanome.util.Logs.debug("Read SDF", self._docking_output.name)
         for i, molecule in enumerate(docking_results.molecules):
             nanome.util.Logs.debug("molecule " + str(i))
@@ -205,11 +207,11 @@ class DockingCalculations():
         num_rgx = '(-?[\d.]+(?:e[+-]\d+)?)'
         pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
-            pose_score = associated['> <minimizedAffinity>']
+            pose_score = associated['minimizedAffinity']
             for residue in molecule.residues:
                 residue.label_text = pose_score + " kcal/mol"
                 residue.labeled = True
-            interaction_terms = associated['> <atomic_interaction_terms>']
+            interaction_terms = associated['atomic_interaction_terms']
             interaction_values = re.findall(pattern, interaction_terms)
             atom_count = len([atom for atom in molecule.atoms])
             for i, atom in enumerate(molecule.atoms):
