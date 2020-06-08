@@ -7,3 +7,4 @@ docker/.cachebust
 *.pyc
 nanome
 nanome_docking/Rh_x64.exe
+.DS_Store
