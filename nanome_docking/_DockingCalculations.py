@@ -13,6 +13,7 @@ import stat
 from timeit import default_timer as timer
 from functools import partial
 
+from nanome.util import Logs
 from nanome.util.enums import NotificationTypes
 
 from .ComplexUtils import ComplexUtils
@@ -85,11 +86,11 @@ class DockingCalculations():
         self.initialize()
          # Save all input files
         self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved PDB", self._receptor_input.name)
+        Logs.debug("Saved PDB", self._receptor_input.name)
         self._combined_ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
+        Logs.debug("Saved PDB", self._ligands_input.name)
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
-        nanome.util.Logs.debug("Saved PDB", self._site_input.name)
+        Logs.debug("Saved PDB", self._site_input.name)
 
     def _start_docking(self):
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
@@ -100,7 +101,7 @@ class DockingCalculations():
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--atom_term_data']
 
-        nanome.util.Logs.debug("Run SMINA")
+        Logs.debug("Run SMINA")
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -127,11 +128,12 @@ class DockingCalculations():
 
     def _resume_docking_finished(self, docking_results):
         docking_results = docking_results[0]
-        docking_results._remarks['minimizedAffinity'] = ''
-        docking_results._remarks['atomic_interaction_terms'] = ''
-        nanome.util.Logs.debug("Read SDF", self._docking_output.name)
+        # fix metadata sorting
+        docking_results._remarks['Minimized Affinity'] = ''
+
+        Logs.debug("Read SDF", self._docking_output.name)
         for i, molecule in enumerate(docking_results.molecules):
-            nanome.util.Logs.debug("molecule " + str(i))
+            Logs.debug("molecule " + str(i))
             self.set_scores(i, molecule)
 
         docking_results.set_current_frame(0)
@@ -153,10 +155,11 @@ class DockingCalculations():
         # self._plugin.add_bonds([complex], callback)
 
         if self._scoring:
-            nanome.util.Logs.debug("Display scoring result")
+            Logs.debug("Display scoring result")
             self._plugin.display_scoring_result(docking_results)
         else:
-            nanome.util.Logs.debug("Update workspace")
+            Logs.debug("Update workspace")
+            Logs.debug(f'** result index {docking_results.index}')
             self._plugin.add_result_to_workspace([docking_results], self._align)
 
         shutil.rmtree(self.temp_dir.name)
@@ -170,7 +173,7 @@ class DockingCalculations():
 
     def _docking_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
+        Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
         self._request_pending = False
 
         self.make_ligands_invisible()
@@ -200,16 +203,22 @@ class DockingCalculations():
         num_rgx = '(-?[\d.]+(?:e[+-]\d+)?)'
         pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
-            pose_score = associated['minimizedAffinity']
+            # make the labels pretty :)
+            associated['Minimized Affinity'] = associated['> <minimizedAffinity>']
+            associated['Atomic Interaction Terms'] = associated['> <atomic_interaction_terms>']
+            del associated['> <minimizedAffinity>']
+            del associated['> <atomic_interaction_terms>']
+
+            pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
                 residue.label_text = pose_score + " kcal/mol"
                 residue.labeled = True
-            interaction_terms = associated['atomic_interaction_terms']
+            interaction_terms = associated['Atomic Interaction Terms']
             interaction_values = re.findall(pattern, interaction_terms)
             atom_count = len([atom for atom in molecule.atoms])
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
-                    nanome.util.Logs.debug("interaction values for atom " + str(i) + ": "+ str(interaction_values[i]))
+                    Logs.debug("interaction values for atom " + str(i) + ": "+ str(interaction_values[i]))
                     atom.score = float(interaction_values[i][5])
                     self.update_min_max_scores(molecule, atom.score)
 

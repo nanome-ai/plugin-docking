@@ -134,7 +134,7 @@ class Docking(nanome.PluginInstance):
 
                 complex.boxed = True
 
-        self.add_to_workspace(results)
+        self.update_structures_deep(results)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)
