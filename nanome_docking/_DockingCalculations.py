@@ -91,19 +91,12 @@ class DockingCalculations():
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         nanome.util.Logs.debug("Saved PDB", self._site_input.name)
 
-    def _check_conversion(self):
-        poll = self._nanobabel_process.poll()
-        if poll == None:
-            self._nanobabel_process.communicate()
-        return poll != None
-
     def _start_docking(self):
         exe_path = os.path.join(os.path.dirname(__file__), 'smina')
 
         if self._scoring:
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--score_only', '--out', self._ligand_output.name]
         else:
-
             smina_args = [exe_path, '-r', self._receptor_input.name, '-l', self._ligands_input.name, '--autobox_ligand', self._site_input.name, '--out', \
                 self._docking_output.name, '--log', self._log_file.name, '--exhaustiveness', str(self._exhaustiveness), '--num_modes', str(self._modes), '--autobox_add', str(self._autobox), '--atom_term_data']
 

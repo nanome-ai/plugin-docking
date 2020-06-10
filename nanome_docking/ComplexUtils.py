@@ -19,9 +19,9 @@ class ComplexUtils:
         combined_ligands = nanome.structure.Complex()
         combined_ligands.names = []
         for ligand in ligands:
-                ComplexUtils.convert_atoms_to_absolute_position(ligand)
-                ComplexUtils.convert_atoms_to_relative_position(ligand, receptor.m_workspace_to_complex)
-                combined_ligands.names.append(ligand.full_name)
-                for molecule in ligand.molecules:
-                    combined_ligands.add_molecule(molecule)
+            ComplexUtils.convert_atoms_to_absolute_position(ligand)
+            ComplexUtils.convert_atoms_to_relative_position(ligand, receptor.m_workspace_to_complex)
+            combined_ligands.names.append(ligand.full_name)
+            for molecule in ligand.molecules:
+                combined_ligands.add_molecule(molecule)
         return combined_ligands

@@ -79,22 +79,22 @@ class Docking(nanome.PluginInstance):
         self.request_complexes([docking_results_index], callback)
 
     def set_and_convert_structures(self, has_site, params, complexes):
-            # When deep complexes data are received, unpack them and prepare ligand for docking
-            receptor = complexes[0]
-            receptor.m_workspace_to_complex = receptor.get_workspace_to_complex_matrix()
-            self._receptor = receptor
-            starting_lig_idx = 1
-            site = None
-            if has_site:
-                site = complexes[1]
-                self._site = site
-                ComplexUtils.convert_atoms_to_absolute_position(site)
-                ComplexUtils.convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
-                starting_lig_idx = 2
-            # convert ligands to frame representation
-            ligands = complexes[starting_lig_idx:]
-            combine_ligs_and_start_docking = functools.partial(self.combine_ligands_start_docking, receptor, site, params)
-            self.replace_conformer(ligands, combine_ligs_and_start_docking)
+        # When deep complexes data are received, unpack them and prepare ligand for docking
+        receptor = complexes[0]
+        receptor.m_workspace_to_complex = receptor.get_workspace_to_complex_matrix()
+        self._receptor = receptor
+        starting_lig_idx = 1
+        site = None
+        if has_site:
+            site = complexes[1]
+            self._site = site
+            ComplexUtils.convert_atoms_to_absolute_position(site)
+            ComplexUtils.convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
+            starting_lig_idx = 2
+        # convert ligands to frame representation
+        ligands = complexes[starting_lig_idx:]
+        combine_ligs_and_start_docking = functools.partial(self.combine_ligands_start_docking, receptor, site, params)
+        self.replace_conformer(ligands, combine_ligs_and_start_docking)
 
     def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
