@@ -1,6 +1,6 @@
 import nanome
 from nanome.api.ui.image import Image as Image
-
+from nanome.util import Logs
 import os
 
 class DockingMenu():
@@ -65,9 +65,9 @@ class DockingMenu():
     def disable_autobox(self):
         self._site_btn.unusable = True
         self._score_btn.unusable = True
-        self._txt1.unusable = True # Doesn't do anything for now
+        #self._txt1.unusable = True # Doesn't do anything for now
         self._txt2.unusable = True
-        self._txt3.unusable = True
+        #self._txt3.unusable = True
         self._autobox_enabled = False
         self._plugin.update_menu(self._menu)
 
@@ -168,9 +168,9 @@ class DockingMenu():
         self._selected_ligands = []
         self._selected_site = None
         self._complex_list.items = []
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        # self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        # self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
 
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
@@ -282,7 +282,7 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu_new.json'))
         self._plugin.menu = menu
 
         # registering and saving special nodes
@@ -290,25 +290,43 @@ class DockingMenu():
         # panels
         self._docking_param_panel = menu.root.find_node("LeftSide", True)
         self._score_panel = menu.root.find_node("LeftSideScore", True)
+        self._panel_separator = menu.root.find_node("MiddleLine",True)
+        
 
         # images
-        none_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
-        self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
-        self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image(none_path)
-        self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
-        self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image(none_path)
-        self._site_checkmark.scaling_option = Image.ScalingOptions.fit
+        can_dock_path = os.path.join(os.path.dirname(__file__), 'can_dock.png')
+        cannot_dock_path = os.path.join(os.path.dirname(__file__), 'cannot_dock.png')
+        self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(cannot_dock_path)
+
+        #ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
+        #ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
+        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(cannot_dock_path)
+        #Logs.debug(self._ligand_icon)
+        #self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(ligand_gray_path)
+
+        #receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
+        #receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
+        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(cannot_dock_path)
+        #Logs.debug(self._receptor_icon)
+        #self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(receptor_gray_path)
+
+        # none_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        # self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
+        # self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
+        # self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image(none_path)
+        # self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
+        # self._site_checkmark = menu.root.find_node("SiteIcon", True).add_ new_image(none_path)
+        # self._site_checkmark.scaling_option = Image.ScalingOptions.fit
 
         # texts
-        self._txt1 = menu.root.find_node("ExhaustivenessInput", True).get_content()
-        self._txt1.register_changed_callback(exhaustiveness_changed)
+        #self._txt1 = menu.root.find_node("ExhaustivenessInput", True).get_content()
+        #self._txt1.register_changed_callback(exhaustiveness_changed)
 
         self._txt2 = menu.root.find_node("ModesInput", True).get_content()
         self._txt2.register_changed_callback(modes_changed)
 
-        self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
-        self._txt3.register_changed_callback(autobox_changed)
+        #self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
+        #self._txt3.register_changed_callback(autobox_changed)
 
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
@@ -347,6 +365,10 @@ class DockingMenu():
         self._receptor_tab = menu.root.find_node("ReceptorButton", True).get_content()
         self._ligand_tab = menu.root.find_node("LigandButton", True).get_content()
         self._site_tab = menu.root.find_node("SiteButton", True).get_content()
+
+        # dropdown
+        self._ligand_dropdown = menu.root.find_node("LigandDropdown",True).add_new_dropdown()
+        self._receptor_dropdown = menu.root.find_node("ReceptorDropdown",True).add_new_dropdown()
 
         # Update the menu
         self._menu = menu
