@@ -2,6 +2,9 @@ import nanome
 from nanome.api.ui.image import Image as Image
 from nanome.util import Logs
 import os
+from nanome.api.ui import Dropdown,DropdownItem
+from functools import partial
+
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -83,7 +86,7 @@ class DockingMenu():
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+        #self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
 
         self.refresh_run_btn_unusable()
@@ -142,15 +145,30 @@ class DockingMenu():
 
         self.reset(update_menu=False)
 
+        # for complex in complex_list:
+        #     clone = self._complex_item_prefab.clone()
+        #     ln_btn = clone.get_children()[0]
+        #     btn = ln_btn.get_content()
+        #     btn.set_all_text(complex.full_name)
+        #     btn.complex = complex
+        #     btn.register_pressed_callback(complex_pressed)
+        #     self._complex_list.items.append(clone)
+        ligand_list = []
+        receptor_list = []
         for complex in complex_list:
-            clone = self._complex_item_prefab.clone()
-            ln_btn = clone.get_children()[0]
-            btn = ln_btn.get_content()
-            btn.set_all_text(complex.full_name)
-            btn.complex = complex
-            btn.register_pressed_callback(complex_pressed)
-            self._complex_list.items.append(clone)
+            dd_item1 = DropdownItem()
+            dd_item2 = DropdownItem()
+            dd_item1.complex = complex
+            dd_item2.complex = complex
+            dd_item1._name = complex._name
+            dd_item2._name = complex._name
+            ligand_list.append(dd_item1)
+            receptor_list.append(dd_item2)
 
+        self._ligand_dropdown.items = ligand_list
+        self._receptor_dropdown.items = receptor_list
+        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_ligands))
+        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor))
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
@@ -269,6 +287,11 @@ class DockingMenu():
             button.selected = self._visual_scores
             self._plugin.update_content(button)
 
+        def handle_dropdown_pressed(self,docking_component,dropdown,item):
+            #docking_component.append(item.complex)
+            self.__plugin.update_menu(self.__menu)
+
+
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
         self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
@@ -298,17 +321,13 @@ class DockingMenu():
         cannot_dock_path = os.path.join(os.path.dirname(__file__), 'cannot_dock.png')
         self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(cannot_dock_path)
 
-        #ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
-        #ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
-        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(cannot_dock_path)
-        #Logs.debug(self._ligand_icon)
-        #self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(ligand_gray_path)
+        ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
+        ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
+        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(ligand_gray_path)
 
-        #receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
-        #receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
-        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(cannot_dock_path)
-        #Logs.debug(self._receptor_icon)
-        #self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(receptor_gray_path)
+        receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
+        receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
+        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(receptor_gray_path)
 
         # none_path = os.path.join(os.path.dirname(__file__), 'none.png')
         # self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
