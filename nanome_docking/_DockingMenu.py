@@ -198,6 +198,34 @@ class DockingMenu():
         self._plugin.menu.enabled = True
         self._plugin.update_menu(self._plugin.menu)
 
+    def handle_dropdown_pressed(self,docking_component,dropdown,item):
+        Logs.debug(type(docking_component))
+        if type(docking_component) == list:
+            docking_component.append(item.complex)
+            self._ligand_txt._text_value = item.complex._name
+        else:
+            self._selected_receptor = item.complex
+            self._receptor_txt._text_value = item.complex._name
+            Logs.debug("docking component is ",docking_component)
+            Logs.debug("selected receptor is ",self._selected_receptor)
+
+        self.update_icons()
+        self._plugin.update_menu(self._menu)
+ 
+    def update_icons(self):
+        Logs.debug("ligands list is ",self._selected_ligands)
+        if self._selected_ligands:
+            self._ligand_icon._file_path = self.ligand_white_path
+        else:
+            self._ligand_icon._file_path = self.ligand_gray_path
+
+        Logs.debug("selected receptor is ",self._selected_receptor)
+
+        if self._selected_receptor:
+            self._receptor_icon._file_path = self.receptor_white_path
+        else:
+            self._receptor_icon._file_path = self.receptor_gray_path
+
     def build_menu(self):
         # defining callbacks
         def run_button_pressed_callback(button):
@@ -287,9 +315,6 @@ class DockingMenu():
             button.selected = self._visual_scores
             self._plugin.update_content(button)
 
-        def handle_dropdown_pressed(self,docking_component,dropdown,item):
-            #docking_component.append(item.complex)
-            self.__plugin.update_menu(self.__menu)
 
 
         # Create a prefab that will be used to populate the lists
@@ -317,17 +342,17 @@ class DockingMenu():
         
 
         # images
-        can_dock_path = os.path.join(os.path.dirname(__file__), 'can_dock.png')
-        cannot_dock_path = os.path.join(os.path.dirname(__file__), 'cannot_dock.png')
-        self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(cannot_dock_path)
+        self.can_dock_path = os.path.join(os.path.dirname(__file__), 'can_dock.png')
+        self.cannot_dock_path = os.path.join(os.path.dirname(__file__), 'cannot_dock.png')
+        self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(self.cannot_dock_path)
 
-        ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
-        ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
-        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(ligand_gray_path)
+        self.ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
+        self.ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
+        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(self.ligand_gray_path)
 
-        receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
-        receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
-        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(receptor_gray_path)
+        self.receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
+        self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
+        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
         # none_path = os.path.join(os.path.dirname(__file__), 'none.png')
         # self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
@@ -343,7 +368,8 @@ class DockingMenu():
 
         self._txt2 = menu.root.find_node("ModesInput", True).get_content()
         self._txt2.register_changed_callback(modes_changed)
-
+        self._ligand_txt = menu.root.find_node("LigandName").get_content()
+        self._receptor_txt = menu.root.find_node("ReceptorName").get_content()
         #self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
         #self._txt3.register_changed_callback(autobox_changed)
 
@@ -387,8 +413,9 @@ class DockingMenu():
 
         # dropdown
         self._ligand_dropdown = menu.root.find_node("LigandDropdown",True).add_new_dropdown()
+        menu.root.find_node("LigandDropdown",True).forward_dist = 0.0035
         self._receptor_dropdown = menu.root.find_node("ReceptorDropdown",True).add_new_dropdown()
-
+        menu.root.find_node("ReceptorDropdown",True).forward_dist = 0.003
         # Update the menu
         self._menu = menu
         self._plugin.update_menu(menu)
