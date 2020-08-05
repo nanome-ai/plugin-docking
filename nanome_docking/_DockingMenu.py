@@ -58,11 +58,13 @@ class DockingMenu():
                 return
         ligands = []
         for item in self._selected_ligands:
-            ligands.append(item.complex)
+            # ligands.append(item.complex)
+            ligands.append(item)
         site = None
         if self._autobox_enabled:
-            site = self._selected_site.complex
-        self._plugin.run_docking(self._selected_receptor.complex, ligands, site, self.get_params())
+            # site = self._selected_site.complex 
+            site = self._selected_site
+        self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
     def disable_autobox(self):
         self._site_btn.unusable = True
@@ -114,8 +116,8 @@ class DockingMenu():
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
-        self._plugin.update_content(self._site_checkmark)
+        # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+        # self._plugin.update_content(self._site_checkmark)
 
         self.refresh_run_btn_unusable()
 
@@ -154,20 +156,27 @@ class DockingMenu():
         #     self._complex_list.items.append(clone)
         ligand_list = []
         receptor_list = []
+        site_list = []
         for complex in complex_list:
             dd_item1 = DropdownItem()
             dd_item2 = DropdownItem()
+            dd_item3 = DropdownItem()
             dd_item1.complex = complex
             dd_item2.complex = complex
+            dd_item3.complex = complex
             dd_item1._name = complex._name
             dd_item2._name = complex._name
+            dd_item3._name = complex._name
             ligand_list.append(dd_item1)
             receptor_list.append(dd_item2)
+            site_list.append(dd_item3)
 
         self._ligand_dropdown.items = ligand_list
         self._receptor_dropdown.items = receptor_list
-        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_ligands))
-        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor))
+        self._site_dropdown.items = site_list
+        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_ligands,'ligand'))
+        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor,'receptor'))
+        self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_site,'site'))
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
@@ -197,28 +206,37 @@ class DockingMenu():
         self._plugin.menu.enabled = True
         self._plugin.update_menu(self._plugin.menu)
 
-    def handle_dropdown_pressed(self,docking_component,dropdown,item):
-        Logs.debug(type(docking_component))
-        if type(docking_component) == list:
-            docking_component.append(item.complex)
-            self._ligand_txt._text_value = item.complex._name
-        else:
+    def handle_dropdown_pressed(self,docking_component,component_name,dropdown,item):
+        if component_name == 'ligand':
+            if item.complex.index not in [x.index for x in self._selected_ligands]:
+                self._selected_ligands.append(item.complex)
+            if len(self._selected_ligands) > 1:
+                self._ligand_txt._text_value = 'Multiple'
+            else:
+                self._ligand_txt._text_value = item.complex.name
+        elif component_name == 'receptor':
             self._selected_receptor = item.complex
-            self._receptor_txt._text_value = item.complex._name
-            Logs.debug("docking component is ",docking_component)
-            Logs.debug("selected receptor is ",self._selected_receptor)
-
+            self._receptor_txt._text_value = item.complex.name
+        elif component_name == 'site':
+            self._selected_site = item.complex
+            
+        Logs.debug("dropdown is: ",dropdown)
+        Logs.debug("item is: ",item)
+        Logs.debug("docking component is ",docking_component)
+        Logs.debug("selected ligand is ",self._selected_ligands)
+        Logs.debug("selected receptor is ",self._selected_receptor)
+        Logs.debug("selected site is: ",self._selected_site)
+        Logs.debug()
         self.update_icons()
+        self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
  
     def update_icons(self):
-        Logs.debug("ligands list is ",self._selected_ligands)
         if self._selected_ligands:
             self._ligand_icon._file_path = self.ligand_white_path
         else:
             self._ligand_icon._file_path = self.ligand_gray_path
 
-        Logs.debug("selected receptor is ",self._selected_receptor)
 
         if self._selected_receptor:
             self._receptor_icon._file_path = self.receptor_white_path
@@ -388,33 +406,33 @@ class DockingMenu():
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
 
-        self._score_btn = menu.root.find_node("ScoringButton", True).get_content()
+        self._score_btn = menu.root.find_node("ScoringButton").get_content()
         self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
 
-        self._display_score_btn = menu.root.find_node("VisualScoresButton", True).get_content()
+        self._display_score_btn = menu.root.find_node("VisualScoresButton").get_content()
         self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
 
-        close_score_btn = menu.root.find_node("CloseScoreButton", True).get_content()
+        close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(close_score_pressed_callback)
 
-        run_button = menu.root.find_node("RunButton", True).get_content()
+        run_button = menu.root.find_node("RunButton").get_content()
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
 
         # lists
-        self._complex_list = menu.root.find_node("ComplexList", True).get_content()
-        self._score_list = menu.root.find_node("ScoreList", True).get_content()
-        self._receptor_tab = menu.root.find_node("ReceptorButton", True).get_content()
-        self._ligand_tab = menu.root.find_node("LigandButton", True).get_content()
-        self._site_tab = menu.root.find_node("SiteButton", True).get_content()
+        self._complex_list = menu.root.find_node("ComplexList").get_content()
+        self._score_list = menu.root.find_node("ScoreList").get_content()
+        self._receptor_tab = menu.root.find_node("ReceptorButton").get_content()
+        self._ligand_tab = menu.root.find_node("LigandButton").get_content()
+        self._site_tab = menu.root.find_node("SiteButton").get_content()
 
         # dropdown
-        self._ligand_dropdown = menu.root.find_node("LigandDropdown",True).add_new_dropdown()
-        menu.root.find_node("LigandDropdown",True).forward_dist = 0.0035
-        self._receptor_dropdown = menu.root.find_node("ReceptorDropdown",True).add_new_dropdown()
-        menu.root.find_node("ReceptorDropdown",True).forward_dist = 0.003
+        self._ligand_dropdown = menu.root.find_node("LigandDropdown").add_new_dropdown()
+        self._receptor_dropdown = menu.root.find_node("ReceptorDropdown").add_new_dropdown()
+        self._site_dropdown = menu._root.find_node("SiteDropdown").add_new_dropdown()
+
         # Update the menu
         self._menu = menu
         self._plugin.update_menu(menu)
