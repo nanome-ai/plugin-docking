@@ -32,7 +32,10 @@ class Docking(nanome.PluginInstance):
         if menu.is_ready_for_docking() == False:
             self.open_menu()
         else:
+            self._menu.show_loading(True) 
             self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
+            self._menu.show_loading(False)
+
 
     # Called when user click on the "Advanced Settings" button in Nanome
     def on_advanced_settings(self):
@@ -101,6 +104,7 @@ class Docking(nanome.PluginInstance):
         if self._menu._run_button.unusable == True:
             return
         self._menu.make_plugin_usable(False)
+        #self._menu.show_loading(True)
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
@@ -110,6 +114,7 @@ class Docking(nanome.PluginInstance):
 
         setup_structures = functools.partial(self.set_and_convert_structures, site != None, params)
         self.request_complexes(request_list, setup_structures)
+        #self._menu.show_loading(False)
 
     # Called every update tick of the Plugin
     def update(self):

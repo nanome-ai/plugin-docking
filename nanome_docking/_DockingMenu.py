@@ -64,6 +64,7 @@ class DockingMenu():
         if self._autobox_enabled:
             # site = self._selected_site.complex 
             site = self._selected_site
+        self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
     def disable_autobox(self):
@@ -78,6 +79,17 @@ class DockingMenu():
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(False)
         self._plugin.update_content(self._run_button)
+    
+    def show_loading(self, show = False):
+        if show:
+            self.ln_run_button.enabled = False
+            self.ln_loading_bar.enabled = True
+            Logs.debug("loading bar show=========================")
+        else:
+            self.ln_run_button.enabled = True
+            self.ln_loading_bar.enabled = False
+        #self._plugin.update_node(self.ln_loading_bar)
+        self._plugin.update_menu(self._menu)
 
     def receptor_pressed(self, button):
         lastSelected = self._selected_receptor
@@ -129,7 +141,6 @@ class DockingMenu():
         else:
             self._run_button.text.value_unusable = "Run"
             self._run_button.unusable = True
-
         if update:
             self._plugin.update_content(self._run_button)
 
@@ -164,9 +175,9 @@ class DockingMenu():
             dd_item1.complex = complex
             dd_item2.complex = complex
             dd_item3.complex = complex
-            dd_item1._name = complex._name
-            dd_item2._name = complex._name
-            dd_item3._name = complex._name
+            dd_item1._name = complex.full_name
+            dd_item2._name = complex.full_name
+            dd_item3._name = complex.full_name
             ligand_list.append(dd_item1)
             receptor_list.append(dd_item2)
             site_list.append(dd_item3)
@@ -213,10 +224,10 @@ class DockingMenu():
             if len(self._selected_ligands) > 1:
                 self._ligand_txt._text_value = 'Multiple'
             else:
-                self._ligand_txt._text_value = item.complex.name
+                self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
         elif component_name == 'receptor':
             self._selected_receptor = item.complex
-            self._receptor_txt._text_value = item.complex.name
+            self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
         elif component_name == 'site':
             self._selected_site = item.complex
             
@@ -415,11 +426,17 @@ class DockingMenu():
         close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(close_score_pressed_callback)
 
-        run_button = menu.root.find_node("RunButton").get_content()
+        self.ln_run_button = menu.root.find_node("RunButton")
+        run_button = self.ln_run_button.get_content()
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
+
+        # loading bar
+        self.ln_loading_bar = menu.root.find_node("LoadingBar")
+        self.loading_bar = self.ln_loading_bar.get_content()
+        self.loading_bar.description = "      Loading...          "
 
         # lists
         self._complex_list = menu.root.find_node("ComplexList").get_content()
