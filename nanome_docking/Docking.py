@@ -1,4 +1,5 @@
 import nanome
+from nanome.util import Logs
 from ._DockingCalculations import DockingCalculations as Smina
 from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
@@ -32,9 +33,7 @@ class Docking(nanome.PluginInstance):
         if menu.is_ready_for_docking() == False:
             self.open_menu()
         else:
-            self._menu.show_loading(True) 
             self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
-            self._menu.show_loading(False)
 
 
     # Called when user click on the "Advanced Settings" button in Nanome
@@ -62,6 +61,10 @@ class Docking(nanome.PluginInstance):
         self._menu.change_complex_list(complexes)
 
     def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
+        Logs.debug("== Receptor is: ",receptor)
+        Logs.debug("== Individual ligands are: ",individual_ligands)
+        Logs.debug("== site is: ",site)
+        Logs.debug("== params are: ",params)
         self._calculations.start_docking(receptor, individual_ligands, site, **params)
 
     def replace_conformer(self, complexes, callback, existing=True):
