@@ -58,12 +58,12 @@ class DockingMenu():
                 return
         ligands = []
         for item in self._selected_ligands:
-            # ligands.append(item.complex)
-            ligands.append(item)
+            ligands.append(item.complex)
+            # ligands.append(item)
         site = None
         if self._autobox_enabled:
-            # site = self._selected_site.complex 
-            site = self._selected_site
+            site = self._selected_site.complex 
+            # site = self._selected_site
         self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
@@ -219,18 +219,67 @@ class DockingMenu():
 
     def handle_dropdown_pressed(self,docking_component,component_name,dropdown,item):
         if component_name == 'ligand':
-            if item.complex.index not in [x.index for x in self._selected_ligands]:
-                self._selected_ligands.append(item.complex)
-            if len(self._selected_ligands) > 1:
-                self._ligand_txt._text_value = 'Multiple'
+            cur_index = item.complex.index
+            #if cur_index not in [x.complex.index for x in self._selected_ligands]:
+            if not self._selected_ligands:
+                self._selected_ligands.append(item)
+                item.selected = True
             else:
+                # for x in self._selected_ligands:
+                #     if x.complex.index == cur_index:
+                #         self._selected_ligands.remove(x)
+                #         break
+                if (len(self._selected_ligands) > 1) or\
+                   (len(self._selected_ligands) == 1 and self._selected_ligands[0].complex.index != item.complex.index):
+                    self._selected_ligands = [item]
+                    item.selected = True
+                else:
+                    self._selected_ligands = []
+                    item.selected = False
+
+            # if len(self._selected_ligands) > 1:
+            #     self._ligand_txt._text_value = 'Multiple'
+            #     self._ligand_dropdown.use_permanent_title = True
+            #     self._ligand_dropdown.permanent_title = "Multiple"
+            if len(self._selected_ligands) == 1:
                 self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
+                self._ligand_dropdown.use_permanent_title = False
+            elif len(self._selected_ligands) == 0:
+                self._ligand_dropdown.use_permanent_title = True
+                self._ligand_dropdown.permanent_title = "None"
+                self._ligand_txt._text_value = "Ligand"
+
         elif component_name == 'receptor':
-            self._selected_receptor = item.complex
-            self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
+
+            if self._selected_receptor and self._selected_receptor.index == item.complex.index:
+                self._selected_receptor = None
+            else:
+                self._selected_receptor = item.complex
+
+            if self._selected_receptor: 
+                self._receptor_dropdown.use_permanent_title = False
+                self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
+            else:
+                self._receptor_txt._text_value = "Receptor"
+                self._receptor_dropdown.use_permanent_title = True
+                self._receptor_dropdown.permanent_title = "None"
+                
         elif component_name == 'site':
-            self._selected_site = item.complex
+            if not self._selected_site or self._selected_site.complex.index != item.complex.index:
+                self._selected_site = item
+            else:
+                self._selected_site = None
+                item.selected = False
+          
+            if self._selected_site:
+                self._site_dropdown.use_permanent_title = False
+            else:
+                self._site_dropdown.use_permanent_title = True
+                self._site_dropdown.permanent_title = "None"
+
+        
             
+
         Logs.debug("dropdown is: ",dropdown)
         Logs.debug("item is: ",item)
         Logs.debug("docking component is ",docking_component)
@@ -238,6 +287,7 @@ class DockingMenu():
         Logs.debug("selected receptor is ",self._selected_receptor)
         Logs.debug("selected site is: ",self._selected_site)
         Logs.debug()
+        
         self.update_icons()
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
@@ -253,6 +303,11 @@ class DockingMenu():
             self._receptor_icon._file_path = self.receptor_white_path
         else:
             self._receptor_icon._file_path = self.receptor_gray_path
+
+        if self._selected_ligands and self._selected_receptor and self._selected_site:
+            self._check_arrow._file_path = self.can_dock_path
+        else:
+            self._check_arrow._file_path = self.cannot_dock_path
 
     def build_menu(self):
         # defining callbacks
@@ -447,8 +502,14 @@ class DockingMenu():
 
         # dropdown
         self._ligand_dropdown = menu.root.find_node("LigandDropdown").add_new_dropdown()
+        self._ligand_dropdown.use_permanent_title = True
+        self._ligand_dropdown.permanent_title = "None"
         self._receptor_dropdown = menu.root.find_node("ReceptorDropdown").add_new_dropdown()
+        self._receptor_dropdown.use_permanent_title = True
+        self._receptor_dropdown.permanent_title = "None"
         self._site_dropdown = menu._root.find_node("SiteDropdown").add_new_dropdown()
+        self._site_dropdown.use_permanent_title = True
+        self._site_dropdown.permanent_title = "None"
 
         # Update the menu
         self._menu = menu
