@@ -269,11 +269,14 @@ class DockingMenu():
                 self._selected_site = item
                 # Logs.debug("site position: ",item.complex.position)
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in item.complex.position]
-                self._plugin.update_content(self._LocXInput.number, self._LocYInput, self._LocZInput)
+                
             else:
                 self._selected_site = None
                 item.selected = False
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '','',''
           
+            self._plugin.update_content(self._LocXInput.number, self._LocYInput, self._LocZInput)
+            
             if self._selected_site:
                 self._site_dropdown.use_permanent_title = False
             else:
