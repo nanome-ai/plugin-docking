@@ -267,6 +267,9 @@ class DockingMenu():
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
+                # Logs.debug("site position: ",item.complex.position)
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in item.complex.position]
+                self._plugin.update_content(self._LocXInput.number, self._LocYInput, self._LocZInput)
             else:
                 self._selected_site = None
                 item.selected = False
@@ -277,8 +280,6 @@ class DockingMenu():
                 self._site_dropdown.use_permanent_title = True
                 self._site_dropdown.permanent_title = "None"
 
-        
-            
 
         Logs.debug("dropdown is: ",dropdown)
         Logs.debug("item is: ",item)
@@ -398,6 +399,19 @@ class DockingMenu():
             button.selected = self._visual_scores
             self._plugin.update_content(button)
 
+        def slider_released_callback(slider):
+            slider.current_value = round(slider.current_value)
+            self._plugin.update_content(slider)
+            self._autobox = slider.current_value
+
+        def loc_x_submitted(text_input):
+            Logs.debug("X submitted")
+
+        def loc_y_submitted(text_input):
+            Logs.debug("X submitted")
+        
+        def loc_z_submitted(text_input):
+            Logs.debug("X submitted")
 
 
         # Create a prefab that will be used to populate the lists
@@ -453,6 +467,13 @@ class DockingMenu():
         self._txt2.register_changed_callback(modes_changed)
         self._ligand_txt = menu.root.find_node("LigandName").get_content()
         self._receptor_txt = menu.root.find_node("ReceptorName").get_content()
+
+        self._LocXInput = menu.root.find_node("LocXInput").get_content()
+        self._LocXInput.register_submitted_callback(loc_x_submitted)
+        self._LocYInput = menu.root.find_node("LocYInput").get_content()
+        self._LocYInput.register_submitted_callback(loc_y_submitted)
+        self._LocZInput = menu.root.find_node("LocZInput").get_content()
+        self._LocZInput.register_submitted_callback(loc_z_submitted)
         #self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
         #self._txt3.register_changed_callback(autobox_changed)
 
@@ -510,6 +531,10 @@ class DockingMenu():
         self._site_dropdown = menu._root.find_node("SiteDropdown").add_new_dropdown()
         self._site_dropdown.use_permanent_title = True
         self._site_dropdown.permanent_title = "None"
+
+        # slider
+        self._slider = menu.root.find_node("Slider").get_content()
+        self._slider.register_released_callback(slider_released_callback)
 
         # Update the menu
         self._menu = menu
