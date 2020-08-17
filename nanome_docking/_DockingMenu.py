@@ -411,30 +411,42 @@ class DockingMenu():
             self._autobox = slider.current_value
 
         def loc_x_submitted(text_input):
-            Logs.debug("X submitted")
+            try:
+                float(text_input.input_text)
+                self._selected_site.complex.position[0] = float(text_input.input_text)
+            except:
+                Logs.debug("Input is not a float")
+            self._plugin.update_structures_shallow([self._selected_site.complex])
+            
 
         def loc_y_submitted(text_input):
-            Logs.debug("X submitted")
+            try:
+                float(text_input.input_text)
+                self._selected_site.complex.position[1] = float(text_input.input_text)
+            except:
+                Logs.debug("Input is not a float")
+            self._plugin.update_structures_shallow([self._selected_site.complex])
         
         def loc_z_submitted(text_input):
-            Logs.debug("X submitted")
+            try:
+                float(text_input.input_text)
+                self._selected_site.complex.position[2] = float(text_input.input_text)
+            except:
+                Logs.debug("Input is not a float")
+            self._plugin.update_structures_shallow([self._selected_site.complex])
 
         def pose_added_callback(button):
-            #Logs.debug(self._modes)
             self._modes += 1
-            #Logs.debug(self._modes)
             self._txt2.input_text = self._modes
             self._plugin.update_content(self._txt2)
             Logs.debug(self._modes)
 
 
         def pose_subbed_callback(button):
-            #Logs.debug(self._modes)
             self._modes -= 1
             if self._modes <= 0:
                 self._modes = 1
             self._txt2.input_text = self._modes
-            #Logs.debug(self._modes)
             self._plugin.update_content(self._txt2)
             Logs.debug(self._modes)
 
@@ -442,7 +454,7 @@ class DockingMenu():
             def update_site_loc(complexes_list):
                 for complex in complexes_list:
                     if complex.index == self._selected_site.complex.index:
-                        self._selected_site.index = complex
+                        self._selected_site.complex = complex
                         Logs.debug("new loc is: ",[round(x,2) for x in complex.position])
                         self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in complex.position]
                         Logs.debug(self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text)
