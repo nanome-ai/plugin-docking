@@ -5,6 +5,7 @@ import os
 from nanome.api.ui import Dropdown,DropdownItem
 from functools import partial
 
+REFRESHICON = "refresh.png"
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -274,9 +275,7 @@ class DockingMenu():
                 self._selected_site = None
                 item.selected = False
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '','',''
-          
-            self._plugin.update_content(self._LocXInput.number, self._LocYInput, self._LocZInput)
-            
+                      
             if self._selected_site:
                 self._site_dropdown.use_permanent_title = False
             else:
@@ -335,11 +334,15 @@ class DockingMenu():
         def modes_changed(input):
             try:
                 self._modes = int(input.input_text)
-                nanome.util.Logs.debug("Modes number set to", self._modes)
+                # nanome.util.Logs.debug("Modes number set to", self._modes)
             except:
                 self._modes = 9
+
             if self._modes <= 0:
-                self._modes = 9
+                self._modes = 1
+                self._txt2.input_text = self._modes
+                self._plugin.update_content(self._txt2)
+            nanome.util.Logs.debug("Modes number set to", self._modes)
 
         def autobox_changed(input):
             try:
@@ -416,6 +419,41 @@ class DockingMenu():
         def loc_z_submitted(text_input):
             Logs.debug("X submitted")
 
+        def pose_added_callback(button):
+            #Logs.debug(self._modes)
+            self._modes += 1
+            #Logs.debug(self._modes)
+            self._txt2.input_text = self._modes
+            self._plugin.update_content(self._txt2)
+            Logs.debug(self._modes)
+
+
+        def pose_subbed_callback(button):
+            #Logs.debug(self._modes)
+            self._modes -= 1
+            if self._modes <= 0:
+                self._modes = 1
+            self._txt2.input_text = self._modes
+            #Logs.debug(self._modes)
+            self._plugin.update_content(self._txt2)
+            Logs.debug(self._modes)
+
+        def loc_refresh_pressed_callback(button):
+            def update_site_loc(complexes_list):
+                for complex in complexes_list:
+                    if complex.index == self._selected_site.complex.index:
+                        self._selected_site.index = complex
+                        Logs.debug("new loc is: ",[round(x,2) for x in complex.position])
+                        self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in complex.position]
+                        Logs.debug(self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text)
+                        self._plugin.update_menu(self._menu)
+
+
+            if not self._selected_site:
+                Logs.debug("No Site Selected")
+            else:
+                Logs.debug("Update the site location")
+                self._plugin.request_complexes([self._selected_site.complex.index],update_site_loc)
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
@@ -512,6 +550,14 @@ class DockingMenu():
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
 
+        pose_sub_btn = menu.root.find_node("PoseSub").get_content()
+        pose_sub_btn.register_pressed_callback(pose_subbed_callback)
+        pose_add_btn = menu.root.find_node("PoseAdd").get_content()
+        pose_add_btn.register_pressed_callback(pose_added_callback)
+
+        location_refresh_btn = menu.root.find_node("LocationRefresh").get_content()
+        location_refresh_btn.register_pressed_callback(loc_refresh_pressed_callback)
+
         # loading bar
         self.ln_loading_bar = menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
@@ -538,6 +584,10 @@ class DockingMenu():
         # slider
         self._slider = menu.root.find_node("Slider").get_content()
         self._slider.register_released_callback(slider_released_callback)
+
+        # image
+        refresh_icon = menu.root.find_node("RefreshIcon", True)
+        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), REFRESHICON))
 
         # Update the menu
         self._menu = menu
