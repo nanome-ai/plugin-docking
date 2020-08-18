@@ -609,6 +609,7 @@ class DockingMenu():
         # slider
         self._slider = menu.root.find_node("Slider").get_content()
         self._slider.register_released_callback(slider_released_callback)
+        self._slider.current_value = self._autobox
 
         self._exhaust_slider = self.setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
