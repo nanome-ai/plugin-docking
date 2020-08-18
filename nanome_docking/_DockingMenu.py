@@ -322,16 +322,16 @@ class DockingMenu():
                 self._plugin.update_menu(self._menu)
             self._run_docking()
 
-        def exhaustiveness_changed(input):
-            try:
-                self._exhaustiveness = int(input.input_text)
-                nanome.util.Logs.debug("Exhaustiveness set to", self._exhaustiveness)
-            except:
-                self._exhaustiveness = 8
-            if self._exhaustiveness <= 0:
-                self._exhaustiveness = 8
+        # def exhaustiveness_changed(input):
+        #     try:
+        #         self._exhaustiveness = int(input.input_text)
+        #         nanome.util.Logs.debug("Exhaustiveness set to", self._exhaustiveness)
+        #     except:
+        #         self._exhaustiveness = 8
+        #     if self._exhaustiveness <= 0:
+        #         self._exhaustiveness = 8
 
-        def modes_changed(input):
+        def modes_changed(input):  
             try:
                 self._modes = int(input.input_text)
                 # nanome.util.Logs.debug("Modes number set to", self._modes)
@@ -344,14 +344,14 @@ class DockingMenu():
                 self._plugin.update_content(self._txt2)
             nanome.util.Logs.debug("Modes number set to", self._modes)
 
-        def autobox_changed(input):
-            try:
-                self._autobox = int(input.input_text)
-                nanome.util.Logs.debug("Autobox size set to", self._autobox)
-            except:
-                self._autobox = 4
-            if self._autobox <= 0:
-                self._autobox = 4
+        # def autobox_changed(input):
+        #     try:
+        #         self._autobox = int(input.input_text)
+        #         nanome.util.Logs.debug("Autobox size set to", self._autobox)
+        #     except:
+        #         self._autobox = 4
+        #     if self._autobox <= 0:
+        #         self._autobox = 4
 
         def tab_button_pressed_callback(button):
             if self._tab == button:
@@ -409,6 +409,13 @@ class DockingMenu():
             slider.current_value = round(slider.current_value)
             self._plugin.update_content(slider)
             self._autobox = slider.current_value
+
+        def exhaust_slider_released_callback(slider):
+            slider.current_value = round(slider.current_value)
+            self._plugin.update_content(slider)
+            self._exhaustiveness = slider.current_value
+            self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
+            self._plugin.update_content(self._exhaustiveness_txt)
 
         def loc_x_submitted(text_input):
             try:
@@ -482,6 +489,9 @@ class DockingMenu():
         # loading menus
         menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu_new.json'))
         self._plugin.menu = menu
+        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_setting_new.json'))
+        # self.setting_menu.index = 1
+        self._plugin.setting_menu = self.setting_menu
 
         # registering and saving special nodes
 
@@ -529,6 +539,9 @@ class DockingMenu():
         self._LocZInput.register_submitted_callback(loc_z_submitted)
         #self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
         #self._txt3.register_changed_callback(autobox_changed)
+
+        self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
+        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
@@ -597,9 +610,14 @@ class DockingMenu():
         self._slider = menu.root.find_node("Slider").get_content()
         self._slider.register_released_callback(slider_released_callback)
 
+        self._exhaust_slider = self.setting_menu.root.find_node("ExhaustSlider").get_content()
+        self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
+        self._exhaust_slider.current_value = self._exhaustiveness
+
         # image
         refresh_icon = menu.root.find_node("RefreshIcon", True)
         refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), REFRESHICON))
+
 
         # Update the menu
         self._menu = menu
