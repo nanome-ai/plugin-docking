@@ -42,12 +42,14 @@ To run in a Docker container:
 
 ```sh
 $ cd docker
-$ ./build.sh 
-if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
-do the following 3 steps and then run $./build.sh again:
-    $ cd ../nanome_docking/
-    $ chmod a+r smina
-    $ cd ../docker/
+$ ./build.sh
+
+Note that if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
+change the permission using the following 3 steps and try the previous step( $./build.sh ) again:
+    1. $ cd ../nanome_docking/
+    2. $ chmod a+r smina
+    3. $ cd ../docker/
+
 $ ./deploy.sh -a <plugin_server_address> smina
 ```
 
