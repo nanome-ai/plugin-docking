@@ -53,7 +53,7 @@ change the permission using the following 3 steps and try the previous step( $./
 $ ./deploy.sh -a <plugin_server_address> smina
 ```
 
-To view (and follow logs) of a container:
+To view (and follow the logs of) a container:
 ```sh
 $ docker logs --follow docking
 ```
@@ -63,7 +63,7 @@ To stop the container:
 $ docker stop docking
 ```
 
-To view the running container:
+To view the running containers:
 ```sh
 $ docker ps
 ```
