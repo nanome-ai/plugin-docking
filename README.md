@@ -68,7 +68,6 @@ To view the running containers:
 $ docker ps
 ```
 
-To 
 ### License
 
 MIT
