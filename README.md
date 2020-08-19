@@ -45,10 +45,8 @@ $ cd docker
 $ ./build.sh
 
 Note that if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
-change the permission using the following 3 steps and try the previous step( $./build.sh ) again:
-    1. $ cd ../nanome_docking/
-    2. $ chmod a+r smina
-    3. $ cd ../docker/
+change the permission using "$ chmod a+r ../nanome_docking/smina"
+and try the previous step( $./build.sh ) again:
 
 $ ./deploy.sh -a <plugin_server_address> smina
 ```
