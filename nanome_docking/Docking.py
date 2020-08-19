@@ -52,8 +52,8 @@ class Docking(nanome.PluginInstance):
     def open_setting_menu(self):
         setting_menu = self.setting_menu
         setting_menu.enabled = True
-        Logs.debug("self._menu is: ",self._menu)
-        Logs.debug("self._menu.setting_menu is: ",self._menu.setting_menu)
+        self.setting_menu.index = 1
+        
         self.update_menu(setting_menu)
 
     def open_menu(self):
@@ -68,10 +68,7 @@ class Docking(nanome.PluginInstance):
         self._menu.change_complex_list(complexes)
 
     def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
-        Logs.debug("== Receptor is: ",receptor)
-        Logs.debug("== Individual ligands are: ",individual_ligands)
-        Logs.debug("== site is: ",site)
-        Logs.debug("== params are: ",params)
+       
         self._calculations.start_docking(receptor, individual_ligands, site, **params)
 
     def replace_conformer(self, complexes, callback, existing=True):
