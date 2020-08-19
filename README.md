@@ -43,30 +43,28 @@ To run in a Docker container:
 ```sh
 $ cd docker
 $ ./build.sh 
-if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", do the following 3 steps and then run 
-$./build.sh 
-again:
-$ cd ../nanome_docking/
-$ chmod a+r smina
-$ cd ../docker/
-
+if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
+do the following 3 steps and then run $./build.sh again:
+    $ cd ../nanome_docking/
+    $ chmod a+r smina
+    $ cd ../docker/
 $ ./deploy.sh -a <plugin_server_address> smina
 ```
 
 To view (and follow logs) of a container:
-'''sh
+```sh
 $ docker logs --follow docking
-'''
+```
 
 To stop the container:
-'''sh
+```sh
 $ docker stop docking
-'''
+```
 
 To view the running container:
-'''sh
+```sh
 $ docker ps
-'''
+```
 
 To 
 ### License
