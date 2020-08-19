@@ -85,7 +85,6 @@ class DockingMenu():
         if show:
             self.ln_run_button.enabled = False
             self.ln_loading_bar.enabled = True
-            Logs.debug("loading bar show=========================")
         else:
             self.ln_run_button.enabled = True
             self.ln_loading_bar.enabled = False
@@ -268,7 +267,6 @@ class DockingMenu():
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
-                # Logs.debug("site position: ",item.complex.position)
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in item.complex.position]
                 
             else:
@@ -283,13 +281,6 @@ class DockingMenu():
                 self._site_dropdown.permanent_title = "None"
 
 
-        Logs.debug("dropdown is: ",dropdown)
-        Logs.debug("item is: ",item)
-        Logs.debug("docking component is ",docking_component)
-        Logs.debug("selected ligand is ",self._selected_ligands)
-        Logs.debug("selected receptor is ",self._selected_receptor)
-        Logs.debug("selected site is: ",self._selected_site)
-        Logs.debug()
         
         self.update_icons()
         self.refresh_run_btn_unusable()
@@ -334,7 +325,6 @@ class DockingMenu():
         def modes_changed(input):  
             try:
                 self._modes = int(input.input_text)
-                # nanome.util.Logs.debug("Modes number set to", self._modes)
             except:
                 self._modes = 9
 
@@ -342,7 +332,6 @@ class DockingMenu():
                 self._modes = 1
                 self._txt2.input_text = self._modes
                 self._plugin.update_content(self._txt2)
-            nanome.util.Logs.debug("Modes number set to", self._modes)
 
         # def autobox_changed(input):
         #     try:
@@ -446,8 +435,6 @@ class DockingMenu():
             self._modes += 1
             self._txt2.input_text = self._modes
             self._plugin.update_content(self._txt2)
-            Logs.debug(self._modes)
-
 
         def pose_subbed_callback(button):
             self._modes -= 1
@@ -455,16 +442,14 @@ class DockingMenu():
                 self._modes = 1
             self._txt2.input_text = self._modes
             self._plugin.update_content(self._txt2)
-            Logs.debug(self._modes)
+
 
         def loc_refresh_pressed_callback(button):
             def update_site_loc(complexes_list):
                 for complex in complexes_list:
                     if complex.index == self._selected_site.complex.index:
                         self._selected_site.complex = complex
-                        Logs.debug("new loc is: ",[round(x,2) for x in complex.position])
                         self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in complex.position]
-                        Logs.debug(self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text)
                         self._plugin.update_menu(self._menu)
 
 
@@ -562,7 +547,7 @@ class DockingMenu():
         self._score_btn = menu.root.find_node("ScoringButton").get_content()
         self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
 
-        self._display_score_btn = menu.root.find_node("VisualScoresButton").get_content()
+        self._display_score_btn = self.setting_menu.root.find_node("VisualScoresButton").get_content()
         self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
 
         close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
