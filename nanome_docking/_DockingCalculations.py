@@ -105,6 +105,7 @@ class DockingCalculations():
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self._plugin._menu.show_loading(False)
         except:
             nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions. Path:", SMINA_PATH)
             self._request_pending = False
