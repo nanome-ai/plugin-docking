@@ -81,7 +81,6 @@ class DockingCalculations():
             self._started_docking = True
         elif self._check_docking():
             self._docking_finished()
-            self._plugin._menu.show_loading(False)
 
 
     def write_structures_to_file(self):
@@ -169,6 +168,8 @@ class DockingCalculations():
         shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
+        self._plugin._menu.show_loading(False)
+
 
     def make_ligands_invisible(self):
         for ligand in self._ligands:
