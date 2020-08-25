@@ -169,7 +169,7 @@ class DockingCalculations():
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
         self._plugin._menu.show_loading(False)
-
+        self._plugin._menu.refresh_run_btn_unusable()
 
 
     def make_ligands_invisible(self):
