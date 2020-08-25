@@ -67,7 +67,7 @@ class DockingMenu():
             # site = self._selected_site
         self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
-
+        
     def disable_autobox(self):
         self._site_btn.unusable = True
         self._score_btn.unusable = True
