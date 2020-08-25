@@ -79,7 +79,8 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(False)
+        Logs.debug("run button debug: make_plugin_usable")
+        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update = False)
         self._plugin.update_content(self._run_button)
     
     def show_loading(self, show = False):
@@ -102,7 +103,7 @@ class DockingMenu():
         self._plugin.update_content(button)
         #self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
-
+        Logs.debug("run button debug: receptor pressed")
         self.refresh_run_btn_unusable()
 
     def ligand_pressed(self, button):
@@ -118,7 +119,7 @@ class DockingMenu():
         else:
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
-
+        Logs.debug("run button debug: ligand pressed")
         self.refresh_run_btn_unusable()
 
     def site_pressed(self, button):
@@ -131,7 +132,7 @@ class DockingMenu():
         self._plugin.update_content(button)
         # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         # self._plugin.update_content(self._site_checkmark)
-
+        Logs.debug("run button debug: sitepressed")
         self.refresh_run_btn_unusable()
 
     def refresh_run_btn_unusable(self, update=True,after = False):
@@ -284,6 +285,7 @@ class DockingMenu():
 
         
         self.update_icons()
+        Logs.debug("run button debug: handle dropdown pressed")
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
  
@@ -560,6 +562,7 @@ class DockingMenu():
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
+        Logs.debug("run button debug: building menu")
         self.refresh_run_btn_unusable()
 
         pose_sub_btn = menu.root.find_node("PoseSub").get_content()
