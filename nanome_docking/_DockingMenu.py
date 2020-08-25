@@ -213,6 +213,7 @@ class DockingMenu():
             self._score_list.items.append(clone)
 
     def reset(self, update_menu=True):
+        Logs.debug("reset called")
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
