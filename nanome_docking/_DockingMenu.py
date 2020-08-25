@@ -137,6 +137,10 @@ class DockingMenu():
 
     def refresh_run_btn_unusable(self, update=True,after = False):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
+        Logs.debug("selected receptor is: ",self._selected_receptor)
+        Logs.debug("selected ligand is: ",self._selected_ligands)
+        Logs.debug("selected site is: ",self._selected_site)
+        Logs.debug("after is: "after)
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             Logs.debug("run button unusable case 1")
             self._run_button.text.value_unusable = "Running..."
