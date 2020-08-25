@@ -168,6 +168,8 @@ class DockingCalculations():
         shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
+        self._plugin._menu.show_loading(False)
+
 
 
     def make_ligands_invisible(self):
