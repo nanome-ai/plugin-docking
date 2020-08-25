@@ -90,6 +90,7 @@ class DockingMenu():
             self.ln_run_button.enabled = True
             self.ln_loading_bar.enabled = False
         #self._plugin.update_node(self.ln_loading_bar)
+        Logs.debug("loading bar status: ",self.ln_loading_bar.enabled)
         self._plugin.update_menu(self._menu)
 
     def receptor_pressed(self, button):
@@ -313,7 +314,6 @@ class DockingMenu():
                 self._score_list.items = []
                 self._plugin.update_menu(self._menu)
             self._run_docking()
-            self.show_loading(False)
 
 
         # def exhaustiveness_changed(input):
@@ -574,7 +574,7 @@ class DockingMenu():
         # loading bar
         self.ln_loading_bar = menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
-        self.loading_bar.description = "      Loading...          "
+        self.loading_bar.description = "    Loading...          "
 
         # lists
         self._complex_list = menu.root.find_node("ComplexList").get_content()

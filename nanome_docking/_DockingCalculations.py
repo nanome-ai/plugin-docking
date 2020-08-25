@@ -112,7 +112,7 @@ class DockingCalculations():
             self._request_pending = False
             self._running = False
             self._plugin.make_plugin_usable()
-            # self._plugin._menu.show_loading(False)
+            self._plugin._menu.show_loading(False)
             self._plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
             return
 
