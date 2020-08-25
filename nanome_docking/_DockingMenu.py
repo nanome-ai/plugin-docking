@@ -140,7 +140,7 @@ class DockingMenu():
         Logs.debug("selected receptor is: ",self._selected_receptor)
         Logs.debug("selected ligand is: ",self._selected_ligands)
         Logs.debug("selected site is: ",self._selected_site)
-        Logs.debug("after is: "after)
+        Logs.debug("after is: ",after)
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             Logs.debug("run button unusable case 1")
             self._run_button.text.value_unusable = "Running..."
