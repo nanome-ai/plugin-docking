@@ -90,7 +90,6 @@ class DockingMenu():
             self.ln_run_button.enabled = True
             self.ln_loading_bar.enabled = False
         #self._plugin.update_node(self.ln_loading_bar)
-        Logs.debug("loading bar status: ",self.ln_loading_bar.enabled)
         self._plugin.update_menu(self._menu)
 
     def receptor_pressed(self, button):
@@ -135,9 +134,9 @@ class DockingMenu():
 
         self.refresh_run_btn_unusable()
 
-    def refresh_run_btn_unusable(self, update=True):
+    def refresh_run_btn_unusable(self, update=True,after = False):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
-        if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met:
+        if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
         else:
