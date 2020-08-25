@@ -67,7 +67,6 @@ class DockingMenu():
             # site = self._selected_site
         self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
-        self.show_loading(False)
 
         
     def disable_autobox(self):
@@ -314,6 +313,8 @@ class DockingMenu():
                 self._score_list.items = []
                 self._plugin.update_menu(self._menu)
             self._run_docking()
+            self.show_loading(False)
+
 
         # def exhaustiveness_changed(input):
         #     try:
