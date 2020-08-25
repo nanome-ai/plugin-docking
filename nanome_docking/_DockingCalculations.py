@@ -81,6 +81,8 @@ class DockingCalculations():
             self._started_docking = True
         elif self._check_docking():
             self._docking_finished()
+            self._plugin._menu.show_loading(False)
+
 
     def write_structures_to_file(self):
         self.initialize()
@@ -105,7 +107,6 @@ class DockingCalculations():
         self._start_timer = timer()
         try:
             self._smina_process = subprocess.Popen(smina_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            self._plugin._menu.show_loading(False)
             # self._plugin._menu.refresh_run_btn_unusable()
         except:
             nanome.util.Logs.error("Couldn't execute smina, please check if executable is in the plugin folder and has permissions. Path:", SMINA_PATH)
