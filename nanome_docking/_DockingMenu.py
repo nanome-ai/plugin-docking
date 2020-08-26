@@ -226,7 +226,7 @@ class DockingMenu():
         site_stayed = False
         if self._selected_site and self._site_dropdown.items:
             for i,x in enumerate(self._site_dropdown.items):
-                if self._site_dropdown.complex.index == x.complex.index:
+                if self._selected_site.complex.index == x.complex.index:
                     self._site_dropdown.items[i].selected = True
                     site_stayed = True
             if not site_stayed:
