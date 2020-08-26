@@ -158,8 +158,6 @@ class DockingMenu():
                 self.ligand_pressed(button)
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
-        Logs.debug("calling reset from change_complex_list")
-
         
         # self.reset(update_menu=False)
 
@@ -230,7 +228,7 @@ class DockingMenu():
                 self._site_dropdown.permanent_title = "None"
                 self._selected_site = None
 
-        
+        self.refresh_run_btn_unusable()
 
         self._plugin.update_menu(self._menu)
 
