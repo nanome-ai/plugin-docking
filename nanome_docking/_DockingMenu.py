@@ -199,8 +199,6 @@ class DockingMenu():
         self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor,'receptor'))
         self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_site,'site'))
 
-        idx_list = [x.index for x in ligand_list]
-
         ligand_stayed = False
         if self._selected_ligands and self._ligand_dropdown.items:
             for i,x in enumerate(self._ligand_dropdown.items):
