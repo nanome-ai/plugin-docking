@@ -60,11 +60,9 @@ class DockingMenu():
         ligands = []
         for item in self._selected_ligands:
             ligands.append(item.complex)
-            # ligands.append(item)
         site = None
         if self._autobox_enabled:
             site = self._selected_site.complex 
-            # site = self._selected_site
         self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
@@ -72,9 +70,7 @@ class DockingMenu():
     def disable_autobox(self):
         self._site_btn.unusable = True
         self._score_btn.unusable = True
-        #self._txt1.unusable = True # Doesn't do anything for now
         self._txt2.unusable = True
-        #self._txt3.unusable = True
         self._autobox_enabled = False
         self._plugin.update_menu(self._menu)
 
@@ -89,7 +85,6 @@ class DockingMenu():
         else:
             self.ln_run_button.enabled = True
             self.ln_loading_bar.enabled = False
-        #self._plugin.update_node(self.ln_loading_bar)
         self._plugin.update_menu(self._menu)
 
     def receptor_pressed(self, button):
@@ -100,7 +95,6 @@ class DockingMenu():
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
-        #self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
         self.refresh_run_btn_unusable()
 
@@ -127,8 +121,7 @@ class DockingMenu():
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
-        # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
-        # self._plugin.update_content(self._site_checkmark)
+     
         self.refresh_run_btn_unusable()
 
     def refresh_run_btn_unusable(self, update=True,after = False):
@@ -156,16 +149,7 @@ class DockingMenu():
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
         
-        # self.reset(update_menu=False)
-
-        # for complex in complex_list:
-        #     clone = self._complex_item_prefab.clone()
-        #     ln_btn = clone.get_children()[0]
-        #     btn = ln_btn.get_content()
-        #     btn.set_all_text(complex.full_name)
-        #     btn.complex = complex
-        #     btn.register_pressed_callback(complex_pressed)
-        #     self._complex_list.items.append(clone)
+  
         ligand_list = []
         receptor_list = []
         site_list = []
@@ -244,10 +228,6 @@ class DockingMenu():
         self._selected_ligands = []
         self._selected_site = None
         self._complex_list.items = []
-        # self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        # self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
@@ -263,7 +243,9 @@ class DockingMenu():
             if not self._selected_ligands:
                 self._selected_ligands.append(item)
                 item.selected = True
-            else:
+            else: 
+                # This part is saved for future version of dropdown api
+
                 # for x in self._selected_ligands:
                 #     if x.complex.index == cur_index:
                 #         self._selected_ligands.remove(x)
@@ -275,6 +257,8 @@ class DockingMenu():
                 else:
                     self._selected_ligands = []
                     item.selected = False
+                    
+            # This part is saved for future version of dropdown api
 
             # if len(self._selected_ligands) > 1:
             #     self._ligand_txt._text_value = 'Multiple'
@@ -523,17 +507,6 @@ class DockingMenu():
         self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
         self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
-        # none_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        # self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
-        # self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
-        # self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image(none_path)
-        # self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
-        # self._site_checkmark = menu.root.find_node("SiteIcon", True).add_ new_image(none_path)
-        # self._site_checkmark.scaling_option = Image.ScalingOptions.fit
-
-        # texts
-        #self._txt1 = menu.root.find_node("ExhaustivenessInput", True).get_content()
-        #self._txt1.register_changed_callback(exhaustiveness_changed)
 
         self._txt2 = menu.root.find_node("ModesInput", True).get_content()
         self._txt2.register_changed_callback(modes_changed)
@@ -546,9 +519,7 @@ class DockingMenu():
         self._LocYInput.register_submitted_callback(loc_y_submitted)
         self._LocZInput = menu.root.find_node("LocZInput").get_content()
         self._LocZInput.register_submitted_callback(loc_z_submitted)
-        #self._txt3 = menu.root.find_node("AutoboxInput", True).get_content()
-        #self._txt3.register_changed_callback(autobox_changed)
-
+      
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
