@@ -202,7 +202,7 @@ class DockingMenu():
         ligand_stayed = False
         if self._selected_ligands and self._ligand_dropdown.items:
             for i,x in enumerate(self._ligand_dropdown.items):
-                if self._selected_ligands[0].index == x.index:
+                if self._selected_ligands[0].complex.index == x.index:
                     self._ligand_dropdown.items[i].selected = True
                     ligand_stayed = True
                     break
