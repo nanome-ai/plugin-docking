@@ -134,15 +134,12 @@ class DockingMenu():
     def refresh_run_btn_unusable(self, update=True,after = False):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
-            Logs.debug("run button unusable case 1")
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
         elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
-            Logs.debug("run button unusable case 3")
             self._run_button.text.value_unusable = "Run"
             self._run_button.unusable = False
         else:
-            Logs.debug('run button unusable case 2')
             self._run_button.text.value_unusable = "Run"
             self._run_button.unusable = True
         if update:
@@ -233,7 +230,6 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
-        Logs.debug("calling reset from display_scoring_result")
         self.reset()
 
         for molecule in result.molecules:
@@ -244,7 +240,6 @@ class DockingMenu():
             self._score_list.items.append(clone)
 
     def reset(self, update_menu=True):
-        Logs.debug("reset called")
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
@@ -358,15 +353,7 @@ class DockingMenu():
             self._run_docking()
 
 
-        # def exhaustiveness_changed(input):
-        #     try:
-        #         self._exhaustiveness = int(input.input_text)
-        #         nanome.util.Logs.debug("Exhaustiveness set to", self._exhaustiveness)
-        #     except:
-        #         self._exhaustiveness = 8
-        #     if self._exhaustiveness <= 0:
-        #         self._exhaustiveness = 8
-
+       
         def modes_changed(input):  
             try:
                 self._modes = int(input.input_text)
@@ -378,14 +365,6 @@ class DockingMenu():
                 self._txt2.input_text = self._modes
                 self._plugin.update_content(self._txt2)
 
-        # def autobox_changed(input):
-        #     try:
-        #         self._autobox = int(input.input_text)
-        #         nanome.util.Logs.debug("Autobox size set to", self._autobox)
-        #     except:
-        #         self._autobox = 4
-        #     if self._autobox <= 0:
-        #         self._autobox = 4
 
         def tab_button_pressed_callback(button):
             if self._tab == button:
