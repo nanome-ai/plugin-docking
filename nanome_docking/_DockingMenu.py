@@ -137,10 +137,10 @@ class DockingMenu():
             Logs.debug("run button unusable case 1")
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
-        # elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
-        #     Logs.debug("run button unusable case 3")
-        #     self._run_button.text.value_unusable = "Run"
-        #     self._run_button.unusable = False
+        elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
+            Logs.debug("run button unusable case 3")
+            self._run_button.text.value_unusable = "Run"
+            self._run_button.unusable = False
         else:
             Logs.debug('run button unusable case 2')
             self._run_button.text.value_unusable = "Run"
@@ -230,7 +230,7 @@ class DockingMenu():
                 self._site_dropdown.permanent_title = "None"
                 self._selected_site = None
 
-        self.refresh_run_btn_unusable()
+        
 
         self._plugin.update_menu(self._menu)
 
