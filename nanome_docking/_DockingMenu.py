@@ -23,7 +23,8 @@ class DockingMenu():
         self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
-    
+        self._no_reset = False
+
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
         for key, value in params.items():
@@ -66,6 +67,7 @@ class DockingMenu():
             site = self._selected_site.complex 
             # site = self._selected_site
         self.show_loading(True)
+        self._no_reset = True
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
         
@@ -79,7 +81,6 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        Logs.debug("run button debug: make_plugin_usable")
         self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update = False)
         self._plugin.update_content(self._run_button)
     
@@ -103,7 +104,6 @@ class DockingMenu():
         self._plugin.update_content(button)
         #self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         self._plugin.update_content(self._receptor_checkmark)
-        Logs.debug("run button debug: receptor pressed")
         self.refresh_run_btn_unusable()
 
     def ligand_pressed(self, button):
@@ -119,7 +119,6 @@ class DockingMenu():
         else:
             self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
         self._plugin.update_content(self._ligand_checkmark)
-        Logs.debug("run button debug: ligand pressed")
         self.refresh_run_btn_unusable()
 
     def site_pressed(self, button):
@@ -132,7 +131,6 @@ class DockingMenu():
         self._plugin.update_content(button)
         # self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
         # self._plugin.update_content(self._site_checkmark)
-        Logs.debug("run button debug: sitepressed")
         self.refresh_run_btn_unusable()
 
     def refresh_run_btn_unusable(self, update=True,after = False):
@@ -167,7 +165,11 @@ class DockingMenu():
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
         Logs.debug("calling reset from change_complex_list")
-        self.reset(update_menu=False)
+
+        if self._no_reset:
+            self._no_reset = False
+        else:
+            self.reset(update_menu=False)
 
         # for complex in complex_list:
         #     clone = self._complex_item_prefab.clone()
@@ -297,7 +299,6 @@ class DockingMenu():
 
         
         self.update_icons()
-        Logs.debug("run button debug: handle dropdown pressed")
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
  
@@ -574,7 +575,6 @@ class DockingMenu():
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
-        Logs.debug("run button debug: building menu")
         self.refresh_run_btn_unusable()
 
         pose_sub_btn = menu.root.find_node("PoseSub").get_content()
