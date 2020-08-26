@@ -213,7 +213,7 @@ class DockingMenu():
         
         recpetor_stayed = False
         if self._selected_receptor and self._receptor_dropdown.items:
-            for i,x in enumerate(self._receptor_dropdown.itmes):
+            for i,x in enumerate(self._receptor_dropdown.items):
                 if self._selected_receptor.index == x.complex.index:
                     self._receptor_dropdown.items[i].selected = True
                     recpetor_stayed = True
@@ -225,7 +225,7 @@ class DockingMenu():
         
         site_stayed = False
         if self._selected_site and self._site_dropdown.items:
-            for i,x in enumerate(self._site_dropdown.itmes):
+            for i,x in enumerate(self._site_dropdown.items):
                 if self._site_dropdown.complex.index == x.complex.index:
                     self._site_dropdown.items[i].selected = True
                     site_stayed = True
