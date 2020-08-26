@@ -23,7 +23,6 @@ class DockingMenu():
         self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
-        self._no_reset = False
 
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
@@ -67,7 +66,6 @@ class DockingMenu():
             site = self._selected_site.complex 
             # site = self._selected_site
         self.show_loading(True)
-        self._no_reset = True
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
         
@@ -166,10 +164,8 @@ class DockingMenu():
                 self.site_pressed(button)
         Logs.debug("calling reset from change_complex_list")
 
-        if self._no_reset:
-            self._no_reset = False
-        else:
-            self.reset(update_menu=False)
+        
+        # self.reset(update_menu=False)
 
         # for complex in complex_list:
         #     clone = self._complex_item_prefab.clone()
@@ -202,6 +198,46 @@ class DockingMenu():
         self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_ligands,'ligand'))
         self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor,'receptor'))
         self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_site,'site'))
+
+        idx_list = [x.index for x in ligand_list]
+
+        ligand_stayed = False
+        if self._selected_ligands and self._ligand_dropdown.items:
+            for i,x in enumerate(self._ligand_dropdown.items):
+                if self._selected_ligands[0].index == x.index:
+                    self._ligand_dropdown.items[i].selected = True
+                    ligand_stayed = True
+                    break
+            if not ligand_stayed:
+                self._ligand_dropdown.use_permanent_title = True
+                self._ligand_dropdown.permanent_title = "None"
+                self._selected_ligands = []
+        
+        recpetor_stayed = False
+        if self._selected_receptor and self._receptor_dropdown.items:
+            for i,x in enumerate(self._receptor_dropdown.itmes):
+                if self._selected_receptor.index == x.index:
+                    self._receptor_dropdown.items[i].selected = True
+                    recpetor_stayed = True
+                    break
+            if not recpetor_stayed:
+                self._receptor_dropdown.use_permanent_title = True
+                self._receptor_dropdown.permanent_title = "None"
+                self._selected_receptor = None
+        
+        site_stayed = False
+        if self._selected_site and self._site_dropdown.items:
+            for i,x in enumerate(self._site_dropdown.itmes):
+                if self._site_dropdown.complex.index == x.index:
+                    self._site_dropdown.items[i].selected = True
+                    site_stayed = True
+            if not site_stayed:
+                self._site_dropdown.use_permanent_title = True
+                self._site_dropdown.permanent_title = "None"
+                self._selected_site = None
+
+            
+
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
