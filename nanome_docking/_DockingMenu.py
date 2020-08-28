@@ -483,7 +483,6 @@ class DockingMenu():
         menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu_new.json'))
         self._plugin.menu = menu
         self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_setting_new.json'))
-        # self.setting_menu.index = 1
         self._plugin.setting_menu = self.setting_menu
 
         # registering and saving special nodes
