@@ -148,8 +148,7 @@ class DockingMenu():
                 self.ligand_pressed(button)
             elif self._tab.text.value_idle == "Site":
                 self.site_pressed(button)
-        
-  
+
         ligand_list = []
         receptor_list = []
         site_list = []
@@ -166,6 +165,7 @@ class DockingMenu():
             ligand_list.append(dd_item1)
             receptor_list.append(dd_item2)
             site_list.append(dd_item3)
+        
 
         self._ligand_dropdown.items = ligand_list
         self._receptor_dropdown.items = receptor_list
@@ -175,7 +175,11 @@ class DockingMenu():
         self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_site,'site'))
 
         ligand_stayed = False
-        if self._selected_ligands and self._ligand_dropdown.items:
+        if not ligand_list:
+            self._ligand_dropdown.use_permanent_title = True
+            self._ligand_dropdown.permanent_title = "None"
+            self._selected_ligands = []
+        elif self._selected_ligands and self._ligand_dropdown.items:
             for i,x in enumerate(self._ligand_dropdown.items):
                 if self._selected_ligands[0].complex.index == x.complex.index:
                     self._ligand_dropdown.items[i].selected = True
@@ -187,7 +191,11 @@ class DockingMenu():
                 self._selected_ligands = []
         
         recpetor_stayed = False
-        if self._selected_receptor and self._receptor_dropdown.items:
+        if not receptor_list:
+            self._receptor_dropdown.use_permanent_title = True
+            self._receptor_dropdown.permanent_title = "None"
+            self._selected_receptor = None
+        elif self._selected_receptor and self._receptor_dropdown.items:
             for i,x in enumerate(self._receptor_dropdown.items):
                 if self._selected_receptor.index == x.complex.index:
                     self._receptor_dropdown.items[i].selected = True
@@ -199,6 +207,10 @@ class DockingMenu():
                 self._selected_receptor = None
         
         site_stayed = False
+        if not site_list:
+            self._site_dropdown.use_permanent_title = True
+            self._site_dropdown.permanent_title = "None"
+            self._selected_site = None
         if self._selected_site and self._site_dropdown.items:
             for i,x in enumerate(self._site_dropdown.items):
                 if self._selected_site.complex.index == x.complex.index:
@@ -239,6 +251,7 @@ class DockingMenu():
     def handle_dropdown_pressed(self,docking_component,component_name,dropdown,item):
         if component_name == 'ligand':
             cur_index = item.complex.index
+            # this line is saved for future version of dropdown api
             #if cur_index not in [x.complex.index for x in self._selected_ligands]:
             if not self._selected_ligands:
                 self._selected_ligands.append(item)
@@ -463,9 +476,13 @@ class DockingMenu():
 
             if not self._selected_site:
                 Logs.debug("No Site Selected")
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
+                self._plugin.update_menu(self._menu)
             else:
                 Logs.debug("Update the site location")
                 self._plugin.request_complexes([self._selected_site.complex.index],update_site_loc)
+
+            
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
