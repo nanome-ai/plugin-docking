@@ -1,4 +1,5 @@
 import nanome
+from nanome.util import Logs
 from ._DockingCalculations import DockingCalculations as Smina
 from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
@@ -13,6 +14,7 @@ __metaclass__ = type
 class Docking(nanome.PluginInstance):
     def __init__(self):
         self._menu = None
+        self.setting_menu = None
         self._calculations = None
         self._autobox = True
 
@@ -29,15 +31,15 @@ class Docking(nanome.PluginInstance):
         menu = self._menu
         # If menu doesn't have Receptor and Ligands selected, open it
         # Else, just start docking
-        if menu.is_ready_for_docking() == False:
-            self.open_menu()
-        else:
-            self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
+        # if menu.is_ready_for_docking() == False:
+        self.open_menu()
+        # else:
+        #     self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
 
     # Called when user click on the "Advanced Settings" button in Nanome
     def on_advanced_settings(self):
         nanome.util.Logs.debug("Advanced Settings")
-        self.open_menu()
+        self.open_setting_menu()
 
     # Called when a complex is added to the workspace in Nanome
     def on_complex_added(self):
@@ -46,6 +48,13 @@ class Docking(nanome.PluginInstance):
     # Called when a complex is removed from the workspace in Nanome
     def on_complex_removed(self):
         self.request_complex_list(self.on_complex_list_received)
+
+    def open_setting_menu(self):
+        setting_menu = self.setting_menu
+        setting_menu.enabled = True
+        self.setting_menu.index = 1
+        
+        self.update_menu(setting_menu)
 
     def open_menu(self):
         menu = self.menu
@@ -59,6 +68,7 @@ class Docking(nanome.PluginInstance):
         self._menu.change_complex_list(complexes)
 
     def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
+       
         self._calculations.start_docking(receptor, individual_ligands, site, **params)
 
     def replace_conformer(self, complexes, callback, existing=True):
@@ -101,6 +111,7 @@ class Docking(nanome.PluginInstance):
         if self._menu._run_button.unusable == True:
             return
         self._menu.make_plugin_usable(False)
+        #self._menu.show_loading(True)
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
@@ -110,6 +121,7 @@ class Docking(nanome.PluginInstance):
 
         setup_structures = functools.partial(self.set_and_convert_structures, site != None, params)
         self.request_complexes(request_list, setup_structures)
+        #self._menu.show_loading(False)
 
     # Called every update tick of the Plugin
     def update(self):

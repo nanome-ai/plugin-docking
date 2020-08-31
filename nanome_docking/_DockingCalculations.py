@@ -82,6 +82,7 @@ class DockingCalculations():
         elif self._check_docking():
             self._docking_finished()
 
+
     def write_structures_to_file(self):
         self.initialize()
          # Save all input files
@@ -110,6 +111,7 @@ class DockingCalculations():
             self._request_pending = False
             self._running = False
             self._plugin.make_plugin_usable()
+            self._plugin._menu.show_loading(False)
             self._plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
             return
 
@@ -165,6 +167,9 @@ class DockingCalculations():
         shutil.rmtree(self.temp_dir.name)
 
         self._plugin.send_notification(NotificationTypes.success, "Docking finished")
+        self._plugin._menu.show_loading(False)
+        self._plugin._menu.refresh_run_btn_unusable(update = True, after = True)
+
 
     def make_ligands_invisible(self):
         for ligand in self._ligands:
