@@ -5,7 +5,6 @@ import os
 from nanome.api.ui import Dropdown,DropdownItem
 from functools import partial
 
-REFRESHICON = "refresh.png"
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -523,6 +522,13 @@ class DockingMenu():
         self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
         self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
+        refresh_icon = menu.root.find_node("RefreshIcon")
+        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'refresh.png'))
+        setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
+        setting_slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'DarkOval.png'))
+
+
+        # text
 
         self._txt2 = menu.root.find_node("ModesInput", True).get_content()
         self._txt2.register_changed_callback(modes_changed)
@@ -539,6 +545,8 @@ class DockingMenu():
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
+
+        
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
         receptor_btn.register_pressed_callback(tab_button_pressed_callback)
@@ -612,9 +620,7 @@ class DockingMenu():
         self._exhaust_slider.current_value = self._exhaustiveness
 
         # image
-        refresh_icon = menu.root.find_node("RefreshIcon", True)
-        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), REFRESHICON))
-
+        
 
         # Update the menu
         self._menu = menu
