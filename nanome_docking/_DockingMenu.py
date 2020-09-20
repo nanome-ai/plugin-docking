@@ -418,6 +418,8 @@ class DockingMenu():
             slider.current_value = round(slider.current_value)
             self._plugin.update_content(slider)
             self._autobox = slider.current_value
+            size_value_txt.text_value = str(slider.current_value)
+            self._plugin.update_content(size_value_txt)
 
         def exhaust_slider_released_callback(slider):
             slider.current_value = round(slider.current_value)
@@ -522,6 +524,9 @@ class DockingMenu():
         self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
         self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
+        slider_oval = menu.root.find_node("SizeOval")
+        slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'DarkOval.png'))
+
         refresh_icon = menu.root.find_node("RefreshIcon")
         refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'refresh.png'))
         setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
@@ -545,6 +550,7 @@ class DockingMenu():
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
+        size_value_txt = menu.root.find_node("SizeValue").get_content()
 
         
         # buttons
@@ -619,7 +625,6 @@ class DockingMenu():
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
 
-        # image
         
 
         # Update the menu
