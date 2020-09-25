@@ -128,14 +128,19 @@ class DockingMenu():
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value_unusable = "Running..."
             self._run_button.unusable = False
+            self.prompt_txt.enabled = False
         elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
             self._run_button.text.value_unusable = "Run"
             self._run_button.unusable = False
+            self.prompt_txt.enabled = False
         else:
             self._run_button.text.value_unusable = "Run"
             self._run_button.unusable = True
+            self.prompt_txt.enabled = True
         if update:
+            Logs.debug(self._run_button.unusable,self.prompt_txt.enabled)
             self._plugin.update_content(self._run_button)
+            self._plugin.update_content(self.prompt_txt)
 
         return self._run_button.unusable
 
@@ -418,8 +423,8 @@ class DockingMenu():
             slider.current_value = round(slider.current_value)
             self._plugin.update_content(slider)
             self._autobox = slider.current_value
-            size_value_txt.text_value = str(slider.current_value)
-            self._plugin.update_content(size_value_txt)
+            self.size_value_txt.text_value = str(slider.current_value)
+            self._plugin.update_content(self.size_value_txt)
 
         def exhaust_slider_released_callback(slider):
             slider.current_value = round(slider.current_value)
@@ -550,8 +555,9 @@ class DockingMenu():
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
-        size_value_txt = menu.root.find_node("SizeValue").get_content()
+        self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
+        self.prompt_txt = menu.root.find_node("Prompt")
         
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
