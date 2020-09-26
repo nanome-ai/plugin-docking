@@ -138,9 +138,8 @@ class DockingMenu():
             self._run_button.unusable = True
             self.prompt_txt.enabled = True
         if update:
-            Logs.debug(self._run_button.unusable,self.prompt_txt.enabled)
             self._plugin.update_content(self._run_button)
-            self._plugin.update_content(self.prompt_txt)
+            self._plugin.update_content(self.prompt_txt.get_content())
 
         return self._run_button.unusable
 
@@ -558,7 +557,7 @@ class DockingMenu():
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
         self.prompt_txt = menu.root.find_node("Prompt")
-        
+
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
         receptor_btn.register_pressed_callback(tab_button_pressed_callback)
