@@ -5,7 +5,6 @@ import os
 from nanome.api.ui import Dropdown,DropdownItem
 from functools import partial
 
-REFRESHICON = "refresh.png"
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -128,12 +127,15 @@ class DockingMenu():
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value_unusable = "Running..."
+            self._run_button.text.size = 0.35
             self._run_button.unusable = False
         elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
             self._run_button.text.value_unusable = "Run"
+            self._run_button.text.size = 0.35
             self._run_button.unusable = False
         else:
-            self._run_button.text.value_unusable = "Run"
+            self._run_button.text.value_unusable = "Please Select Complexes"
+            self._run_button.text.size = 0.25
             self._run_button.unusable = True
         if update:
             self._plugin.update_content(self._run_button)
@@ -419,6 +421,8 @@ class DockingMenu():
             slider.current_value = round(slider.current_value)
             self._plugin.update_content(slider)
             self._autobox = slider.current_value
+            self.size_value_txt.text_value = str(slider.current_value)
+            self._plugin.update_content(self.size_value_txt)
 
         def exhaust_slider_released_callback(slider):
             slider.current_value = round(slider.current_value)
@@ -523,6 +527,16 @@ class DockingMenu():
         self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
         self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
+        slider_oval = menu.root.find_node("SizeOval")
+        slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'DarkOval.png'))
+
+        refresh_icon = menu.root.find_node("RefreshIcon")
+        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'refresh.png'))
+        setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
+        setting_slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'DarkOval.png'))
+
+
+        # text
 
         self._txt2 = menu.root.find_node("ModesInput", True).get_content()
         self._txt2.register_changed_callback(modes_changed)
@@ -538,6 +552,9 @@ class DockingMenu():
       
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
+
+        self.size_value_txt = menu.root.find_node("SizeValue").get_content()
+
 
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
@@ -611,10 +628,7 @@ class DockingMenu():
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
 
-        # image
-        refresh_icon = menu.root.find_node("RefreshIcon", True)
-        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), REFRESHICON))
-
+        
 
         # Update the menu
         self._menu = menu
