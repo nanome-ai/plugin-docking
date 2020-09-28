@@ -127,19 +127,18 @@ class DockingMenu():
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value_unusable = "Running..."
+            self._run_button.text.size = 0.35
             self._run_button.unusable = False
-            self.prompt_txt.enabled = False
         elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
             self._run_button.text.value_unusable = "Run"
+            self._run_button.text.size = 0.35
             self._run_button.unusable = False
-            self.prompt_txt.enabled = False
         else:
-            self._run_button.text.value_unusable = "Run"
+            self._run_button.text.value_unusable = "Please Select Complexes"
+            self._run_button.text.size = 0.25
             self._run_button.unusable = True
-            self.prompt_txt.enabled = True
         if update:
             self._plugin.update_content(self._run_button)
-            self._plugin.update_content(self.prompt_txt.get_content())
 
         return self._run_button.unusable
 
@@ -556,7 +555,6 @@ class DockingMenu():
 
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
-        self.prompt_txt = menu.root.find_node("Prompt")
 
         # buttons
         receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
