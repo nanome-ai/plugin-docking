@@ -1,5 +1,6 @@
-FROM nanome/nanobabel
-ENV ARGS=""
+FROM nanome/plugin-env
+
+ENV ARGS=''
 
 ARG CACHEBUST
 RUN pip3 install nanome
