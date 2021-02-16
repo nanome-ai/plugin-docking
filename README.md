@@ -4,11 +4,50 @@ This Nanome plugin interfaces with a variety of docking softwares to dock ligand
 
 ### Installation
 
+
+
+### Docker Usage
+
+To run in a Docker container:
+
+```sh
+$ cd docker
+$ ./build.sh
+
+Note that if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
+change the permission using:
+$ chmod a+r ../nanome_docking/smina
+and try the previous step( $./build.sh ) again:
+
+$ ./deploy.sh -a <plugin_server_address> smina [args]
+```
+
+
+
+
+To view (and follow the logs of) a container:
+```sh
+$ docker logs --follow docking
+```
+
+To stop the container:
+```sh
+$ docker stop docking
+```
+
+To view the running containers:
+```sh
+$ docker ps
+```
+
+
+### Install from Pip or Pip3
+
+
 ```sh
 $ pip install nanome-docking
 ```
 
-### Usage
 
 To start the plugin:
 
@@ -36,36 +75,14 @@ In Nanome:
 - If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
 - Click on Run
 
-### Docker Usage
 
-To run in a Docker container:
+### Run in development
 
-```sh
-$ cd docker
-$ ./build.sh
-
-Note that if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
-change the permission using:
-$ chmod a+r ../nanome_docking/smina
-and try the previous step( $./build.sh ) again:
-
-$ ./deploy.sh -a <plugin_server_address> smina
+```
+python3 run.py -r -a plugins.nanome.ai -p 9999
 ```
 
-To view (and follow the logs of) a container:
-```sh
-$ docker logs --follow docking
-```
 
-To stop the container:
-```sh
-$ docker stop docking
-```
-
-To view the running containers:
-```sh
-$ docker ps
-```
 
 ### License
 

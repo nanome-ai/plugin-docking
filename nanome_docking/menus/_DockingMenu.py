@@ -5,6 +5,8 @@ import os
 from nanome.api.ui import Dropdown,DropdownItem
 from functools import partial
 
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+MENU_PATH = os.path.join(BASE_DIR, 'jsons', 'ChemblLoadMenu.json')
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -126,15 +128,15 @@ class DockingMenu():
     def refresh_run_btn_unusable(self, update=True,after = False):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
-            self._run_button.text.value_unusable = "Running..."
+            self._run_button.text.value.unusable = "Running..."
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
         elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
-            self._run_button.text.value_unusable = "Run"
+            self._run_button.text.value.unusable = "Run"
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
         else:
-            self._run_button.text.value_unusable = "Please Select Complexes"
+            self._run_button.text.value.unusable = "Please Select Complexes"
             self._run_button.text.size = 0.25
             self._run_button.unusable = True
         if update:
@@ -501,9 +503,9 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu_new.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__),'jsons/', '_docking_menu_new.json'))
         self._plugin.menu = menu
-        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_setting_new.json'))
+        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), 'jsons/' '_docking_setting_new.json'))
         self._plugin.setting_menu = self.setting_menu
 
         # registering and saving special nodes
@@ -515,25 +517,25 @@ class DockingMenu():
         
 
         # images
-        self.can_dock_path = os.path.join(os.path.dirname(__file__), 'can_dock.png')
-        self.cannot_dock_path = os.path.join(os.path.dirname(__file__), 'cannot_dock.png')
+        self.can_dock_path = os.path.join(os.path.dirname(__file__),'icons/', 'can_dock.png')
+        self.cannot_dock_path = os.path.join(os.path.dirname(__file__),'icons/', 'cannot_dock.png')
         self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(self.cannot_dock_path)
 
-        self.ligand_gray_path = os.path.join(os.path.dirname(__file__), 'ligand_gray.png')
-        self.ligand_white_path = os.path.join(os.path.dirname(__file__), 'ligand_white.png')
+        self.ligand_gray_path = os.path.join(os.path.dirname(__file__), 'icons/','ligand_gray.png')
+        self.ligand_white_path = os.path.join(os.path.dirname(__file__), 'icons/','ligand_white.png')
         self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(self.ligand_gray_path)
 
-        self.receptor_gray_path = os.path.join(os.path.dirname(__file__), 'receptor_gray.png')
-        self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'receptor_white.png')
+        self.receptor_gray_path = os.path.join(os.path.dirname(__file__), 'icons/','receptor_gray.png')
+        self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'icons/','receptor_white.png')
         self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
 
         slider_oval = menu.root.find_node("SizeOval")
-        slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'DarkOval.png'))
+        slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/','DarkOval.png'))
 
         refresh_icon = menu.root.find_node("RefreshIcon")
-        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'refresh.png'))
+        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/', 'refresh.png'))
         setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
-        setting_slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__), 'DarkOval.png'))
+        setting_slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/', 'DarkOval.png'))
 
 
         # text
