@@ -7,6 +7,7 @@ from functools import partial
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
+ICONS = { icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR) }
 
 class DockingMenu():
     def __init__(self, docking_plugin):
