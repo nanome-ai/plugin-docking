@@ -5,8 +5,8 @@ import os
 from nanome.api.ui import Dropdown,DropdownItem
 from functools import partial
 
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-MENU_PATH = os.path.join(BASE_DIR, 'jsons', 'ChemblLoadMenu.json')
+BASE_DIR = os.path.dirname(__file__)
+ICONS_DIR = os.path.join(BASE_DIR, 'icons')
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -24,13 +24,6 @@ class DockingMenu():
         self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
-
-    def get_params(self):
-        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "autobox": None}
-        for key, value in params.items():
-            newvalue = getattr(self, "_"+key)
-            params[key] = newvalue
-        return params
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -63,11 +56,10 @@ class DockingMenu():
             ligands.append(item.complex)
         site = None
         if self._autobox_enabled:
-            site = self._selected_site.complex 
+            site = self._selected_site.complex
         self.show_loading(True)
         self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
-        
     def disable_autobox(self):
         self._site_btn.unusable = True
         self._score_btn.unusable = True
@@ -78,7 +70,7 @@ class DockingMenu():
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update = False)
         self._plugin.update_content(self._run_button)
-    
+
     def show_loading(self, show = False):
         if show:
             self.ln_run_button.enabled = False
@@ -107,10 +99,8 @@ class DockingMenu():
             button.selected = False
             self._selected_ligands.remove(button)
         self._plugin.update_content(button)
-        if len(self._selected_ligands) != 0:
-            self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
-        else:
-            self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+
+        self._ligand_checkmark.file_path = ICONS['checkmark' if self._selected_ligands else 'none']
         self._plugin.update_content(self._ligand_checkmark)
         self.refresh_run_btn_unusable()
 
@@ -122,10 +112,9 @@ class DockingMenu():
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
-     
         self.refresh_run_btn_unusable()
 
-    def refresh_run_btn_unusable(self, update=True,after = False):
+    def refresh_run_btn_unusable(self, update=True, after=False):
         site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
         if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value.unusable = "Running..."
@@ -169,7 +158,6 @@ class DockingMenu():
             ligand_list.append(dd_item1)
             receptor_list.append(dd_item2)
             site_list.append(dd_item3)
-        
 
         self._ligand_dropdown.items = ligand_list
         self._receptor_dropdown.items = receptor_list
@@ -193,8 +181,8 @@ class DockingMenu():
                 self._ligand_dropdown.use_permanent_title = True
                 self._ligand_dropdown.permanent_title = "None"
                 self._selected_ligands = []
-        
-        recpetor_stayed = False
+
+        receptor_stayed = False
         if not receptor_list:
             self._receptor_dropdown.use_permanent_title = True
             self._receptor_dropdown.permanent_title = "None"
@@ -203,13 +191,13 @@ class DockingMenu():
             for i,x in enumerate(self._receptor_dropdown.items):
                 if self._selected_receptor.index == x.complex.index:
                     self._receptor_dropdown.items[i].selected = True
-                    recpetor_stayed = True
+                    receptor_stayed = True
                     break
-            if not recpetor_stayed:
+            if not receptor_stayed:
                 self._receptor_dropdown.use_permanent_title = True
                 self._receptor_dropdown.permanent_title = "None"
                 self._selected_receptor = None
-        
+
         site_stayed = False
         if not site_list:
             self._site_dropdown.use_permanent_title = True
@@ -226,7 +214,6 @@ class DockingMenu():
                 self._selected_site = None
 
         self.refresh_run_btn_unusable()
-
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
@@ -260,7 +247,7 @@ class DockingMenu():
             if not self._selected_ligands:
                 self._selected_ligands.append(item)
                 item.selected = True
-            else: 
+            else:
                 # This part is saved for future version of dropdown api
 
                 # for x in self._selected_ligands:
@@ -274,7 +261,7 @@ class DockingMenu():
                 else:
                     self._selected_ligands = []
                     item.selected = False
-                    
+
             # This part is saved for future version of dropdown api
 
             # if len(self._selected_ligands) > 1:
@@ -290,58 +277,44 @@ class DockingMenu():
                 self._ligand_txt._text_value = "Ligand"
 
         elif component_name == 'receptor':
-
             if self._selected_receptor and self._selected_receptor.index == item.complex.index:
                 self._selected_receptor = None
             else:
                 self._selected_receptor = item.complex
 
-            if self._selected_receptor: 
+            if self._selected_receptor:
                 self._receptor_dropdown.use_permanent_title = False
                 self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
             else:
                 self._receptor_txt._text_value = "Receptor"
                 self._receptor_dropdown.use_permanent_title = True
                 self._receptor_dropdown.permanent_title = "None"
-                
+
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in item.complex.position]
-                
             else:
                 self._selected_site = None
                 item.selected = False
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '','',''
-                      
+
             if self._selected_site:
                 self._site_dropdown.use_permanent_title = False
             else:
                 self._site_dropdown.use_permanent_title = True
                 self._site_dropdown.permanent_title = "None"
 
-
-        
         self.update_icons()
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
- 
+
     def update_icons(self):
-        if self._selected_ligands:
-            self._ligand_icon._file_path = self.ligand_white_path
-        else:
-            self._ligand_icon._file_path = self.ligand_gray_path
+        self._ligand_icon._file_path = ICONS['ligand_white' if self._selected_ligands else 'ligand_gray']
+        self._receptor_icon._file_path = ICONS['receptor_white' if self._selected_receptor else 'receptor_gray']
 
-
-        if self._selected_receptor:
-            self._receptor_icon._file_path = self.receptor_white_path
-        else:
-            self._receptor_icon._file_path = self.receptor_gray_path
-
-        if self._selected_ligands and self._selected_receptor and self._selected_site:
-            self._check_arrow._file_path = self.can_dock_path
-        else:
-            self._check_arrow._file_path = self.cannot_dock_path
+        can_dock = self._selected_ligands and self._selected_receptor and self._selected_site
+        self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
     def build_menu(self):
         # defining callbacks
@@ -353,9 +326,7 @@ class DockingMenu():
                 self._plugin.update_menu(self._menu)
             self._run_docking()
 
-
-       
-        def modes_changed(input):  
+        def modes_changed(input):
             try:
                 self._modes = int(input.input_text)
             except:
@@ -365,7 +336,6 @@ class DockingMenu():
                 self._modes = 1
                 self._txt2.input_text = self._modes
                 self._plugin.update_content(self._txt2)
-
 
         def tab_button_pressed_callback(button):
             if self._tab == button:
@@ -433,27 +403,10 @@ class DockingMenu():
             self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
             self._plugin.update_content(self._exhaustiveness_txt)
 
-        def loc_x_submitted(text_input):
+        def loc_submitted(index, text_input):
             try:
                 float(text_input.input_text)
-                self._selected_site.complex.position[0] = float(text_input.input_text)
-            except:
-                Logs.debug("Input is not a float")
-            self._plugin.update_structures_shallow([self._selected_site.complex])
-            
-
-        def loc_y_submitted(text_input):
-            try:
-                float(text_input.input_text)
-                self._selected_site.complex.position[1] = float(text_input.input_text)
-            except:
-                Logs.debug("Input is not a float")
-            self._plugin.update_structures_shallow([self._selected_site.complex])
-        
-        def loc_z_submitted(text_input):
-            try:
-                float(text_input.input_text)
-                self._selected_site.complex.position[2] = float(text_input.input_text)
+                self._selected_site.complex.position[index] = float(text_input.input_text)
             except:
                 Logs.debug("Input is not a float")
             self._plugin.update_structures_shallow([self._selected_site.complex])
@@ -470,7 +423,6 @@ class DockingMenu():
             self._txt2.input_text = self._modes
             self._plugin.update_content(self._txt2)
 
-
         def loc_refresh_pressed_callback(button):
             def update_site_loc(complexes_list):
                 for complex in complexes_list:
@@ -479,7 +431,6 @@ class DockingMenu():
                         self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in complex.position]
                         self._plugin.update_menu(self._menu)
 
-
             if not self._selected_site:
                 Logs.debug("No Site Selected")
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
@@ -487,8 +438,6 @@ class DockingMenu():
             else:
                 Logs.debug("Update the site location")
                 self._plugin.request_complexes([self._selected_site.complex.index],update_site_loc)
-
-            
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()
@@ -503,74 +452,63 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__),'jsons/', '_docking_menu_new.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons/_docking_menu_new.json'))
         self._plugin.menu = menu
-        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), 'jsons/' '_docking_setting_new.json'))
+        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons/_docking_setting_new.json'))
         self._plugin.setting_menu = self.setting_menu
 
         # registering and saving special nodes
 
         # panels
-        self._docking_param_panel = menu.root.find_node("LeftSide", True)
-        self._score_panel = menu.root.find_node("LeftSideScore", True)
-        self._panel_separator = menu.root.find_node("MiddleLine",True)
-        
+        self._docking_param_panel = menu.root.find_node("LeftSide")
+        self._score_panel = menu.root.find_node("LeftSideScore")
+        self._panel_separator = menu.root.find_node("MiddleLine")
 
         # images
-        self.can_dock_path = os.path.join(os.path.dirname(__file__),'icons/', 'can_dock.png')
-        self.cannot_dock_path = os.path.join(os.path.dirname(__file__),'icons/', 'cannot_dock.png')
-        self._check_arrow = menu.root.find_node("CheckArrow",True).add_new_image(self.cannot_dock_path)
-
-        self.ligand_gray_path = os.path.join(os.path.dirname(__file__), 'icons/','ligand_gray.png')
-        self.ligand_white_path = os.path.join(os.path.dirname(__file__), 'icons/','ligand_white.png')
-        self._ligand_icon = menu.root.find_node("LigandIcon",True).add_new_image(self.ligand_gray_path)
-
-        self.receptor_gray_path = os.path.join(os.path.dirname(__file__), 'icons/','receptor_gray.png')
-        self.receptor_white_path = os.path.join(os.path.dirname(__file__), 'icons/','receptor_white.png')
-        self._receptor_icon = menu.root.find_node("ReceptorIcon",True).add_new_image(self.receptor_gray_path)
+        self._check_arrow = menu.root.find_node("CheckArrow").add_new_image(ICONS['cannot_dock'])
+        self._ligand_icon = menu.root.find_node("LigandIcon").add_new_image(ICONS['ligand_gray'])
+        self._receptor_icon = menu.root.find_node("ReceptorIcon").add_new_image(ICONS['receptor_gray'])
 
         slider_oval = menu.root.find_node("SizeOval")
-        slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/','DarkOval.png'))
+        slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
         refresh_icon = menu.root.find_node("RefreshIcon")
-        refresh_icon.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/', 'refresh.png'))
+        refresh_icon.add_new_image(file_path=ICONS['refresh'])
         setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
-        setting_slider_oval.add_new_image(file_path = os.path.join(os.path.dirname(__file__),'icons/', 'DarkOval.png'))
-
+        setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
         # text
 
-        self._txt2 = menu.root.find_node("ModesInput", True).get_content()
+        self._txt2 = menu.root.find_node("ModesInput").get_content()
         self._txt2.register_changed_callback(modes_changed)
         self._ligand_txt = menu.root.find_node("LigandName").get_content()
         self._receptor_txt = menu.root.find_node("ReceptorName").get_content()
 
         self._LocXInput = menu.root.find_node("LocXInput").get_content()
-        self._LocXInput.register_submitted_callback(loc_x_submitted)
+        self._LocXInput.register_submitted_callback(partial(loc_submitted, 0))
         self._LocYInput = menu.root.find_node("LocYInput").get_content()
-        self._LocYInput.register_submitted_callback(loc_y_submitted)
+        self._LocYInput.register_submitted_callback(partial(loc_submitted, 1))
         self._LocZInput = menu.root.find_node("LocZInput").get_content()
-        self._LocZInput.register_submitted_callback(loc_z_submitted)
-      
+        self._LocZInput.register_submitted_callback(partial(loc_submitted, 2))
+
         self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
-
         # buttons
-        receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
+        receptor_btn = menu.root.find_node("ReceptorButton").get_content()
         receptor_btn.register_pressed_callback(tab_button_pressed_callback)
         receptor_btn.selected = True
         self._tab = receptor_btn
 
-        ligand_btn = menu.root.find_node("LigandButton", True).get_content()
+        ligand_btn = menu.root.find_node("LigandButton").get_content()
         ligand_btn.register_pressed_callback(tab_button_pressed_callback)
 
-        self._site_btn = menu.root.find_node("SiteButton", True).get_content()
+        self._site_btn = menu.root.find_node("SiteButton").get_content()
         self._site_btn.register_pressed_callback(tab_button_pressed_callback)
 
-        align_btn = menu.root.find_node("AlignButton", True).get_content()
+        align_btn = menu.root.find_node("AlignButton").get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
 
@@ -629,8 +567,6 @@ class DockingMenu():
         self._exhaust_slider = self.setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
-
-        
 
         # Update the menu
         self._menu = menu
