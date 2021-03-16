@@ -3,6 +3,10 @@ from nanome.api.ui.image import Image as Image
 
 import os
 
+BASE_DIR = os.path.dirname(__file__)
+ICONS_DIR = os.path.join(BASE_DIR, 'icons')
+ICONS = { icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR) }
+
 class DockingMenuRhodium():
     def __init__(self, docking_plugin):
         self._plugin = docking_plugin
@@ -67,7 +71,7 @@ class DockingMenuRhodium():
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+        self._receptor_checkmark.file_path = ICONS['checkmark']
         self._plugin.update_content(self._receptor_checkmark)
 
     def ligand_pressed(self, button):
@@ -79,9 +83,9 @@ class DockingMenuRhodium():
             self._selected_ligands.remove(button)
         self._plugin.update_content(button)
         if len(self._selected_ligands) != 0:
-            self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+            self._ligand_checkmark.file_path = ICONS['checkmark']
         else:
-            self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+            self._ligand_checkmark.file_path = ICONS['none']
         self._plugin.update_content(self._ligand_checkmark)
 
     def site_pressed(self, button):
@@ -90,7 +94,7 @@ class DockingMenuRhodium():
             button.selected = False
             self._plugin.update_content(button)
             self._selected_site = None
-            self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+            self._site_checkmark.file_path = ICONS['none']
             self._plugin.update_content(self._site_checkmark)
             return
         elif lastSelected != None:
@@ -99,7 +103,7 @@ class DockingMenuRhodium():
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'checkmark.png')
+        self._site_checkmark.file_path = ICONS['checkmark']
         self._plugin.update_content(self._site_checkmark)
 
     def change_complex_list(self, complex_list):
@@ -115,9 +119,9 @@ class DockingMenuRhodium():
         self._selected_ligands = []
         self._selected_site = None
         self._complex_list.items = []
-        self._receptor_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._ligand_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        self._site_checkmark.file_path = os.path.join(os.path.dirname(__file__), 'none.png')
+        self._receptor_checkmark.file_path = ICONS['none']
+        self._ligand_checkmark.file_path = ICONS['none']
+        self._site_checkmark.file_path = ICONS['none']
 
         for complex in complex_list:
             clone = self._complex_item_prefab.clone()
@@ -210,56 +214,54 @@ class DockingMenuRhodium():
         child.add_new_button()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(os.path.dirname(__file__), '_docking_menu_rhodium.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_rhodium.json'))
         self._plugin.menu = menu
 
         # images
-        none_path = os.path.join(os.path.dirname(__file__), 'none.png')
-        logo_path = os.path.join(os.path.dirname(__file__), 'swri_logo.png')
-        self._receptor_checkmark = menu.root.find_node("ReceptorIcon", True).add_new_image(none_path)
+        self._receptor_checkmark = menu.root.find_node("ReceptorIcon").add_new_image(ICONS['none'])
         self._receptor_checkmark.scaling_option = Image.ScalingOptions.fit
-        self._ligand_checkmark = menu.root.find_node("LigandIcon", True).add_new_image(none_path)
+        self._ligand_checkmark = menu.root.find_node("LigandIcon").add_new_image(ICONS['none'])
         self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
-        self._site_checkmark = menu.root.find_node("SiteIcon", True).add_new_image(none_path)
+        self._site_checkmark = menu.root.find_node("SiteIcon").add_new_image(ICONS['none'])
         self._site_checkmark.scaling_option = Image.ScalingOptions.fit
-        logo_image = menu.root.find_node("LogoImage", True).add_new_image(logo_path)
+        logo_image = menu.root.find_node("LogoImage").add_new_image(icons['swri_logo'])
         logo_image.scaling_option = Image.ScalingOptions.fit
 
         # texts
-        txt1 = menu.root.find_node("GridResolutionInput", True).get_content()
+        txt1 = menu.root.find_node("GridResolutionInput").get_content()
         txt1.register_changed_callback(grid_resolution_changed)
 
-        txt2 = menu.root.find_node("PosesCountInput", True).get_content()
+        txt2 = menu.root.find_node("PosesCountInput").get_content()
         txt2.register_changed_callback(poses_changed)
 
-        txt3 = menu.root.find_node("RotamerCountInput", True).get_content()
+        txt3 = menu.root.find_node("RotamerCountInput").get_content()
         txt3.register_changed_callback(rotamer_changed)
 
         # buttons
-        receptor_btn = menu.root.find_node("ReceptorButton", True).get_content()
+        receptor_btn = menu.root.find_node("ReceptorButton").get_content()
         receptor_btn.register_pressed_callback(tab_button_pressed_callback)
         receptor_btn.selected = True
         self._tab = receptor_btn
 
-        ligand_btn = menu.root.find_node("LigandButton", True).get_content()
+        ligand_btn = menu.root.find_node("LigandButton").get_content()
         ligand_btn.register_pressed_callback(tab_button_pressed_callback)
 
-        site_btn = menu.root.find_node("SiteButton", True).get_content()
+        site_btn = menu.root.find_node("SiteButton").get_content()
         site_btn.register_pressed_callback(tab_button_pressed_callback)
 
-        align_btn = menu.root.find_node("AlignButton", True).get_content()
+        align_btn = menu.root.find_node("AlignButton").get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
 
-        run_button = menu.root.find_node("RunButton", True).get_content()
+        run_button = menu.root.find_node("RunButton").get_content()
         run_button.register_pressed_callback(run_button_pressed_callback)
         self._run_button = run_button
 
         # lists
-        self._complex_list = menu.root.find_node("ComplexList", True).get_content()
-        self._receptor_tab = menu.root.find_node("ReceptorButton", True).get_content()
-        self._ligand_tab = menu.root.find_node("LigandButton", True).get_content()
-        self._site_tab = menu.root.find_node("SiteButton", True).get_content()
+        self._complex_list = menu.root.find_node("ComplexList").get_content()
+        self._receptor_tab = menu.root.find_node("ReceptorButton").get_content()
+        self._ligand_tab = menu.root.find_node("LigandButton").get_content()
+        self._site_tab = menu.root.find_node("SiteButton").get_content()
 
         # Update the menu
         self._menu = menu

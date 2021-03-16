@@ -3,8 +3,8 @@ from nanome.util import Logs
 from ._DockingCalculations import DockingCalculations as Smina
 from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
-from ._DockingMenu import DockingMenu
-from ._DockingMenuRhodium import DockingMenuRhodium
+from .menus._DockingMenu import DockingMenu
+from .menus._DockingMenuRhodium import DockingMenuRhodium
 import functools
 import sys
 
