@@ -453,9 +453,9 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons/_docking_menu_new.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_new.json'))
         self._plugin.menu = menu
-        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons/_docking_setting_new.json'))
+        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
         self._plugin.setting_menu = self.setting_menu
 
         # registering and saving special nodes

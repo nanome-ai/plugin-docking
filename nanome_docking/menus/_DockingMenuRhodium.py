@@ -214,7 +214,7 @@ class DockingMenuRhodium():
         child.add_new_button()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons/_docking_menu_rhodium.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_rhodium.json'))
         self._plugin.menu = menu
 
         # images
