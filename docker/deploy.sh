@@ -1,8 +1,12 @@
 #!/bin/bash
 
-if [ "$(docker ps -aq -f name=docking)" != "" ]; then
-    echo "removing exited container"
-    docker rm -f docking
+echo "./deploy.sh $*" > redeploy.sh
+chmod +x redeploy.sh
+
+existing=$(docker ps -aq -f name=docking)
+if [ -n "$existing" ]; then
+    echo "removing existing container"
+    docker rm -f $existing
 fi
 
 ARGS=("smina" $*)

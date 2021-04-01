@@ -1,11 +1,12 @@
 FROM nanome/plugin-env
 
 ENV ARGS=''
-
-ARG CACHEBUST
-RUN pip install nanome
-
-COPY . /app
 WORKDIR /app
 
-CMD python3 run.py ${ARGS}
+ARG CACHEBUST
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD python run.py ${ARGS}

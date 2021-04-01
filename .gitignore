@@ -1,8 +1,6 @@
 __pycache__
 /.vscode
-/build
-/dist
 /docker/.cachebust
+/docker/redeploy.sh
 /nanome_docking/Rh_x64.exe
-*.egg-info
 *.log

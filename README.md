@@ -1,69 +1,33 @@
 # Nanome - Docking
 
-This Nanome plugin interfaces with a variety of docking softwares to dock ligands to a receptor and display the result in Nanome.
+A Nanome Plugin to interface with a variety of docking softwares to dock ligands to a receptor.
 
-### Installation
+## Dependencies
 
+[Docker](https://docs.docker.com/get-docker/)
 
+To use Autodock4 on Windows, Autodock4 must be installed on the computer and in the PATH variable.
 
-### Docker Usage
+## Usage
 
-To run in a Docker container:
+To run Docking Smina in a Docker container:
 
 ```sh
 $ cd docker
 $ ./build.sh
-
-Note that if you get the error "no permission to read from '.../plugin-docking/nanome_docking/smina' ", 
-change the permission using:
-$ chmod a+r ../nanome_docking/smina
-and try the previous step( $./build.sh ) again:
-
-$ ./deploy.sh -a <plugin_server_address> smina [args]
+$ ./deploy.sh -a <plugin_server_address> [args]
 ```
 
+To run Docking Autodock4 on Windows:
 
-
-
-To view (and follow the logs of) a container:
-```sh
-$ docker logs --follow docking
+```
+$ python3 -m pip install -r requirements.txt
+$ python3 run.py -a <plugin_server_address> autodock4 [args]
 ```
 
-To stop the container:
-```sh
-$ docker stop docking
-```
+Note: requires Autodock4 to be installed on the computer and in the PATH variable.
 
-To view the running containers:
-```sh
-$ docker ps
-```
-
-
-### Install from Pip or Pip3
-
-
-```sh
-$ pip install nanome-docking
-```
-
-
-To start the plugin:
-
-```sh
-$ nanome-docking smina -a <plugin_server_address>
-```
-
-Runs only on Linux
-
-OR
-
-```sh
-$ nanome-docking autodock4 -a <plugin_server_address>
-```
-
-Runs on Windows, and needs Autodock4 to be installed on the computer and in the PATH variable.
+---
 
 In Nanome:
 
@@ -75,15 +39,15 @@ In Nanome:
 - If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
 - Click on Run
 
+## Development
 
-### Run in development
+To run Docking with autoreload:
 
 ```
-python3 run.py -r -a plugins.nanome.ai -p 9999
+$ python3 -m pip install -r requirements.txt
+$ python3 run.py -r -a <plugin_server_address> smina [args]
 ```
 
-
-
-### License
+## License
 
 MIT
