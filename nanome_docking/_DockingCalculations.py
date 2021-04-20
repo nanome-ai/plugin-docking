@@ -25,7 +25,7 @@ except:
 
 class DockingCalculations():
     def __init__(self, plugin):
-        self._plugin = plugin
+        self.plugin = plugin
         self.requires_site = True
 
     def initialize(self):
@@ -91,10 +91,37 @@ class DockingCalculations():
         p.on_done = self._docking_finished
         p.start()
 
-        self._plugin.send_notification(NotificationTypes.message, "Docking started")
+        self.plugin.send_notification(NotificationTypes.message, "Docking started")        
 
-    def _resume_docking_finished(self, docking_results):
-        docking_results = docking_results[0]
+    def _docking_finished(self, return_code):
+        if return_code != 0:
+            self.plugin.make_plugin_usable()
+            self.plugin._menu.show_loading(False)
+            self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
+            return
+
+        end = timer()
+        Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
+
+        # hide ligands
+        for ligand in self._ligands:
+            ligand.visible = False
+            ComplexUtils.reset_transform(ligand)
+        self.plugin.update_structures_shallow(self._ligands)
+
+        docking_results = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
+        docking_results.index = -1
+
+        if not self._scoring:
+            docking_results.visible = True
+            docking_results.locked = True
+            if len(self._combined_ligands.names) > 1:
+                docking_results.name += "Docking Results"
+            elif len(self._combined_ligands.names) == 1:
+                docking_results.name = self._combined_ligands.names[0] + " (Docked)"
+
+        ComplexUtils.convert_to_frames([docking_results])
+
         # fix metadata sorting
         docking_results._remarks['Minimized Affinity'] = ''
 
@@ -116,43 +143,16 @@ class DockingCalculations():
 
         if self._scoring:
             Logs.debug("Display scoring result")
-            self._plugin.display_scoring_result(docking_results)
+            self.plugin.display_scoring_result(docking_results)
         else:
             Logs.debug("Update workspace")
             Logs.debug(f'** result index {docking_results.index}')
-            self._plugin.add_result_to_workspace([docking_results], self._align)
+            ComplexUtils.convert_to_conformers([docking_results])
+            self.plugin.add_result_to_workspace([docking_results], self._align)
 
-        self._plugin.send_notification(NotificationTypes.success, "Docking finished")
-        self._plugin._menu.show_loading(False)
-        self._plugin._menu.refresh_run_btn_unusable(update = True, after = True)
-
-    def _docking_finished(self, return_code):
-        if return_code != 0:
-            self._plugin.make_plugin_usable()
-            self._plugin._menu.show_loading(False)
-            self._plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
-            return
-
-        end = timer()
-        Logs.debug("Docking Finished in", end - self._start_timer, "seconds")
-
-        # hide ligands
-        for ligand in self._ligands:
-            ligand.visible = False
-        self._plugin.update_structures_shallow(self._ligands)
-
-        docking_results = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
-        docking_results.index = -1
-
-        if not self._scoring:
-            docking_results.visible = True
-            docking_results.locked = True
-            if len(self._combined_ligands.names) > 1:
-                docking_results.name += "Docking Results"
-            elif len(self._combined_ligands.names) == 1:
-                docking_results.name = self._combined_ligands.names[0] + " (Docked)"
-
-        self._plugin.replace_conformer([docking_results], self._resume_docking_finished, existing=False)
+        self.plugin.send_notification(NotificationTypes.success, "Docking finished")
+        self.plugin._menu.show_loading(False)
+        self.plugin._menu.refresh_run_btn_unusable(update = True, after = True)
 
     def _set_scores(self, molecule):
         molecule.min_atom_score = float('inf')

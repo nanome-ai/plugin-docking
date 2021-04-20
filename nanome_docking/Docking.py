@@ -51,23 +51,6 @@ class Docking(nanome.PluginInstance):
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
-    def replace_conformer(self, complexes, callback, existing=True):
-        for i in range(len(complexes)):
-            complex_index = complexes[i].index
-            complexes[i] = complexes[i].convert_to_frames()
-            complexes[i].index = complex_index
-
-        rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
-        if not existing:
-            request_docking_results = functools.partial(self.request_docking_results, callback)
-            rerequest_complexes = functools.partial(self.request_complex_list, request_docking_results)
-
-        self.update_structures_deep(complexes, rerequest_complexes)
-
-    def request_docking_results(self, callback, all_complexes):
-        docking_results_index = all_complexes[len(all_complexes)-1].index
-        self.request_complexes([docking_results_index], callback)
-
     def set_and_convert_structures(self, has_site, params, complexes):
         # When deep complexes data are received, unpack them and prepare ligand for docking
         receptor = complexes[0]
@@ -76,14 +59,15 @@ class Docking(nanome.PluginInstance):
         site = None
 
         if has_site:
-            site = complexes[1]  #._deep_copy()  # TODO VOODOO
+            site = complexes[1]
             self._site = site
             ComplexUtils.align_to(site, receptor)
             starting_lig_idx = 2
 
         # convert ligands to frame representation
-        start_docking = lambda ligands: self._calculations.start_docking(receptor, ligands, site, **params)
-        self.replace_conformer(complexes[starting_lig_idx:], start_docking)
+        ligands = complexes[starting_lig_idx:]
+        ComplexUtils.convert_to_frames(ligands)
+        self._calculations.start_docking(receptor, ligands, site, **params)
 
     def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
