@@ -28,18 +28,14 @@ class Docking(nanome.PluginInstance):
 
     # Called when user clicks on the "Run" button in Nanome
     def on_run(self):
-        menu = self._menu
-        # If menu doesn't have Receptor and Ligands selected, open it
-        # Else, just start docking
-        # if menu.is_ready_for_docking() == False:
-        self.open_menu()
-        # else:
-        #     self.run_docking(menu.get_receptor(), menu.get_ligands(), menu.get_site(), menu.get_params())
+        self.menu.enabled = True
+        self.update_menu(self.menu)
 
     # Called when user click on the "Advanced Settings" button in Nanome
     def on_advanced_settings(self):
-        nanome.util.Logs.debug("Advanced Settings")
-        self.open_setting_menu()
+        self.setting_menu.enabled = True
+        self.setting_menu.index = 1
+        self.update_menu(self.setting_menu)
 
     # Called when a complex is added to the workspace in Nanome
     def on_complex_added(self):
@@ -49,62 +45,29 @@ class Docking(nanome.PluginInstance):
     def on_complex_removed(self):
         self.request_complex_list(self.on_complex_list_received)
 
-    def open_setting_menu(self):
-        setting_menu = self.setting_menu
-        setting_menu.enabled = True
-        self.setting_menu.index = 1
-
-        self.update_menu(setting_menu)
-
-    def open_menu(self):
-        menu = self.menu
-        menu.enabled = True
-        self.update_menu(menu)
-
     def make_plugin_usable(self):
         self._menu.make_plugin_usable()
 
     def on_complex_list_received(self, complexes):
         self._menu.change_complex_list(complexes)
 
-    def combine_ligands_start_docking(self, receptor, site, params, individual_ligands):
-
-        self._calculations.start_docking(receptor, individual_ligands, site, **params)
-
-    def replace_conformer(self, complexes, callback, existing=True):
-        for i in range(len(complexes)):
-            complex_index = complexes[i].index
-            complexes[i] = complexes[i].convert_to_frames()
-            complexes[i].index = complex_index
-
-        rerequest_complexes = functools.partial(self.request_complexes, [complex.index for complex in complexes], callback)
-        request_docking_results = functools.partial(self.request_docking_results, callback)
-        if not existing:
-            rerequest_complexes = functools.partial(self.request_complex_list, request_docking_results)
-
-        self.update_structures_deep(complexes, rerequest_complexes)
-
-    def request_docking_results(self, callback, all_complexes):
-        docking_results_index = all_complexes[len(all_complexes)-1].index
-        self.request_complexes([docking_results_index], callback)
-
     def set_and_convert_structures(self, has_site, params, complexes):
         # When deep complexes data are received, unpack them and prepare ligand for docking
         receptor = complexes[0]
-        receptor.m_workspace_to_complex = receptor.get_workspace_to_complex_matrix()
         self._receptor = receptor
         starting_lig_idx = 1
         site = None
+
         if has_site:
             site = complexes[1]
             self._site = site
-            ComplexUtils.convert_atoms_to_absolute_position(site)
-            ComplexUtils.convert_atoms_to_relative_position(site, receptor.m_workspace_to_complex)
+            ComplexUtils.align_to(site, receptor)
             starting_lig_idx = 2
+
         # convert ligands to frame representation
         ligands = complexes[starting_lig_idx:]
-        combine_ligs_and_start_docking = functools.partial(self.combine_ligands_start_docking, receptor, site, params)
-        self.replace_conformer(ligands, combine_ligs_and_start_docking)
+        ComplexUtils.convert_to_frames(ligands)
+        self._calculations.start_docking(receptor, ligands, site, **params)
 
     def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
@@ -133,23 +96,14 @@ class Docking(nanome.PluginInstance):
             complex.rotation = self._receptor.rotation
 
             if align:
-                mat = complex.get_complex_to_workspace_matrix()
-                # get global atom pos
-                global_pos = [mat * atom.position for atom in complex.atoms]
-                # align bounding box
-                complex.position = self._site.position
-                complex.rotation = self._site.rotation
-                # restore atom pos
-                mat = complex.get_workspace_to_complex_matrix()
-                for (atom, pos) in zip(complex.atoms, global_pos):
-                    atom.position = mat * pos
-
+                ComplexUtils.align_to(complex, self._site)
                 complex.boxed = True
 
         self.update_structures_deep(results)
 
     def display_scoring_result(self, result):
         self._menu.display_scoring_result(result)
+
 
 class SminaDocking(Docking):
     def __init__(self):
@@ -164,6 +118,7 @@ class Autodock4Docking(Docking):
         self._calculations = Autodock4(self)
         self._menu = DockingMenu(self)
         self._autobox = False
+
 
 class RhodiumDocking(Docking):
     def __init__(self):
@@ -186,14 +141,13 @@ def main():
             name = "Rhodium"
             cl = RhodiumDocking
     if name == None:
-        nanome.util.Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
+        Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
         sys.exit(1)
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
     plugin = nanome.Plugin(name + " Docking", "Run docking using " + name + ". Lets user choose the receptor, ligands, and diverse options", "Docking", True)
     plugin.set_plugin_class(cl)
     plugin.run()
-
 
 if __name__ == "__main__":
     main()
