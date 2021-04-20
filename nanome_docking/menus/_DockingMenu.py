@@ -50,7 +50,7 @@ class DockingMenu():
     def _run_docking(self):
         if self._selected_receptor == None or len(self._selected_ligands) == 0:
             if self._autobox_enabled == True and self._selected_site == None:
-                nanome.util.Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
+                Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
         ligands = []
         for item in self._selected_ligands:
@@ -234,11 +234,6 @@ class DockingMenu():
         self._complex_list.items = []
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
-
-    def open_menu(self):
-        self._plugin.menu = self._menu
-        self._plugin.menu.enabled = True
-        self._plugin.update_menu(self._plugin.menu)
 
     def handle_dropdown_pressed(self,docking_component,component_name,dropdown,item):
         if component_name == 'ligand':
@@ -454,9 +449,10 @@ class DockingMenu():
 
         # loading menus
         menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_new.json'))
+        setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+
         self._plugin.menu = menu
-        self.setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
-        self._plugin.setting_menu = self.setting_menu
+        self._plugin.setting_menu = setting_menu
 
         # registering and saving special nodes
 
@@ -475,7 +471,7 @@ class DockingMenu():
 
         refresh_icon = menu.root.find_node("RefreshIcon")
         refresh_icon.add_new_image(file_path=ICONS['refresh'])
-        setting_slider_oval = self.setting_menu.root.find_node("ExhaustOval")
+        setting_slider_oval = setting_menu.root.find_node("ExhaustOval")
         setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
         # text
@@ -492,7 +488,7 @@ class DockingMenu():
         self._LocZInput = menu.root.find_node("LocZInput").get_content()
         self._LocZInput.register_submitted_callback(partial(loc_submitted, 2))
 
-        self._exhaustiveness_txt = self.setting_menu.root.find_node("ExhaustValue").get_content()
+        self._exhaustiveness_txt = setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
@@ -516,7 +512,7 @@ class DockingMenu():
         self._score_btn = menu.root.find_node("ScoringButton").get_content()
         self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
 
-        self._display_score_btn = self.setting_menu.root.find_node("VisualScoresButton").get_content()
+        self._display_score_btn = setting_menu.root.find_node("VisualScoresButton").get_content()
         self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
 
         close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
@@ -565,11 +561,11 @@ class DockingMenu():
         self._slider.register_released_callback(slider_released_callback)
         self._slider.current_value = self._autobox
 
-        self._exhaust_slider = self.setting_menu.root.find_node("ExhaustSlider").get_content()
+        self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
 
         # Update the menu
         self._menu = menu
         self._plugin.update_menu(menu)
-        nanome.util.Logs.debug("Constructed plugin menu")
+        Logs.debug("Constructed plugin menu")
