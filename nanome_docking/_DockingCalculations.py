@@ -91,7 +91,7 @@ class DockingCalculations():
         p.on_done = self._docking_finished
         p.start()
 
-        self.plugin.send_notification(NotificationTypes.message, "Docking started")        
+        self.plugin.send_notification(NotificationTypes.message, "Docking started")
 
     def _docking_finished(self, return_code):
         if return_code != 0:
@@ -110,16 +110,6 @@ class DockingCalculations():
         self.plugin.update_structures_shallow(self._ligands)
 
         docking_results = nanome.structure.Complex.io.from_sdf(path=self._docking_output.name)
-        docking_results.index = -1
-
-        if not self._scoring:
-            docking_results.visible = True
-            docking_results.locked = True
-            if len(self._combined_ligands.names) > 1:
-                docking_results.name += "Docking Results"
-            elif len(self._combined_ligands.names) == 1:
-                docking_results.name = self._combined_ligands.names[0] + " (Docked)"
-
         ComplexUtils.convert_to_frames([docking_results])
 
         # fix metadata sorting
@@ -140,6 +130,7 @@ class DockingCalculations():
             elif len(self._combined_ligands.names) == 1:
                 docking_results.name = self._combined_ligands.names[0] + " (Docked)"
             docking_results.visible = True
+            docking_results.locked = True
 
         if self._scoring:
             Logs.debug("Display scoring result")
