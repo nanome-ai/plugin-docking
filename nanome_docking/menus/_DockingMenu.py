@@ -1,13 +1,13 @@
 import nanome
-from nanome.api.ui.image import Image as Image
 from nanome.util import Logs
 import os
-from nanome.api.ui import Dropdown,DropdownItem
+from nanome.api.ui import DropdownItem
 from functools import partial
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
-ICONS = { icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR) }
+ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR)}
+
 
 class DockingMenu():
     def __init__(self, docking_plugin):
@@ -36,20 +36,20 @@ class DockingMenu():
         return ligands
 
     def get_site(self):
-        if self._selected_site == None:
+        if self._selected_site is None:
             return None
         return self._selected_site.complex
 
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
         for key, value in params.items():
-            newvalue = getattr(self, "_"+key)
+            newvalue = getattr(self, "_" + key)
             params[key] = newvalue
         return params
 
     def _run_docking(self):
-        if self._selected_receptor == None or len(self._selected_ligands) == 0:
-            if self._autobox_enabled == True and self._selected_site == None:
+        if self._selected_receptor is None or len(self._selected_ligands) == 0:
+            if self._autobox_enabled is True and self._selected_site is None:
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
         ligands = []
@@ -69,10 +69,10 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update = False)
+        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update=False)
         self._plugin.update_content(self._run_button)
 
-    def show_loading(self, show = False):
+    def show_loading(self, show=False):
         if show:
             self.ln_run_button.enabled = False
             self.ln_loading_bar.enabled = True
@@ -82,10 +82,10 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def receptor_pressed(self, button):
-        lastSelected = self._selected_receptor
-        if lastSelected != None:
-            lastSelected.selected = False
-            self._plugin.update_content(lastSelected)
+        last_selected = self._selected_receptor
+        if last_selected is not None:
+            last_selected.selected = False
+            self._plugin.update_content(last_selected)
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
@@ -93,7 +93,7 @@ class DockingMenu():
         self.refresh_run_btn_unusable()
 
     def ligand_pressed(self, button):
-        if button.selected == False:
+        if button.selected is False:
             button.selected = True
             self._selected_ligands.append(button)
         else:
@@ -106,22 +106,22 @@ class DockingMenu():
         self.refresh_run_btn_unusable()
 
     def site_pressed(self, button):
-        lastSelected = self._selected_site
-        if lastSelected != None:
-            lastSelected.selected = False
-            self._plugin.update_content(lastSelected)
+        last_selected = self._selected_site
+        if last_selected is not None:
+            last_selected.selected = False
+            self._plugin.update_content(last_selected)
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
         self.refresh_run_btn_unusable()
 
     def refresh_run_btn_unusable(self, update=True, after=False):
-        site_requirement_met = self._selected_site != None or not self._plugin._calculations.requires_site
-        if self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
+        site_requirement_met = self._selected_site is not None or not self._plugin._calculations.requires_site
+        if self._selected_receptor is not None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value.unusable = "Running..."
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
-        elif self._selected_receptor != None and len(self._selected_ligands) > 0 and site_requirement_met and after:
+        elif self._selected_receptor is not None and len(self._selected_ligands) > 0 and site_requirement_met and after:
             self._run_button.text.value.unusable = "Run"
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
@@ -163,9 +163,9 @@ class DockingMenu():
         self._ligand_dropdown.items = ligand_list
         self._receptor_dropdown.items = receptor_list
         self._site_dropdown.items = site_list
-        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_ligands,'ligand'))
-        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_receptor,'receptor'))
-        self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed,self._selected_site,'site'))
+        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_ligands, 'ligand'))
+        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_receptor, 'receptor'))
+        self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
 
         ligand_stayed = False
         if not ligand_list:
@@ -173,7 +173,7 @@ class DockingMenu():
             self._ligand_dropdown.permanent_title = "None"
             self._selected_ligands = []
         elif self._selected_ligands and self._ligand_dropdown.items:
-            for i,x in enumerate(self._ligand_dropdown.items):
+            for i, x in enumerate(self._ligand_dropdown.items):
                 if self._selected_ligands[0].complex.index == x.complex.index:
                     self._ligand_dropdown.items[i].selected = True
                     ligand_stayed = True
@@ -189,7 +189,7 @@ class DockingMenu():
             self._receptor_dropdown.permanent_title = "None"
             self._selected_receptor = None
         elif self._selected_receptor and self._receptor_dropdown.items:
-            for i,x in enumerate(self._receptor_dropdown.items):
+            for i, x in enumerate(self._receptor_dropdown.items):
                 if self._selected_receptor.index == x.complex.index:
                     self._receptor_dropdown.items[i].selected = True
                     receptor_stayed = True
@@ -205,7 +205,7 @@ class DockingMenu():
             self._site_dropdown.permanent_title = "None"
             self._selected_site = None
         if self._selected_site and self._site_dropdown.items:
-            for i,x in enumerate(self._site_dropdown.items):
+            for i, x in enumerate(self._site_dropdown.items):
                 if self._selected_site.complex.index == x.complex.index:
                     self._site_dropdown.items[i].selected = True
                     site_stayed = True
@@ -235,11 +235,11 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
-    def handle_dropdown_pressed(self,docking_component,component_name,dropdown,item):
+    def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
         if component_name == 'ligand':
-            cur_index = item.complex.index
+            # cur_index = item.complex.index
             # this line is saved for future version of dropdown api
-            #if cur_index not in [x.complex.index for x in self._selected_ligands]:
+            # if cur_index not in [x.complex.index for x in self._selected_ligands]:
             if not self._selected_ligands:
                 self._selected_ligands.append(item)
                 item.selected = True
@@ -265,7 +265,7 @@ class DockingMenu():
             #     self._ligand_dropdown.use_permanent_title = True
             #     self._ligand_dropdown.permanent_title = "Multiple"
             if len(self._selected_ligands) == 1:
-                self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
+                self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
                 self._ligand_dropdown.use_permanent_title = False
             elif len(self._selected_ligands) == 0:
                 self._ligand_dropdown.use_permanent_title = True
@@ -280,7 +280,7 @@ class DockingMenu():
 
             if self._selected_receptor:
                 self._receptor_dropdown.use_permanent_title = False
-                self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8]+'...'
+                self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
             else:
                 self._receptor_txt._text_value = "Receptor"
                 self._receptor_dropdown.use_permanent_title = True
@@ -289,11 +289,11 @@ class DockingMenu():
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in item.complex.position]
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in item.complex.position]
             else:
                 self._selected_site = None
                 item.selected = False
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '','',''
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
 
             if self._selected_site:
                 self._site_dropdown.use_permanent_title = False
@@ -424,7 +424,7 @@ class DockingMenu():
                 for complex in complexes_list:
                     if complex.index == self._selected_site.complex.index:
                         self._selected_site.complex = complex
-                        self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x,2) for x in complex.position]
+                        self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex.position]
                         self._plugin.update_menu(self._menu)
 
             if not self._selected_site:
@@ -433,7 +433,7 @@ class DockingMenu():
                 self._plugin.update_menu(self._menu)
             else:
                 Logs.debug("Update the site location")
-                self._plugin.request_complexes([self._selected_site.complex.index],update_site_loc)
+                self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
 
         # Create a prefab that will be used to populate the lists
         self._complex_item_prefab = nanome.ui.LayoutNode()

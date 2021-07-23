@@ -23,6 +23,7 @@ try:
 except:
     pass
 
+
 class DockingCalculations():
     def __init__(self, plugin):
         self.plugin = plugin
@@ -59,7 +60,7 @@ class DockingCalculations():
 
     def _write_structures_to_file(self):
         self.initialize()
-         # Save all input files
+        # Save all input files
         self._receptor.io.to_pdb(self._receptor_input.name, PDBOPTIONS)
         Logs.debug("Saved PDB", self._receptor_input.name)
         self._combined_ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
@@ -143,7 +144,7 @@ class DockingCalculations():
 
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
         self.plugin._menu.show_loading(False)
-        self.plugin._menu.refresh_run_btn_unusable(update = True, after = True)
+        self.plugin._menu.refresh_run_btn_unusable(update=True, after=True)
 
     def _set_scores(self, molecule):
         molecule.min_atom_score = float('inf')
@@ -167,7 +168,7 @@ class DockingCalculations():
             atom_count = len(list(molecule.atoms))
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
-                    Logs.debug("interaction values for atom " + str(i) + ": "+ str(interaction_values[i]))
+                    Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
                     atom.score = float(interaction_values[i][5])
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)
@@ -189,4 +190,4 @@ class DockingCalculations():
         if 'e' in s or 'E' in s:
             return '{0:.{1}f}'.format(f, n)
         i, p, d = s.partition('.')
-        return '.'.join([i, (d+'0'*n)[:n]])
+        return '.'.join([i, (d + '0' * n)[:n]])

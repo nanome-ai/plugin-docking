@@ -1,5 +1,6 @@
 import nanome
 
+
 class ComplexUtils:
 
     @staticmethod
@@ -14,7 +15,6 @@ class ComplexUtils:
         m = complex.get_workspace_to_complex_matrix()
         for atom in complex.atoms:
             atom.position = m * atom.position
-
 
     @staticmethod
     def combine_ligands(receptor, ligands):
