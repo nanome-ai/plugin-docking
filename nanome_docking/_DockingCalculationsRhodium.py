@@ -12,6 +12,7 @@ from .ComplexUtils import ComplexUtils
 
 RHODIUM_PATH = os.path.join(os.path.dirname(__file__), 'Rh_x64.exe')
 
+
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
@@ -36,11 +37,11 @@ class DockingCalculations():
     # This is due to a current bug with the plugin system Process API with process outputting a lot of text
     # In the future, no update loop will be needed to check when Rhodium has ended
     def update(self):
-        if self.__docking_running == False:
+        if self.__docking_running is False:
             return
 
         self.__process.communicate()
-        if self.__process.poll() != None:
+        if self.__process.poll() is not None:
             self.__docking_running = False
             self._docking_finished()
 
@@ -84,30 +85,30 @@ class DockingCalculations():
         proc = Process()
         proc.executable_path = 'nanobabel'
         proc.args = ['convert', '-i', self._protein_input.name,
-            '-o', self._protein_converted_input.name, '-h']
+                     '-o', self._protein_converted_input.name, '-h']
         proc.on_done = self.receptor_ready
         proc.start()
 
     # Callback when nanobabel is done
     def receptor_ready(self, return_value):
         self._combined_ligands.io.to_sdf(self._ligands_input.name)
-        if self._site != None:
+        if self._site is not None:
             self._site.io.to_sdf(self._site_input.name)
         self._start_docking()
 
     def _start_docking(self):
         # Start process manually, because of problem described above Update function
         args = [RHODIUM_PATH, self._protein_converted_input.name, self._ligands_input.name,
-            '--outfile', self._docking_output.name,
-            '--refine', str(self._params['poses']),
-            '--resolution', str(self._params['grid_resolution']),
-            '--refine', str(self._params['poses']),
-            '--nr', str(self._params['rotamers'])]
+                '--outfile', self._docking_output.name,
+                '--refine', str(self._params['poses']),
+                '--resolution', str(self._params['grid_resolution']),
+                '--refine', str(self._params['poses']),
+                '--nr', str(self._params['rotamers'])]
 
         if self._params['ignore_hetatoms']:
             args += ['--ignore_pdb_hetatm']
 
-        if self._site != None:
+        if self._site is not None:
             args += ['--usegrid', self._site_input.name]
 
         Logs.debug("Start Rhodium:", args)
@@ -129,13 +130,13 @@ class DockingCalculations():
         with open(self._docking_output.name + ".csv", 'r') as file:
             lines = file.readlines()
             for line in lines:
-                if line.startswith('seed') == False:
+                if line.startswith('seed') is False:
                     continue
                 line_split = line.split(',')
                 result.append([line_split[5].strip(),
-                    line_split[13].strip(),
-                    line_split[41].strip(),
-                    line_split[43].strip()])
+                               line_split[13].strip(),
+                               line_split[41].strip(),
+                               line_split[43].strip()])
         return result
 
     def assemble_result(self, docking_output):
@@ -157,7 +158,7 @@ class DockingCalculations():
             docked_ligands_bonded = complex_arr[0]
             docked_ligands_bonded.name = "Docking"
             docked_ligands_bonded.visible = True
-            if self._params['align'] == True:
+            if self._params['align'] is True:
                 docked_ligands_bonded.transform.position = self._receptor.transform.position
                 docked_ligands_bonded.transform.rotation = self._receptor.transform.rotation
                 docked_ligands_bonded.boxed = True

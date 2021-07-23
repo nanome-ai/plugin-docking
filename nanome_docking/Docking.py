@@ -11,6 +11,8 @@ import sys
 from .ComplexUtils import ComplexUtils
 
 __metaclass__ = type
+
+
 class Docking(nanome.PluginInstance):
     def __init__(self):
         self._menu = None
@@ -21,7 +23,7 @@ class Docking(nanome.PluginInstance):
     # Called when Nanome connects to the Plugin, after its instantiation
     def start(self):
         self._menu.build_menu()
-        if self._autobox == False:
+        if self._autobox is False:
             self._menu.disable_autobox()
         # Request shallow complex (name, position, orientation), to display them in a list
         self.request_complex_list(self.on_complex_list_received)
@@ -71,20 +73,20 @@ class Docking(nanome.PluginInstance):
 
     def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
-        if self._menu._run_button.unusable == True:
+        if self._menu._run_button.unusable is True:
             return
         self._menu.make_plugin_usable(False)
-        #self._menu.show_loading(True)
+        # self._menu.show_loading(True)
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
-        if site != None:
+        if site is None:
             request_list.append(site.index)
         request_list += [x.index for x in ligands]
 
-        setup_structures = functools.partial(self.set_and_convert_structures, site != None, params)
+        setup_structures = functools.partial(self.set_and_convert_structures, site is None, params)
         self.request_complexes(request_list, setup_structures)
-        #self._menu.show_loading(False)
+        # self._menu.show_loading(False)
 
     # Called every update tick of the Plugin
     def update(self):
@@ -140,7 +142,7 @@ def main():
         elif arg == "rhodium":
             name = "Rhodium"
             cl = RhodiumDocking
-    if name == None:
+    if name is None:
         Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
         sys.exit(1)
 
@@ -148,6 +150,7 @@ def main():
     plugin = nanome.Plugin(name + " Docking", "Run docking using " + name + ". Lets user choose the receptor, ligands, and diverse options", "Docking", True)
     plugin.set_plugin_class(cl)
     plugin.run()
+
 
 if __name__ == "__main__":
     main()

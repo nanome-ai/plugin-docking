@@ -13,6 +13,7 @@ from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 
 from .ComplexUtils import ComplexUtils
 
+
 class DockingCalculations():
     def __init__(self, plugin):
         self._plugin = plugin
@@ -46,7 +47,7 @@ class DockingCalculations():
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
         self.initialize()
         self._receptor = receptor
-        self._ligands =  ligands
+        self._ligands = ligands
         self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._site = site
         self._align = align
@@ -98,7 +99,7 @@ class DockingCalculations():
             if self._check_bonds():
                 self._bonds_finished()
 
-    def _check_process_error(self, process, check_only_errors = False):
+    def _check_process_error(self, process, check_only_errors=False):
         (results, errors) = process.communicate()
 
         try:
@@ -307,7 +308,7 @@ class DockingCalculations():
             docked_ligands.name = self._combined_ligands.names[0] + " (Docked)"
         else:
             docked_ligands.name == "Docking Results"
-            
+
         docked_ligands.visible = True
         if self._align == True:
             docked_ligands.transform.position = self._receptor.transform.position

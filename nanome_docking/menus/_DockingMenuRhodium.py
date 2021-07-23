@@ -5,7 +5,8 @@ import os
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
-ICONS = { icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR) }
+ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR)}
+
 
 class DockingMenuRhodium():
     def __init__(self, docking_plugin):
@@ -22,7 +23,7 @@ class DockingMenuRhodium():
         self._tab = None
 
     def is_ready_for_docking(self):
-        return self._selected_receptor != None and len(self._selected_ligands) > 0
+        return self._selected_receptor is not None and len(self._selected_ligands) > 0
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -34,23 +35,23 @@ class DockingMenuRhodium():
         return ligands
 
     def get_site(self):
-        if self._selected_site == None:
+        if self._selected_site is None:
             return None
         return self._selected_site.complex
 
     def get_params(self):
-        return { "receptor":self._selected_receptor,
-                "ligands":self._selected_ligands,
-                "site":self._selected_site,
-                "grid_resolution":self._grid_resolution,
-                "poses":self._poses,
-                "rotamers":self._rotamer,
-                "align":self._align,
-                "ignore_hetatoms":self._ignore_hetatoms
-            }
+        return {"receptor": self._selected_receptor,
+                "ligands": self._selected_ligands,
+                "site": self._selected_site,
+                "grid_resolution": self._grid_resolution,
+                "poses": self._poses,
+                "rotamers": self._rotamer,
+                "align": self._align,
+                "ignore_hetatoms": self._ignore_hetatoms
+                }
 
     def _run_docking(self):
-        if self._selected_receptor == None or len(self._selected_ligands) == 0:
+        if self._selected_receptor is None or len(self._selected_ligands) == 0:
             nanome.util.Logs.warning("Trying to run docking without having one receptor, and at least one ligand selected")
             self._plugin.send_notification(nanome.util.enums.NotificationTypes.error, "Please select a receptor, and at least one ligand")
             return
@@ -64,10 +65,10 @@ class DockingMenuRhodium():
         self._plugin.update_content(self._run_button)
 
     def receptor_pressed(self, button):
-        lastSelected = self._selected_receptor
-        if lastSelected != None:
-            lastSelected.selected = False
-            self._plugin.update_content(lastSelected)
+        last_selected = self._selected_receptor
+        if last_selected is not None:
+            last_selected.selected = False
+            self._plugin.update_content(last_selected)
         button.selected = True
         self._selected_receptor = button
         self._plugin.update_content(button)
@@ -75,7 +76,7 @@ class DockingMenuRhodium():
         self._plugin.update_content(self._receptor_checkmark)
 
     def ligand_pressed(self, button):
-        if button.selected == False:
+        if button.selected is False:
             button.selected = True
             self._selected_ligands.append(button)
         else:
@@ -89,17 +90,17 @@ class DockingMenuRhodium():
         self._plugin.update_content(self._ligand_checkmark)
 
     def site_pressed(self, button):
-        lastSelected = self._selected_site
-        if lastSelected == button:
+        last_selected = self._selected_site
+        if last_selected == button:
             button.selected = False
             self._plugin.update_content(button)
             self._selected_site = None
             self._site_checkmark.file_path = ICONS['none']
             self._plugin.update_content(self._site_checkmark)
             return
-        elif lastSelected != None:
-            lastSelected.selected = False
-            self._plugin.update_content(lastSelected)
+        elif last_selected is not None:
+            last_selected.selected = False
+            self._plugin.update_content(last_selected)
         button.selected = True
         self._selected_site = button
         self._plugin.update_content(button)
@@ -224,8 +225,8 @@ class DockingMenuRhodium():
         self._ligand_checkmark.scaling_option = Image.ScalingOptions.fit
         self._site_checkmark = menu.root.find_node("SiteIcon").add_new_image(ICONS['none'])
         self._site_checkmark.scaling_option = Image.ScalingOptions.fit
-        logo_image = menu.root.find_node("LogoImage").add_new_image(icons['swri_logo'])
-        logo_image.scaling_option = Image.ScalingOptions.fit
+        # logo_image = menu.root.find_node("LogoImage").add_new_image(icons['swri_logo'])
+        # logo_image.scaling_option = Image.ScalingOptions.fit
 
         # texts
         txt1 = menu.root.find_node("GridResolutionInput").get_content()
