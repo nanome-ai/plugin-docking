@@ -80,11 +80,11 @@ class Docking(nanome.PluginInstance):
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
-        if site is None:
+        if site is not None:
             request_list.append(site.index)
         request_list += [x.index for x in ligands]
 
-        setup_structures = functools.partial(self.set_and_convert_structures, site is None, params)
+        setup_structures = functools.partial(self.set_and_convert_structures, site is not None, params)
         self.request_complexes(request_list, setup_structures)
         # self._menu.show_loading(False)
 
