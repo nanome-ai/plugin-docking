@@ -135,17 +135,17 @@ class RhodiumDocking(Docking):
 
 def main():
     name = None
-    cl = None
+    plugin_class = None
     for arg in sys.argv:
         if arg == "smina":
             name = "Smina"
-            cl = SminaDocking
+            plugin_class = SminaDocking
         elif arg == "autodock4":
             name = "Autodock 4"
-            cl = Autodock4Docking
+            plugin_class = Autodock4Docking
         elif arg == "rhodium":
             name = "Rhodium"
-            cl = RhodiumDocking
+            plugin_class = RhodiumDocking
     if name is None:
         Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
         sys.exit(1)
@@ -156,7 +156,7 @@ def main():
     category = "Docking"
     advanced_settings = True
     plugin = nanome.Plugin(plugin_name, description, category, advanced_settings)
-    plugin.set_plugin_class(cl)
+    plugin.set_plugin_class(plugin_class)
     plugin.run()
 
 
