@@ -87,7 +87,6 @@ class Docking(nanome.AsyncPluginInstance):
             request_list.append(site.index)
         request_list += [x.index for x in ligands]
 
-        setup_structures = functools.partial(self.set_and_convert_structures, site is not None, params)
         complexes = await self.request_complexes(request_list)
         has_site = site is not None
         self.set_and_convert_structures(has_site, params, complexes)
@@ -152,7 +151,11 @@ def main():
         sys.exit(1)
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
-    plugin = nanome.Plugin(name + " Docking", "Run docking using " + name + ". Lets user choose the receptor, ligands, and diverse options", "Docking", True)
+    plugin_name = f'{name} Docking'
+    description = f'Run docking using {plugin_name}. Lets user choose the receptor, ligands, and diverse options'
+    category = "Docking"
+    advanced_settings = True
+    plugin = nanome.Plugin(plugin_name, description, category, advanced_settings)
     plugin.set_plugin_class(cl)
     plugin.run()
 
