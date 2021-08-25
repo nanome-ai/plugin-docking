@@ -21,11 +21,6 @@
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
   },
 
-  // Set *default* container specific settings.json values on container create.
-  "settings": {
-    "terminal.integrated.shell.linux": "/bin/bash"
-  },
-
   // Add the IDs of extensions you want installed when the container is created.
   "extensions": [
     "ms-azuretools.vscode-docker",
@@ -34,7 +29,13 @@
     "ms-python.vscode-pylance",
     "ms-vscode-remote.vscode-remote-extensionpack",
     "ms-vsliveshare.vsliveshare"
-  ]
+  ],
+  
+  "settings": {
+    "python.languageServer": "Pylance",
+    "python.analysis.extraPaths": ["/opt/conda/lib/python3.7/site-packages"],
+    "python.formatting.autopep8Path": "/opt/conda/bin/autopep8"
+  },
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
