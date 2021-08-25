@@ -11,7 +11,7 @@ from nanome.util.enums import NotificationTypes
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-SMINA_PATH = os.path.join(os.getcwd(), 'smina', 'smina_binary')
+SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
 
 class DockingCalculations():
     def __init__(self, plugin):
