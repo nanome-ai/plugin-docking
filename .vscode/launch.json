@@ -23,7 +23,7 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["rhodium", "-r", "-v", "-n", "[wip]-autodock4-docking"]
+            "args": ["rhodium", "-r", "-v", "-n", "[wip]-rhodium-docking"]
         },
     ]
 }
