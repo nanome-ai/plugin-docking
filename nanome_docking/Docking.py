@@ -3,9 +3,9 @@ import argparse
 import nanome
 from nanome.util import async_callback, ComplexUtils
 
-from nanome_docking.smina._DockingCalculations import DockingCalculations as Smina
-from nanome_docking.autodock4._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
-from nanome_docking.rhodium._DockingCalculationsRhodium import DockingCalculations as Rhodium
+from nanome_docking.smina.calculations import DockingCalculations as Smina
+from nanome_docking.autodock4.calculations import DockingCalculations as Autodock4
+from nanome_docking.rhodium.calculations import DockingCalculations as Rhodium
 from nanome_docking.menus._DockingMenu import DockingMenu
 from nanome_docking.menus._DockingMenuRhodium import DockingMenuRhodium
 
