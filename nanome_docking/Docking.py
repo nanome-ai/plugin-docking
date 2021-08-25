@@ -1,3 +1,5 @@
+import argparse
+
 import nanome
 from nanome.util import async_callback, Logs
 
@@ -134,21 +136,22 @@ class RhodiumDocking(Docking):
 
 
 def main():
-    name = None
+    parser = argparse.ArgumentParser(description='Parse Arguments to determine flavor of Docking to instantiate')
+    parser.add_argument('algorithm', choices=['smina', 'autodock4', 'rhodium'])
+
+    args, _ = parser.parse_known_args()
     plugin_class = None
-    for arg in sys.argv:
-        if arg == "smina":
-            name = "Smina"
-            plugin_class = SminaDocking
-        elif arg == "autodock4":
-            name = "Autodock 4"
-            plugin_class = Autodock4Docking
-        elif arg == "rhodium":
-            name = "Rhodium"
-            plugin_class = RhodiumDocking
-    if name is None:
-        Logs.error("Please pass the docking software to use as an argument: smina|autodock4|rhodium")
-        sys.exit(1)
+    name = ''
+    algo = args.algorithm
+    if algo == "smina":
+        name = "Smina"
+        plugin_class = SminaDocking
+    elif algo == "autodock4":
+        name = "Autodock 4"
+        plugin_class = Autodock4Docking
+    elif algo == "rhodium":
+        name = "Rhodium"
+        plugin_class = RhodiumDocking
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
     plugin_name = f'{name} Docking'

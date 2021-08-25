@@ -450,8 +450,11 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_new.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
         setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+        # Algorithm is part of the plugin class name. Easiest way to access that.
+        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
+        menu.title = f'{algo_name} Docking'
 
         self._plugin.menu = menu
         self._plugin.setting_menu = setting_menu
