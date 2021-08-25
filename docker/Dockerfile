@@ -9,6 +9,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENV SMINA_EXEC=smina/smina
-RUN chmod +x  $SMINA_EXEC
+ENV SMINA_BINARY=smina/smina_binary
+RUN chmod +x  $SMINA_BINARY
 CMD python run.py ${ARGS}
