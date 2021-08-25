@@ -5,7 +5,6 @@ from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
 from .menus._DockingMenu import DockingMenu
 from .menus._DockingMenuRhodium import DockingMenuRhodium
-import functools
 import sys
 
 from .ComplexUtils import ComplexUtils

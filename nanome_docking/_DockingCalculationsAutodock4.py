@@ -1,6 +1,5 @@
 import nanome
 import os
-import shutil
 import shlex
 import subprocess
 import tempfile
