@@ -1,5 +1,4 @@
 __pycache__
-/.vscode
 *.cachebust
 /docker/redeploy.sh
 /nanome_docking/Rh_x64.exe

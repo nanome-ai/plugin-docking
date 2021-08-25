@@ -13,6 +13,7 @@ PDBOPTIONS.write_bonds = True
 
 SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
 
+
 class DockingCalculations():
     def __init__(self, plugin):
         self.plugin = plugin
