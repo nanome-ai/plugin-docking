@@ -1,16 +1,15 @@
 import argparse
 
 import nanome
-from nanome.util import async_callback, Logs
+from nanome.util import async_callback, ComplexUtils
 
-from nanome_docking._DockingCalculations import DockingCalculations as Smina
-from nanome_docking._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
+from smina._DockingCalculations import DockingCalculations as Smina
+from autodock4._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
 from nanome_docking._DockingCalculationsRhodium import DockingCalculations as Rhodium
 from nanome_docking.menus._DockingMenu import DockingMenu
 from nanome_docking.menus._DockingMenuRhodium import DockingMenuRhodium
 import sys
 
-from .ComplexUtils import ComplexUtils
 
 __metaclass__ = type
 

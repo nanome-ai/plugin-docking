@@ -4,10 +4,9 @@ import os
 import tempfile
 from timeit import default_timer as timer
 
-from nanome.util import Logs, Process
+from nanome.util import ComplexUtils, Logs, Process
 from nanome.util.enums import NotificationTypes
 
-from .ComplexUtils import ComplexUtils
 
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True

@@ -9,8 +9,7 @@ from timeit import default_timer as timer
 # TMP
 from nanome._internal._structure._io._pdb.save import Options as PDBOptions
 from nanome._internal._structure._io._sdf.save import Options as SDFOptions
-
-from .ComplexUtils import ComplexUtils
+from nanome.util import ComplexUtils
 
 
 class DockingCalculations():
@@ -134,11 +133,13 @@ class DockingCalculations():
 
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
+        lig_args = ['conda', 'run', '-n', 'nanome_autodock4', 'python2', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['conda', 'run', '-n', 'nanome_autodock4', 'python2', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
 
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
+
+        subprocess.run(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._rec_process = subprocess.Popen(rec_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._running = True
