@@ -36,7 +36,7 @@
     "ms-python.vscode-pylance",
     "ms-vscode-remote.vscode-remote-extensionpack",
     "ms-vsliveshare.vsliveshare"
-  ],
+  ]
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
