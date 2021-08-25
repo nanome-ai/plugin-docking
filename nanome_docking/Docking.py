@@ -1,5 +1,3 @@
-import argparse
-
 import nanome
 from nanome.util import async_callback, ComplexUtils
 
