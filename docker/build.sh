@@ -1,5 +1,8 @@
 #!/bin/bash
 
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"
+
 cachebust=0
 while [ $# -gt 0 ]; do
   case $1 in

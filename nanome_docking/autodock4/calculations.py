@@ -138,8 +138,6 @@ class DockingCalculations():
 
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
-
-        subprocess.run(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._rec_process = subprocess.Popen(rec_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
         self._running = True
