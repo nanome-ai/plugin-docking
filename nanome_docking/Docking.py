@@ -1,10 +1,11 @@
 import nanome
 from nanome.util import async_callback, Logs
-from ._DockingCalculations import DockingCalculations as Smina
-from ._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
-from ._DockingCalculationsRhodium import DockingCalculations as Rhodium
-from .menus._DockingMenu import DockingMenu
-from .menus._DockingMenuRhodium import DockingMenuRhodium
+
+from nanome_docking._DockingCalculations import DockingCalculations as Smina
+from nanome_docking._DockingCalculationsAutodock4 import DockingCalculations as Autodock4
+from nanome_docking._DockingCalculationsRhodium import DockingCalculations as Rhodium
+from nanome_docking.menus._DockingMenu import DockingMenu
+from nanome_docking.menus._DockingMenuRhodium import DockingMenuRhodium
 import sys
 
 from .ComplexUtils import ComplexUtils

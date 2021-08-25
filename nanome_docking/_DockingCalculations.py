@@ -12,12 +12,7 @@ from .ComplexUtils import ComplexUtils
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-SMINA_PATH = os.path.join(os.path.dirname(__file__), 'smina')
-try:
-    os.chmod(SMINA_PATH, 0o755)
-except:
-    pass
-
+SMINA_PATH = os.path.join(os.getcwd(), 'smina', 'smina')
 
 class DockingCalculations():
     def __init__(self, plugin):
