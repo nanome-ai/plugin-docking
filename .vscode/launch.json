@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Smina run.py",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": ["smina", "-r", "-v", "-n", "[wip]-smina-docking"]
+        },
+        {
+            "name": "Autodock4 run.py",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": ["autodock4", "-r", "-v", "-n", "[wip]-autodock4-docking"]
+        },
+        {
+            "name": "Rhodium run.py",
+            "type": "python",
+            "request": "launch",
+            "program": "run.py",
+            "console": "integratedTerminal",
+            "args": ["rhodium", "-r", "-v", "-n", "[wip]-rhodium-docking"]
+        },
+    ]
+}

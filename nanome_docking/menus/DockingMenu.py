@@ -1,8 +1,9 @@
-import nanome
-from nanome.util import Logs
-import os
-from nanome.api.ui import DropdownItem
 from functools import partial
+import os
+
+import nanome
+from nanome.util import Logs, async_callback
+from nanome.api.ui import DropdownItem
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
@@ -47,7 +48,7 @@ class DockingMenu():
             params[key] = newvalue
         return params
 
-    def _run_docking(self):
+    async def _run_docking(self):
         if self._selected_receptor is None or len(self._selected_ligands) == 0:
             if self._autobox_enabled is True and self._selected_site is None:
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
@@ -59,7 +60,7 @@ class DockingMenu():
         if self._autobox_enabled:
             site = self._selected_site.complex
         self.show_loading(True)
-        self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
 
     def disable_autobox(self):
         self._site_btn.unusable = True
@@ -314,13 +315,14 @@ class DockingMenu():
 
     def build_menu(self):
         # defining callbacks
-        def run_button_pressed_callback(button):
+        @async_callback
+        async def run_button_pressed_callback(button):
             if self._scoring:
                 self._docking_param_panel.enabled = False
                 self._score_panel.enabled = True
                 self._score_list.items = []
                 self._plugin.update_menu(self._menu)
-            self._run_docking()
+            await self._run_docking()
 
         def modes_changed(input):
             try:
@@ -448,8 +450,11 @@ class DockingMenu():
         child.add_new_label()
 
         # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu_new.json'))
+        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
         setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+        # Algorithm is part of the plugin class name. Easiest way to access that.
+        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
+        menu.title = f'{algo_name} Docking'
 
         self._plugin.menu = menu
         self._plugin.setting_menu = setting_menu

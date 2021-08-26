@@ -1,27 +1,17 @@
-import traceback
-import math
 import re
 import nanome
-import shutil
 import os
 import tempfile
-import stat
 from timeit import default_timer as timer
-from functools import partial
 
-from nanome.util import Logs, Process
+from nanome.util import ComplexUtils, Logs, Process
 from nanome.util.enums import NotificationTypes
 
-from .ComplexUtils import ComplexUtils
 
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
-SMINA_PATH = os.path.join(os.path.dirname(__file__), 'smina')
-try:
-    os.chmod(SMINA_PATH, 0o755)
-except:
-    pass
+SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
 
 
 class DockingCalculations():

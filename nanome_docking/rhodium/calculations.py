@@ -1,5 +1,5 @@
 import nanome
-from nanome.util import Logs, Process
+from nanome.util import ComplexUtils, Logs, Process
 from nanome.util.enums import NotificationTypes
 
 import os
@@ -7,8 +7,6 @@ import tempfile
 import traceback
 import subprocess
 from timeit import default_timer as timer
-
-from .ComplexUtils import ComplexUtils
 
 RHODIUM_PATH = os.path.join(os.path.dirname(__file__), 'Rh_x64.exe')
 

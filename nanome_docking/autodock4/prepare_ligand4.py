@@ -4,8 +4,6 @@
 #
 # $Header: /opt/cvs/python/packages/share1.5/AutoDockTools/Utilities24/prepare_ligand4.py,v 1.10 2010/07/31 00:14:13 rhuey Exp $
 #
-import os 
-
 from MolKit import Read
 
 from AutoDockTools.MoleculePreparation import AD4LigandPreparation

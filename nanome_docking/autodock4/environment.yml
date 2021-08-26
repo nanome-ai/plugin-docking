@@ -5,6 +5,7 @@ channels:
   - omnia
   - defaults
 dependencies:
+  - python=2.7
   - _libgcc_mutex=0.1=main
   - autodock=4.2.6=hfc679d8_0
   - libgcc-ng=9.1.0=hdf63c60_0
