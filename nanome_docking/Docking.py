@@ -12,6 +12,7 @@ __metaclass__ = type
 
 
 class Docking(nanome.AsyncPluginInstance):
+
     def __init__(self):
         self._menu = None
         self.setting_menu = None
@@ -91,8 +92,8 @@ class Docking(nanome.AsyncPluginInstance):
         # self._menu.show_loading(False)
 
     # Called every update tick of the Plugin
-    def update(self):
-        self._calculations.update()
+    # def update(self):
+    #     self._calculations.update()
 
     def add_result_to_workspace(self, results, align=False):
         for complex in results:

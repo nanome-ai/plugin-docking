@@ -1,0 +1,9 @@
+name: vina
+channels:
+  - ccsb-scripps
+  - conda-forge
+  - hcc
+dependencies:
+  - python=3.6
+  - vina
+  - adfr-suite 

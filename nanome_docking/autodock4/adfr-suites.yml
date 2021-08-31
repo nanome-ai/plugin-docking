@@ -1,0 +1,7 @@
+name: adfr-suites
+channels:
+  - hcc
+  - conda-forge
+dependencies:
+  - python=2.7
+  - adfr-suite 

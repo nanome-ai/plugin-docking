@@ -17,6 +17,7 @@ pdb_options.write_bonds = True
 sdf_options = SDFOptions()
 sdf_options.write_bonds = True
 
+
 class DockingCalculations():
 
     def __init__(self, plugin):
@@ -43,9 +44,6 @@ class DockingCalculations():
         self.requires_site = False
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
-        # Add MGLToolsPckgs to path
-        sys.path.append('/opt/conda/envs/autodock4/MGLToolsPckgs')
-
         self._receptor = receptor
         self._ligands = ligands
         self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
@@ -61,43 +59,17 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
 
         # Start docking process
-        self._running = False
-        self._preparation_pending = True
-        self._parameters_preparation_pending = True
-        self._grid_pending = True
-        self._docking_pending = True
-        self._bond_pending = True
-
-    def update(self):
-        if self._bond_pending == False:
-            return
-
-        if self._running == False:
-            if self._preparation_pending == True:
-                self._start_preparation()
-            elif self._parameters_preparation_pending == True:
-                self._start_parameters_preparation()
-            elif self._grid_pending == True:
-                self._start_grid()
-            elif self._docking_pending == True:
-                self._start_docking()
-            elif self._bond_pending == True:
-                self._start_bonds()
-        elif self._preparation_pending:
-            if self._check_preparation():
-                self._preparation_finished()
-        elif self._parameters_preparation_pending:
-            if self._check_parameters_preparation():
-                self._parameters_preparation_finished()
-        elif self._grid_pending:
-            if self._check_grid():
-                self._grid_finished()
-        elif self._docking_pending:
-            if self._check_docking():
-                self._docking_finished()
-        elif self._bond_pending:
-            if self._check_bonds():
-                self._bonds_finished()
+        self._prepare_receptor(self._protein_input.name, self._protein_input_converted.name)
+        self._prepare_ligands()
+        self._start_parameters_preparation()
+        self._start_grid()
+        self._start_docking()
+        self._start_bonds()
+        self._preparation_finished()
+        self._parameters_preparation_finished()
+        self._grid_finished()
+        self._docking_finished()
+        self._bonds_finished()
 
     def _check_process_error(self, process, check_only_errors=False):
         (results, errors) = process.communicate()
@@ -131,28 +103,27 @@ class DockingCalculations():
             pass
         return False
 
-    # Preparation of lig and receptor files
 
-    def prepare_ligands(self):
+    def _prepare_ligands(self):
         # Awful situation here
-        prepare_ligands_script = os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py')
         lig_args = [
-            'conda', 'run', '-n', 'autodock4',
-            'python', prepare_ligands_script,
-            '-l', self._ligands_input.name,
+            'conda', 'run', '-n', 'vina',
+            'prepare_receptor',
+            '-r', self._ligands_input.name,
             '-o', self._ligands_input_converted.name
         ]
-        self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+        process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+        return process
 
-    def prepare_receptor(self):
-        prepare_receptor_script = os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py')
+    def _prepare_receptor(self, input_filepath, output_filepath):
         rec_args = [
-            'conda', 'run', '-n', 'autodock4',
-            'python', prepare_receptor_script,
-            '-r', self._protein_input.name,
-            '-o', self._protein_input_converted.name
+            'conda', 'run', '-n', 'adfr-suites',
+            'prepare_receptor',
+            '-r', input_filepath,
+            '-o', output_filepath
         ]
-        self._rec_process = subprocess.Popen(rec_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+        process = subprocess.run(rec_args, cwd=self.temp_dir.name)
+        return process
 
     def _start_preparation(self):
         # Awful situation here
