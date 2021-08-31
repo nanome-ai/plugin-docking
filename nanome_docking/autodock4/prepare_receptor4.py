@@ -11,6 +11,8 @@ import MolKit.molecule
 import MolKit.protein
 from AutoDockTools.MoleculePreparation import AD4ReceptorPreparation
 
+import sys
+sys.path.append('/opt/conda/envs/nanome_autodock4/MGLToolsPckgs')
 
 if __name__ == '__main__':
     import sys

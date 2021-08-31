@@ -1,4 +1,4 @@
-name: nanome_autodock4
+name: autodock4
 channels:
   - bioconda
   - hcc

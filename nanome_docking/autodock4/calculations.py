@@ -1,7 +1,8 @@
-import nanome
 import os
+import nanome
 import shlex
 import subprocess
+import sys
 import tempfile
 import re
 from timeit import default_timer as timer
@@ -11,8 +12,13 @@ from nanome._internal._structure._io._pdb.save import Options as PDBOptions
 from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 from nanome.util import ComplexUtils
 
+pdb_options = PDBOptions()
+pdb_options.write_bonds = True
+sdf_options = SDFOptions()
+sdf_options.write_bonds = True
 
 class DockingCalculations():
+
     def __init__(self, plugin):
         self._plugin = plugin
         self._preparation_pending = False
@@ -20,16 +26,8 @@ class DockingCalculations():
         self._docking_pending = False
         self._bond_pending = False
         self._running = False
-        self._pdb_options = PDBOptions()
-        self._pdb_options.write_bonds = True
-        self._sdf_options = SDFOptions()
-        self._sdf_options.write_bonds = True
         self.requires_site = False
 
-        self.requires_site = False
-
-    def initialize(self):
-        # TODO: Read and write in a folder unique per plugin instance
         self.temp_dir = tempfile.TemporaryDirectory()
         self._protein_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._protein_input_converted = tempfile.NamedTemporaryFile(delete=False, suffix=".pdbqt", dir=self.temp_dir.name)
@@ -42,8 +40,12 @@ class DockingCalculations():
         self._autogrid_log = tempfile.NamedTemporaryFile(delete=False, suffix=".glg", dir=self.temp_dir.name)
         self._autodock_log = tempfile.NamedTemporaryFile(delete=False, suffix=".dlf", dir=self.temp_dir.name)
 
+        self.requires_site = False
+
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
-        self.initialize()
+        # Add MGLToolsPckgs to path
+        sys.path.append('/opt/conda/envs/autodock4/MGLToolsPckgs')
+
         self._receptor = receptor
         self._ligands = ligands
         self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
@@ -53,9 +55,9 @@ class DockingCalculations():
         self._visual_scores = visual_scores
 
         # Save all input files
-        receptor.io.to_pdb(self._protein_input.name, self._pdb_options)
+        receptor.io.to_pdb(self._protein_input.name, pdb_options)
         nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
-        self._combined_ligands.io.to_pdb(self._ligands_input.name, self._pdb_options)
+        self._combined_ligands.io.to_pdb(self._ligands_input.name, pdb_options)
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
 
         # Start docking process
@@ -131,10 +133,32 @@ class DockingCalculations():
 
     # Preparation of lig and receptor files
 
+    def prepare_ligands(self):
+        # Awful situation here
+        prepare_ligands_script = os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py')
+        lig_args = [
+            'conda', 'run', '-n', 'autodock4',
+            'python', prepare_ligands_script,
+            '-l', self._ligands_input.name,
+            '-o', self._ligands_input_converted.name
+        ]
+        self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+
+    def prepare_receptor(self):
+        prepare_receptor_script = os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py')
+        rec_args = [
+            'conda', 'run', '-n', 'autodock4',
+            'python', prepare_receptor_script,
+            '-r', self._protein_input.name,
+            '-o', self._protein_input_converted.name
+        ]
+        self._rec_process = subprocess.Popen(rec_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+
     def _start_preparation(self):
         # Awful situation here
-        lig_args = ['conda', 'run', '-n', 'nanome_autodock4', 'python2', os.path.join(os.path.dirname(__file__), 'prepare_ligand4.py'), '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['conda', 'run', '-n', 'nanome_autodock4', 'python2', os.path.join(os.path.dirname(__file__), 'prepare_receptor4.py'), '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
+        current_dir = os.path.join(os.path.dirname(__file__))
+        lig_args = ['conda', 'run', '-n', 'autodock4', 'python', current_dir, 'prepare_ligand4.py', '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
+        rec_args = ['conda', 'run', '-n', 'autodock4', 'python', current_dir, 'prepare_receptor4.py', '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
 
         nanome.util.Logs.debug("Prepare ligand and receptor")
         self._start_timer = timer()
@@ -161,8 +185,8 @@ class DockingCalculations():
     def _start_parameters_preparation(self):
         # Awful situation here
         print("protein input converted name:", self._protein_input_converted.name)
-        grid_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
-        dock_args = ['python2', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
+        grid_args = ['conda', 'run', '-n', 'autodock4', 'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
+        dock_args = ['conda', 'run', '-n', 'autodock4', 'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
 
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
@@ -191,11 +215,11 @@ class DockingCalculations():
     # Autogrid
 
     def _start_grid(self):
-        full_name = self._autogrid_input.name
+        param_filename = self._autogrid_input.name
         full_name_log = self._autogrid_log.name
-        path = os.path.dirname(full_name)
+        path = os.path.dirname(param_filename)
 
-        args = ['autogrid4', '-p', full_name, '-l', full_name_log]
+        args = ['conda', 'run', '-n', 'autodock4', 'autogrid4', '-p', param_filename, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autogrid")
         self._start_timer = timer()
@@ -223,7 +247,7 @@ class DockingCalculations():
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
 
-        args = ['autodock4', '-p', full_name_input, '-l', full_name_log]
+        args = ['conda', 'run', '-n', 'autodock4', 'autodock4', '-p', full_name_input, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autodock")
         self._start_timer = timer()
