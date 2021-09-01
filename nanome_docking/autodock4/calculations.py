@@ -2,7 +2,6 @@ import os
 import nanome
 import shlex
 import subprocess
-import sys
 import tempfile
 import re
 from timeit import default_timer as timer
@@ -40,7 +39,6 @@ class DockingCalculations():
         self._autodock_input = tempfile.NamedTemporaryFile(delete=False, suffix=".dpf", dir=self.temp_dir.name)
         self._autogrid_log = tempfile.NamedTemporaryFile(delete=False, suffix=".glg", dir=self.temp_dir.name)
         self._autodock_log = tempfile.NamedTemporaryFile(delete=False, suffix=".dlf", dir=self.temp_dir.name)
-
         self.requires_site = False
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
@@ -57,23 +55,70 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
         self._combined_ligands.io.to_pdb(self._ligands_input.name, pdb_options)
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
-        # Start docking process
+        
+        # Start docking process        
         self._prepare_receptor(self._protein_input.name, self._protein_input_converted.name)
         self._prepare_ligands(self._ligands_input.name, self._ligands_input_converted.name)
+        
+        # Prepare Grid and Docking parameters.
+        print("protein input converted name:", self._protein_input_converted.name)
+        grid_args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'),
+            '-l', self._ligands_input_converted.name,
+            '-r', self._protein_input_converted.name,
+            '-o', self._autogrid_input.name
+        ]
+        dock_args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'),
+            '-l', self._ligands_input_converted.name,
+            '-r', self._protein_input_converted.name,
+            '-o', self._autodock_input.name
+        ]
 
-        self._start_parameters_preparation()
-        self._start_grid()
-        self._start_docking()
-        self._start_bonds()
-        self._preparation_finished()
-        self._parameters_preparation_finished()
-        self._grid_finished()
+        nanome.util.Logs.debug("Prepare grid and docking parameter files")
+        subprocess.run(grid_args, cwd=self.temp_dir.name)
+        subprocess.run(dock_args, cwd=self.temp_dir.name)
+        assert open(self._autodock_input.name).read()
+        assert open(self._autogrid_input.name).read()
+        
+        # Why?
+        with open(self._autodock_input.name, 'a') as f:
+            f.write("write_all\n")
+            f.close()
+
+        # Start Grid
+        param_filename = self._autogrid_input.name
+        full_name_log = self._autogrid_log.name
+        path = os.path.dirname(param_filename)
+        args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'autogrid4', '-p', param_filename, '-l', full_name_log]
+        nanome.util.Logs.debug("Start Autogrid")
+        subprocess.run(args, cwd=path)
+
+        # Start Docker
+        full_name_input = self._autodock_input.name
+        path = os.path.dirname(full_name_input)
+        full_name_log = self._autodock_log.name
+        args = ['conda', 'run', '-n', 'adfr-suites', 'autodock4', '-p', full_name_input, '-l', full_name_log]
+        nanome.util.Logs.debug("Start Autodock")
+        self._start_timer = timer()
+        process = subprocess.run(args, cwd=path)
+
+        # Start Bonds
+        nanome.util.Logs.debug("Start Bonds")
+        self._start_timer = timer()
+        cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
+        args = shlex.split(cmd)
+        self._nanobabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         self._docking_finished()
         self._bonds_finished()
 
     def _check_process_error(self, process, check_only_errors=False):
         (results, errors) = process.communicate()
-
         try:
             if len(errors) == 0:
                 if check_only_errors == True:
@@ -116,7 +161,7 @@ class DockingCalculations():
         process = subprocess.run(lig_args, cwd=self.temp_dir.name)
         assert open(output_filepath).read()
         return process
-
+        
     def _prepare_receptor(self, input_filepath, output_filepath):
         rec_args = [
             'conda', 'run', '-n', 'adfr-suites',
@@ -126,68 +171,7 @@ class DockingCalculations():
         ]
         process = subprocess.run(rec_args, cwd=self.temp_dir.name)
         assert open(output_filepath).read()
-        return process
 
-    def _check_preparation(self):
-        return self._lig_process.poll() != None or self._rec_process.poll() != None
-
-    def _preparation_finished(self):
-        end = timer()
-        nanome.util.Logs.debug("Prepared ligand and receptor in", end - self._start_timer, "seconds")
-
-        if self._check_process_error(self._lig_process) or self._check_process_error(self._rec_process):
-            return
-
-        self._running = False
-        self._preparation_pending = False
-        self._parameters_preparation_pending = True
-
-    # Preparation of gpf and dpf files
-
-    def _start_parameters_preparation(self):
-        # Awful situation here
-        print("protein input converted name:", self._protein_input_converted.name)
-        grid_args = [
-            'conda', 'run', '-n', 'adfr-suites',
-            'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'),
-            '-l', self._ligands_input_converted.name,
-            '-r', self._protein_input_converted.name,
-            '-o', self._autogrid_input.name
-        ]
-        dock_args = [
-            'conda', 'run', '-n', 'adfr-suites',
-            'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'),
-            '-l', self._ligands_input_converted.name,
-            '-r', self._protein_input_converted.name,
-            '-o', self._autodock_input.name
-        ]
-
-        nanome.util.Logs.debug("Prepare grid and docking parameter files")
-        self._start_timer = timer()
-        self._grid_process = subprocess.run(grid_args, cwd=self.temp_dir.name)
-        self._dock_process = subprocess.run(dock_args, cwd=self.temp_dir.name)
-
-        assert open(self._autogrid_input.name).read()
-        assert open(self._autodock_input.name).read()
-        self._running = True
-
-    def _check_parameters_preparation(self):
-        return self._grid_process.poll() != None or self._dock_process.poll() != None
-
-    def _parameters_preparation_finished(self):
-        end = timer()
-        nanome.util.Logs.debug("Prepared grid and docking parameter files in", end - self._start_timer, "seconds")
-
-        if self._check_process_error(self._grid_process) or self._check_process_error(self._dock_process):
-            return
-
-        f = open(self._autodock_input.name, 'a')
-        f.write("write_all\n")
-        f.close()
-
-        self._running = False
-        self._parameters_preparation_pending = False
-        self._grid_pending = True
 
     # Autogrid
 
@@ -207,31 +191,6 @@ class DockingCalculations():
 
     def _check_grid(self):
         return self._autogrid_process.poll() != None
-
-    def _grid_finished(self):
-        end = timer()
-        nanome.util.Logs.debug("Ran Autogrid in", end - self._start_timer, "seconds. Logs: ", self._autogrid_log.name)
-
-        if self._check_process_error(self._autogrid_process):
-            return
-
-        self._running = False
-        self._grid_pending = False
-        self._docking_pending = True
-
-    # Autodock
-
-    def _start_docking(self):
-        full_name_input = self._autodock_input.name
-        path = os.path.dirname(full_name_input)
-        full_name_log = self._autodock_log.name
-
-        args = ['conda', 'run', '-n', 'vina', 'autodock4', '-p', full_name_input, '-l', full_name_log]
-
-        nanome.util.Logs.debug("Start Autodock")
-        self._start_timer = timer()
-        self._autodock_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
-        self._running = True
 
     def _check_docking(self):
         return self._autodock_process.poll() != None
@@ -276,16 +235,6 @@ class DockingCalculations():
         self._running = False
         self._docking_pending = False
         self._bond_pending = True
-
-    # Add Bonds
-
-    def _start_bonds(self):
-        nanome.util.Logs.debug("Start Bonds")
-        self._start_timer = timer()
-        cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
-        args = shlex.split(cmd)
-        self._nanobabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self._running = True
 
     def _check_bonds(self):
         poll = self._nanobabel_process.poll()
