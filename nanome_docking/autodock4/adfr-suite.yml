@@ -1,4 +1,4 @@
-name: adfr-suites
+name: adfr-suite
 channels:
   - conda-forge
   - hcc

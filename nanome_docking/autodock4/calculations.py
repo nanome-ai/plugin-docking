@@ -63,14 +63,14 @@ class DockingCalculations():
         # Prepare Grid and Docking parameters.
         print("protein input converted name:", self._protein_input_converted.name)
         grid_args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'),
             '-l', self._ligands_input_converted.name,
             '-r', self._protein_input_converted.name,
             '-o', self._autogrid_input.name
         ]
         dock_args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'),
             '-l', self._ligands_input_converted.name,
             '-r', self._protein_input_converted.name,
@@ -93,7 +93,7 @@ class DockingCalculations():
         full_name_log = self._autogrid_log.name
         path = os.path.dirname(param_filename)
         args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'autogrid4', '-p', param_filename, '-l', full_name_log]
         nanome.util.Logs.debug("Start Autogrid")
         subprocess.run(args, cwd=path)
@@ -103,7 +103,7 @@ class DockingCalculations():
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
         args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'vina', '-p', full_name_input, '-l', full_name_log
         ]
         nanome.util.Logs.debug("Start Autodock")
@@ -153,7 +153,7 @@ class DockingCalculations():
 
     def _prepare_ligands(self, input_filepath, output_filepath):
         lig_args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'prepare_ligand',
             '-l', input_filepath,
             '-o', output_filepath,
@@ -167,7 +167,7 @@ class DockingCalculations():
         
     def _prepare_receptor(self, input_filepath, output_filepath):
         rec_args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'prepare_receptor',
             '-r', input_filepath,
             '-o', output_filepath,
@@ -184,7 +184,7 @@ class DockingCalculations():
         path = os.path.dirname(param_filename)
 
         args = [
-            'conda', 'run', '-n', 'adfr-suites',
+            'conda', 'run', '-n', 'adfr-suite',
             'autogrid4', '-p', param_filename, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autogrid")
