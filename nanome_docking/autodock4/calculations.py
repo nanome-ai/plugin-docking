@@ -102,20 +102,23 @@ class DockingCalculations():
         full_name_input = self._autodock_input.name
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
-        args = ['conda', 'run', '-n', 'adfr-suites', 'autodock4', '-p', full_name_input, '-l', full_name_log]
+        args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'vina', '-p', full_name_input, '-l', full_name_log
+        ]
         nanome.util.Logs.debug("Start Autodock")
-        self._start_timer = timer()
         process = subprocess.run(args, cwd=path)
 
         # Start Bonds
         nanome.util.Logs.debug("Start Bonds")
-        self._start_timer = timer()
         cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
         args = shlex.split(cmd)
         self._nanobabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         self._docking_finished()
         self._bonds_finished()
+
+        
 
     def _check_process_error(self, process, check_only_errors=False):
         (results, errors) = process.communicate()
@@ -185,15 +188,11 @@ class DockingCalculations():
             'autogrid4', '-p', param_filename, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autogrid")
-        self._start_timer = timer()
         self._autogrid_process = subprocess.run(args, cwd=path)
         self._running = True
 
     def _check_grid(self):
         return self._autogrid_process.poll() != None
-
-    def _check_docking(self):
-        return self._autodock_process.poll() != None
 
     def make_ligands_invisible(self):
         for ligand in self._ligands:
@@ -202,10 +201,7 @@ class DockingCalculations():
 
     def _docking_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Ran Autodock in", end - self._start_timer, "seconds. Logs:", self._autodock_log.name)
-
-        if self._check_process_error(self._autodock_process):
-            return
+        nanome.util.Logs.debug(f"Ran Autodock, Logs {self._autodock_log.name}")
 
         # make ligands invisible
         self.make_ligands_invisible()
@@ -244,7 +240,7 @@ class DockingCalculations():
 
     def _bonds_finished(self):
         end = timer()
-        nanome.util.Logs.debug("Ran Nanobabel in", end - self._start_timer, "seconds")
+        nanome.util.Logs.debug("Ran Nanobabel in X seconds")
 
         # if self._check_process_error(self._nanobabel_process, check_only_errors=True):
         #     return
@@ -268,5 +264,3 @@ class DockingCalculations():
         # TODO: verify this shouldn't be here anymore (test)
         # self._plugin.make_plugin_usable()
         self._plugin.add_result_to_workspace([docked_ligands])
-
-        # shutil.rmtree(self.temp_dir.name)
