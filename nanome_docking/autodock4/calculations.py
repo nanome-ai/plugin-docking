@@ -114,6 +114,7 @@ class DockingCalculations():
         ]
         cwd = input_filepath.split('/')[:-1]
         process = subprocess.run(lig_args, cwd=self.temp_dir.name)
+        assert open(output_filepath).read()
         return process
 
     def _prepare_receptor(self, input_filepath, output_filepath):
@@ -124,19 +125,8 @@ class DockingCalculations():
             '-o', output_filepath,
         ]
         process = subprocess.run(rec_args, cwd=self.temp_dir.name)
+        assert open(output_filepath).read()
         return process
-
-    def _start_preparation(self):
-        # Awful situation here
-        current_dir = os.path.join(os.path.dirname(__file__))
-        lig_args = ['conda', 'run', '-n', 'autodock4', 'python', current_dir, 'prepare_ligand4.py', '-l', self._ligands_input.name, '-o', self._ligands_input_converted.name]
-        rec_args = ['conda', 'run', '-n', 'autodock4', 'python', current_dir, 'prepare_receptor4.py', '-r', self._protein_input.name, '-o', self._protein_input_converted.name]
-
-        nanome.util.Logs.debug("Prepare ligand and receptor")
-        self._start_timer = timer()
-        self._lig_process = subprocess.Popen(lig_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
-        self._rec_process = subprocess.Popen(rec_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
-        self._running = True
 
     def _check_preparation(self):
         return self._lig_process.poll() != None or self._rec_process.poll() != None
@@ -154,16 +144,31 @@ class DockingCalculations():
 
     # Preparation of gpf and dpf files
 
-    # def _start_parameters_preparation(self):
+    def _start_parameters_preparation(self):
         # Awful situation here
         print("protein input converted name:", self._protein_input_converted.name)
-        grid_args = ['conda', 'run', '-n', 'vina', 'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autogrid_input.name]
-        dock_args = ['conda', 'run', '-n', 'vina', 'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'), '-l', self._ligands_input_converted.name, '-r', self._protein_input_converted.name, '-o', self._autodock_input.name]
+        grid_args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'python', os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py'),
+            '-l', self._ligands_input_converted.name,
+            '-r', self._protein_input_converted.name,
+            '-o', self._autogrid_input.name
+        ]
+        dock_args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'python', os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py'),
+            '-l', self._ligands_input_converted.name,
+            '-r', self._protein_input_converted.name,
+            '-o', self._autodock_input.name
+        ]
 
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         self._start_timer = timer()
-        self._grid_process = subprocess.run(grid_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
-        self._dock_process = subprocess.run(dock_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=self.temp_dir.name)
+        self._grid_process = subprocess.run(grid_args, cwd=self.temp_dir.name)
+        self._dock_process = subprocess.run(dock_args, cwd=self.temp_dir.name)
+
+        assert open(self._autogrid_input.name).read()
+        assert open(self._autodock_input.name).read()
         self._running = True
 
     def _check_parameters_preparation(self):
@@ -191,11 +196,13 @@ class DockingCalculations():
         full_name_log = self._autogrid_log.name
         path = os.path.dirname(param_filename)
 
-        args = ['conda', 'run', '-n', 'autodock4', 'autogrid4', '-p', param_filename, '-l', full_name_log]
+        args = [
+            'conda', 'run', '-n', 'adfr-suites',
+            'autogrid4', '-p', param_filename, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autogrid")
         self._start_timer = timer()
-        self._autogrid_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
+        self._autogrid_process = subprocess.run(args, cwd=path)
         self._running = True
 
     def _check_grid(self):
@@ -219,7 +226,7 @@ class DockingCalculations():
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
 
-        args = ['conda', 'run', '-n', 'autodock4', 'autodock4', '-p', full_name_input, '-l', full_name_log]
+        args = ['conda', 'run', '-n', 'vina', 'autodock4', '-p', full_name_input, '-l', full_name_log]
 
         nanome.util.Logs.debug("Start Autodock")
         self._start_timer = timer()

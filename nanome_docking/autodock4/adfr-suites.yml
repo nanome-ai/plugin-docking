@@ -1,7 +1,9 @@
 name: adfr-suites
 channels:
-  - hcc
   - conda-forge
+  - hcc
+  - anaconda
 dependencies:
   - python=2.7
-  - adfr-suite 
+  - adfr-suite
+  - numpy=1.15.0
