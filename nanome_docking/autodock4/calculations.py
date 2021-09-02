@@ -4,7 +4,6 @@ import shlex
 import subprocess
 import tempfile
 import re
-from timeit import default_timer as timer
 
 # TMP
 from nanome._internal._structure._io._pdb.save import Options as PDBOptions
@@ -55,11 +54,11 @@ class DockingCalculations():
         nanome.util.Logs.debug("Saved PDB", self._protein_input.name)
         self._combined_ligands.io.to_pdb(self._ligands_input.name, pdb_options)
         nanome.util.Logs.debug("Saved PDB", self._ligands_input.name)
-        
-        # Start docking process        
+
+        # Start docking process
         self._prepare_receptor(self._protein_input.name, self._protein_input_converted.name)
         self._prepare_ligands(self._ligands_input.name, self._ligands_input_converted.name)
-        
+
         # Prepare Grid and Docking parameters.
         print("protein input converted name:", self._protein_input_converted.name)
         grid_args = [
@@ -82,7 +81,7 @@ class DockingCalculations():
         subprocess.run(dock_args, cwd=self.temp_dir.name)
         assert open(self._autodock_input.name).read()
         assert open(self._autogrid_input.name).read()
-        
+
         # Why?
         with open(self._autodock_input.name, 'a') as f:
             f.write("write_all\n")
@@ -98,7 +97,7 @@ class DockingCalculations():
         nanome.util.Logs.debug("Start Autogrid")
         subprocess.run(args, cwd=path)
 
-        # Start Docker
+        # Start Docking
         full_name_input = self._autodock_input.name
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
@@ -106,8 +105,29 @@ class DockingCalculations():
             'conda', 'run', '-n', 'adfr-suite',
             'vina', '-p', full_name_input, '-l', full_name_log
         ]
+
         nanome.util.Logs.debug("Start Autodock")
-        process = subprocess.run(args, cwd=path)
+        from vina import Vina
+        v = Vina(sf_name='vina')
+
+        v.set_receptor(self._protein_input_converted.name)
+
+        v.set_ligand_from_file(self._ligands_input_converted.name)
+        v.compute_vina_maps(center=[3.37, -17.2, 8.49], box_size=[4, 4, 4])
+
+        # Score the current pose
+        energy = v.score()
+        print('Score before minimization: %.3f (kcal/mol)' % energy[0])
+
+        # Minimized locally the current pose
+        energy_minimized = v.optimize()
+        print('Score after minimization : %.3f (kcal/mol)' % energy_minimized[0])
+        v.write_pose(self._ligands_output.name, overwrite=True)
+
+        # Dock the ligand
+        v.dock(exhaustiveness=32, n_poses=20)
+        v.write_poses(self._ligands_output.name, n_poses=5, overwrite=True)
+        # process = subprocess.run(args, cwd=path)
 
         # Start Bonds
         nanome.util.Logs.debug("Start Bonds")
@@ -118,13 +138,11 @@ class DockingCalculations():
         self._docking_finished()
         self._bonds_finished()
 
-        
-
     def _check_process_error(self, process, check_only_errors=False):
         (results, errors) = process.communicate()
         try:
             if len(errors) == 0:
-                if check_only_errors == True:
+                if check_only_errors is True:
                     return True
                 for line in results.splitlines():
                     nanome.util.Logs.debug(line.decode("utf-8"))
@@ -137,7 +155,7 @@ class DockingCalculations():
                     elif str.trim() != "":
                         nanome.util.Logs.error(str)
                         error = True
-                if error == True:
+                if error is True:
                     self._preparation_pending = False
                     self._parameters_preparation_pending = False
                     self._grid_pending = False
@@ -147,7 +165,7 @@ class DockingCalculations():
                     self._plugin.make_plugin_usable()
                     nanome.util.Logs.error("Error. Abort docking")
                     return True
-        except:
+        except Exception:
             pass
         return False
 
@@ -160,11 +178,10 @@ class DockingCalculations():
             '-A', 'hydrogens',
             '-v'
         ]
-        cwd = input_filepath.split('/')[:-1]
         process = subprocess.run(lig_args, cwd=self.temp_dir.name)
         assert open(output_filepath).read()
         return process
-        
+
     def _prepare_receptor(self, input_filepath, output_filepath):
         rec_args = [
             'conda', 'run', '-n', 'adfr-suite',
@@ -172,12 +189,10 @@ class DockingCalculations():
             '-r', input_filepath,
             '-o', output_filepath,
         ]
-        process = subprocess.run(rec_args, cwd=self.temp_dir.name)
+        subprocess.run(rec_args, cwd=self.temp_dir.name)
         assert open(output_filepath).read()
 
-
     # Autogrid
-
     def _start_grid(self):
         param_filename = self._autogrid_input.name
         full_name_log = self._autogrid_log.name
@@ -192,7 +207,7 @@ class DockingCalculations():
         self._running = True
 
     def _check_grid(self):
-        return self._autogrid_process.poll() != None
+        return self._autogrid_process.poll() is not None
 
     def make_ligands_invisible(self):
         for ligand in self._ligands:
@@ -200,7 +215,6 @@ class DockingCalculations():
         self._plugin.update_structures_shallow(self._ligands)
 
     def _docking_finished(self):
-        end = timer()
         nanome.util.Logs.debug(f"Ran Autodock, Logs {self._autodock_log.name}")
 
         # make ligands invisible
@@ -232,14 +246,7 @@ class DockingCalculations():
         self._docking_pending = False
         self._bond_pending = True
 
-    def _check_bonds(self):
-        poll = self._nanobabel_process.poll()
-        if poll == None:
-            self._nanobabel_process.communicate()
-        return poll != None
-
     def _bonds_finished(self):
-        end = timer()
         nanome.util.Logs.debug("Ran Nanobabel in X seconds")
 
         # if self._check_process_error(self._nanobabel_process, check_only_errors=True):
@@ -256,7 +263,7 @@ class DockingCalculations():
             docked_ligands.name == "Docking Results"
 
         docked_ligands.visible = True
-        if self._align == True:
+        if self._align is True:
             docked_ligands.transform.position = self._receptor.transform.position
             docked_ligands.transform.rotation = self._receptor.transform.rotation
 

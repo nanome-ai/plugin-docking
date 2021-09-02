@@ -10,8 +10,8 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Set up conda environment for autodock4
-RUN conda env create -f nanome_docking/autodock4/vina.yml
-
+RUN conda install -c ccsb-scripps vina
+RUN conda env create --file /app/nanome_docking/autodock4/adfr-suite.yml
 ENV SMINA_BINARY=nanome_docking/smina/smina_binary
 RUN chmod +x  $SMINA_BINARY
 CMD python run.py ${ARGS}
