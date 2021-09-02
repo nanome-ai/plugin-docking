@@ -1,7 +1,0 @@
-name: vina
-channels:
-  - ccsb-scripps
-  - conda-forge
-dependencies:
-  - python=3.6
-  - vina
