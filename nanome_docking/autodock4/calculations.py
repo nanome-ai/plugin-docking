@@ -93,7 +93,8 @@ class DockingCalculations():
         path = os.path.dirname(param_filename)
         args = [
             'conda', 'run', '-n', 'adfr-suite',
-            'autogrid4', '-p', param_filename, '-l', full_name_log]
+            'autogrid4', '-p', param_filename, '-l', full_name_log
+        ]
         nanome.util.Logs.debug("Start Autogrid")
         subprocess.run(args, cwd=path)
 
@@ -101,73 +102,31 @@ class DockingCalculations():
         full_name_input = self._autodock_input.name
         path = os.path.dirname(full_name_input)
         full_name_log = self._autodock_log.name
+
+        vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         args = [
-            'conda', 'run', '-n', 'adfr-suite',
-            'vina', '-p', full_name_input, '-l', full_name_log
-        ]
+            vina_binary,
+            '--receptor', self._protein_input_converted.name,
+            '--ligand', self._ligands_input_converted.name,
+            '--center_x', '3.37',
+            '--center_y', '-17.2',
+            '--center_z', '8.49',
+            '--size_x', '4',
+            '--size_y', '4',
+            '--size_z', '4',
+        ]   
 
         nanome.util.Logs.debug("Start Autodock")
-        from vina import Vina
-        v = Vina(sf_name='vina')
-
-        v.set_receptor(self._protein_input_converted.name)
-
-        v.set_ligand_from_file(self._ligands_input_converted.name)
-        v.compute_vina_maps(center=[3.37, -17.2, 8.49], box_size=[4, 4, 4])
-
-        # Score the current pose
-        energy = v.score()
-        print('Score before minimization: %.3f (kcal/mol)' % energy[0])
-
-        # Minimized locally the current pose
-        energy_minimized = v.optimize()
-        print('Score after minimization : %.3f (kcal/mol)' % energy_minimized[0])
-        v.write_pose(self._ligands_output.name, overwrite=True)
-
-        # Dock the ligand
-        v.dock(exhaustiveness=32, n_poses=20)
-        v.write_poses(self._ligands_output.name, n_poses=5, overwrite=True)
-        # process = subprocess.run(args, cwd=path)
+        process = subprocess.run(args, cwd=path)
 
         # Start Bonds
         nanome.util.Logs.debug("Start Bonds")
         cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
         args = shlex.split(cmd)
-        self._nanobabel_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._nanobabel_process = subprocess.run(args, cwd=path)
 
         self._docking_finished()
         self._bonds_finished()
-
-    def _check_process_error(self, process, check_only_errors=False):
-        (results, errors) = process.communicate()
-        try:
-            if len(errors) == 0:
-                if check_only_errors is True:
-                    return True
-                for line in results.splitlines():
-                    nanome.util.Logs.debug(line.decode("utf-8"))
-            else:
-                error = False
-                for line in errors.splitlines():
-                    str = line.decode("utf-8")
-                    if "warning" in str.lower():
-                        nanome.util.Logs.warning(str)
-                    elif str.trim() != "":
-                        nanome.util.Logs.error(str)
-                        error = True
-                if error is True:
-                    self._preparation_pending = False
-                    self._parameters_preparation_pending = False
-                    self._grid_pending = False
-                    self._docking_pending = False
-                    self._bond_pending = False
-                    self._running = False
-                    self._plugin.make_plugin_usable()
-                    nanome.util.Logs.error("Error. Abort docking")
-                    return True
-        except Exception:
-            pass
-        return False
 
     def _prepare_ligands(self, input_filepath, output_filepath):
         lig_args = [
@@ -248,13 +207,6 @@ class DockingCalculations():
 
     def _bonds_finished(self):
         nanome.util.Logs.debug("Ran Nanobabel in X seconds")
-
-        # if self._check_process_error(self._nanobabel_process, check_only_errors=True):
-        #     return
-
-        self._running = False
-        self._bond_pending = False
-
         docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
         nanome.util.Logs.debug("Read SDF", self._bond_output.name)
         if len(self._combined_ligands.names) == 1:
