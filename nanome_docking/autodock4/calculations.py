@@ -104,6 +104,7 @@ class DockingCalculations():
         full_name_log = self._autodock_log.name
 
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
+        dock_results = tempfile.NamedTemporaryFile(dir=self.temp_dir.name)
         args = [
             vina_binary,
             '--receptor', self._protein_input_converted.name,
@@ -114,6 +115,7 @@ class DockingCalculations():
             '--size_x', '4',
             '--size_y', '4',
             '--size_z', '4',
+            '--out', dock_results
         ]   
 
         nanome.util.Logs.debug("Start Autodock")
@@ -121,35 +123,52 @@ class DockingCalculations():
 
         # Start Bonds
         nanome.util.Logs.debug("Start Bonds")
-        cmd = f'nanobabel convert -i {self._ligands_output.name} -o {self._bond_output.name}'
+        cmd = f'nanobabel convert -i {dock_results} -o {self._bond_output.name}'
         args = shlex.split(cmd)
         self._nanobabel_process = subprocess.run(args, cwd=path)
 
-        self._docking_finished()
-        self._bonds_finished()
+        # make ligands invisible
+        self.make_ligands_invisible()
 
-    def _prepare_ligands(self, input_filepath, output_filepath):
+        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
+        nanome.util.Logs.debug("Read SDF", self._bond_output.name)
+        if len(self._combined_ligands.names) == 1:
+            docked_ligands.name = self._combined_ligands.names[0] + " (Docked)"
+        else:
+            docked_ligands.name == "Docking Results"
+
+        docked_ligands.visible = True
+        if self._align is True:
+            docked_ligands.transform.position = self._receptor.transform.position
+            docked_ligands.transform.rotation = self._receptor.transform.rotation
+
+        nanome.util.Logs.debug("Update workspace")
+        # TODO: verify this shouldn't be here anymore (test)
+        # self._plugin.make_plugin_usable()
+        self._plugin.add_result_to_workspace([docked_ligands])
+
+    def _prepare_ligands(self, input_file, output_file):
         lig_args = [
             'conda', 'run', '-n', 'adfr-suite',
             'prepare_ligand',
-            '-l', input_filepath,
-            '-o', output_filepath,
+            '-l', input_file,
+            '-o', output_file,
             '-A', 'hydrogens',
             '-v'
         ]
         process = subprocess.run(lig_args, cwd=self.temp_dir.name)
-        assert open(output_filepath).read()
+        assert open(output_file).read()
         return process
 
-    def _prepare_receptor(self, input_filepath, output_filepath):
+    def _prepare_receptor(self, input_file, output_file):
         rec_args = [
             'conda', 'run', '-n', 'adfr-suite',
             'prepare_receptor',
-            '-r', input_filepath,
-            '-o', output_filepath,
+            '-r', input_file,
+            '-o', output_file,
         ]
         subprocess.run(rec_args, cwd=self.temp_dir.name)
-        assert open(output_filepath).read()
+        assert open(output_file).read()
 
     # Autogrid
     def _start_grid(self):
@@ -172,54 +191,3 @@ class DockingCalculations():
         for ligand in self._ligands:
             ligand.visible = False
         self._plugin.update_structures_shallow(self._ligands)
-
-    def _docking_finished(self):
-        nanome.util.Logs.debug(f"Ran Autodock, Logs {self._autodock_log.name}")
-
-        # make ligands invisible
-        self.make_ligands_invisible()
-
-        # Conversion
-
-        with open(self._autodock_log.name) as origin_file, open(self._ligands_output.name, 'w') as destination_file:
-            print("ligand output file:", self._ligands_output.name)
-
-            for line in origin_file:
-                if line.startswith('DOCKED'):
-                    str = line[8:]
-                    if str.startswith('ROOT') or str.startswith('ENDROOT'):
-                        continue
-                    str = str.replace('+', ' ')
-                    if not str.endswith('\n'):
-                        str += '\n'
-                    str = re.sub("([0-9]{3}) HD *\n", r"\1 H \n", str)
-                    str = re.sub("([0-9]{3}) N.*A *\n", r"\1 N \n", str)
-                    str = re.sub("([0-9]{3}) O.*A *\n", r"\1 O \n", str)
-                    str = re.sub("([0-9]{3}) S.*A *\n", r"\1 S \n", str)
-                    str = re.sub("([0-9]{3}) A.* *\n", r"\1 C \n", str)
-                    str = re.sub("([0-9]{3} [A-G][a-g]) \n", r"\1\n", str)
-                    str = re.sub("([0-9]{3}) ([A-G][a-g])\n", r"\1\2\n", str)
-                    destination_file.write(str)
-
-        self._running = False
-        self._docking_pending = False
-        self._bond_pending = True
-
-    def _bonds_finished(self):
-        nanome.util.Logs.debug("Ran Nanobabel in X seconds")
-        docked_ligands = nanome.structure.Complex.io.from_sdf(path=self._bond_output.name)
-        nanome.util.Logs.debug("Read SDF", self._bond_output.name)
-        if len(self._combined_ligands.names) == 1:
-            docked_ligands.name = self._combined_ligands.names[0] + " (Docked)"
-        else:
-            docked_ligands.name == "Docking Results"
-
-        docked_ligands.visible = True
-        if self._align is True:
-            docked_ligands.transform.position = self._receptor.transform.position
-            docked_ligands.transform.rotation = self._receptor.transform.rotation
-
-        nanome.util.Logs.debug("Update workspace")
-        # TODO: verify this shouldn't be here anymore (test)
-        # self._plugin.make_plugin_usable()
-        self._plugin.add_result_to_workspace([docked_ligands])
