@@ -7,13 +7,11 @@ import re
 
 from nanome.api.structure import Complex
 
-PDBOPTIONS = Complex.io.PDBSaveOptions
-SDFOPTIONS = Complex.io.SDFSaveOptions
 from nanome.util import ComplexUtils
 
-pdb_options = PDBOPTIONS()
+pdb_options = Complex.io.PDBSaveOptions
 pdb_options.write_bonds = True
-sdf_options = SDFOPTIONS()
+sdf_options = Complex.io.SDFSaveOptions
 sdf_options.write_bonds = True
 
 
