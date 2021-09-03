@@ -3,15 +3,14 @@ import nanome
 import shlex
 import subprocess
 import tempfile
-import re
 
-from nanome.api.structure import Complex
-
+from nanome._internal._structure._io._pdb.save import Options as _PDBOptions
+from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 from nanome.util import ComplexUtils
 
-pdb_options = Complex.io.PDBSaveOptions
+pdb_options = _PDBOptions()
 pdb_options.write_bonds = True
-sdf_options = Complex.io.SDFSaveOptions
+sdf_options = SDFOptions()
 sdf_options.write_bonds = True
 
 
@@ -157,16 +156,12 @@ class DockingCalculations():
         # Start VINA Docking
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         dock_results = tempfile.NamedTemporaryFile(dir=self.temp_dir, suffix='.pdbqt')
+        maps_identifier = self.receptor_file_pdbqt.name.split('.pdbqt')[0]
         args = [
             vina_binary,
-            '--receptor', receptor_file_pdbqt.name,
+            '--scoring', 'ad4',
+            '--maps', maps_identifier,
             '--ligand', ligands_file_pdbqt.name,
-            '--center_x', '3.37',
-            '--center_y', '-17.2',
-            '--center_z', '8.49',
-            '--size_x', '4',
-            '--size_y', '4',
-            '--size_z', '4',
             '--out', dock_results.name
         ]
         nanome.util.Logs.debug("Start Autodock")
