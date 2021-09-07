@@ -18,6 +18,7 @@ class Docking(nanome.AsyncPluginInstance):
         self.setting_menu = None
         self._calculations = None
         self._autobox = True
+        self._site = None
 
     @async_callback
     async def start(self):
@@ -100,7 +101,7 @@ class Docking(nanome.AsyncPluginInstance):
             complex.position = self._receptor.position
             complex.rotation = self._receptor.rotation
 
-            if align:
+            if align and self._site:
                 ComplexUtils.align_to(complex, self._site)
                 complex.boxed = True
 
