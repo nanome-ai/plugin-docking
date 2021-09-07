@@ -61,6 +61,7 @@ class DockingCalculations():
             dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt)
             docked_ligands_sdf = self.convert_to_sdf(dock_results_pdbqt)
             docked_ligands = nanome.structure.Complex.io.from_sdf(path=docked_ligands_sdf.name)
+            ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible
         self.make_ligands_invisible()
@@ -172,7 +173,7 @@ class DockingCalculations():
 
     def convert_to_sdf(self, dock_results):
         # Start Bonds
-        nanobabel_output = tempfile.NamedTemporaryFile(dir=self.temp_dir, suffix=".sdf")
+        nanobabel_output = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
         nanome.util.Logs.debug("Start Bonds")
         cmd = f'nanobabel convert -i {dock_results.name} -o {nanobabel_output.name}'
         args = shlex.split(cmd)
@@ -184,3 +185,6 @@ class DockingCalculations():
         for ligand in self._ligands:
             ligand.visible = False
         self._plugin.update_structures_shallow(self._ligands)
+
+    def update(self):
+        pass
