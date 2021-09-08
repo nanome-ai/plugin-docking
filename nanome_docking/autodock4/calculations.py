@@ -60,7 +60,7 @@ class DockingCalculations():
 
             dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt)
             docked_ligands_sdf = self.convert_to_sdf(dock_results_pdbqt)
-            docked_ligands = nanome.structure.Complex.io.from_sdf(path=docked_ligands_sdf.name)
+            docked_ligands = Complex.io.from_sdf(path=docked_ligands_sdf.name)
             ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible
@@ -153,7 +153,7 @@ class DockingCalculations():
         return generated_filepaths
 
     def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt):
-        # Start VINA Docking
+        # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
@@ -167,12 +167,12 @@ class DockingCalculations():
             '--num_modes', '5'
         ]
         nanome.util.Logs.debug("Start Autodock")
-        process = subprocess.run(args, cwd=self.temp_dir)
+        subprocess.run(args, cwd=self.temp_dir)
         assert open(dock_results.name).read()
         return dock_results
 
     def convert_to_sdf(self, dock_results):
-        # Start Bonds
+        """Convert pdbqt output from autodock4 to sdf which can be read by anome."""
         nanobabel_output = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
         nanome.util.Logs.debug("Start Bonds")
         cmd = f'nanobabel convert -i {dock_results.name} -o {nanobabel_output.name}'
