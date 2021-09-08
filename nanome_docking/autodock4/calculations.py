@@ -5,11 +5,10 @@ import tempfile
 
 from nanome.api.structure import Complex
 from nanome._internal._structure._io._pdb.save import Options as _PDBOptions
-from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 from nanome.util import ComplexUtils
 
-sdf_options = SDFOptions()
-sdf_options.write_bonds = True
+pdb_options = _PDBOptions()
+pdb_options.write_bonds = True
 
 
 class DockingCalculations():
