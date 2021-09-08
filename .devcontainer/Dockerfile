@@ -43,5 +43,7 @@ RUN cat /tmp/.bashrc >> ~/.bashrc
 # Install nanome-lib
 RUN pip install nanome autopep8
 
+RUN conda install -c conda-forge openbabel
+
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]

@@ -1,6 +1,5 @@
-import os
 import nanome
-import shlex
+import os
 import subprocess
 import tempfile
 
@@ -9,8 +8,6 @@ from nanome._internal._structure._io._pdb.save import Options as _PDBOptions
 from nanome._internal._structure._io._sdf.save import Options as SDFOptions
 from nanome.util import ComplexUtils
 
-pdb_options = _PDBOptions()
-pdb_options.write_bonds = True
 sdf_options = SDFOptions()
 sdf_options.write_bonds = True
 
@@ -50,17 +47,17 @@ class DockingCalculations():
             # Start Ligand/ Receptor prep
             receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
             ligands_file_pdbqt = self._prepare_ligands(ligands_file_pdb)
-            
+
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)            
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)
             autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
             dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt)
-            docked_ligands_sdf = self.convert_to_sdf(dock_results_pdbqt)
-            docked_ligands = Complex.io.from_sdf(path=docked_ligands_sdf.name)
+            dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
+            docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
             ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible
@@ -91,7 +88,7 @@ class DockingCalculations():
         subprocess.run(rec_args, cwd=self.temp_dir)
         assert open(receptor_file_pdbqt.name).read()
         return receptor_file_pdbqt
-    
+
     def _prepare_ligands(self, ligands_file_pdb):
         """Convert pdb file into pdbqt."""
         ligands_file_pdbqt = tempfile.NamedTemporaryFile(delete=False, suffix=".pdbqt", dir=self.temp_dir)
@@ -171,20 +168,17 @@ class DockingCalculations():
         assert open(dock_results.name).read()
         return dock_results
 
-    def convert_to_sdf(self, dock_results):
-        """Convert pdbqt output from autodock4 to sdf which can be read by anome."""
-        nanobabel_output = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
-        nanome.util.Logs.debug("Start Bonds")
-        cmd = f'nanobabel convert -i {dock_results.name} -o {nanobabel_output.name}'
-        args = shlex.split(cmd)
-        subprocess.run(args, cwd=self.temp_dir)
-        assert open(nanobabel_output.name).read()
-        return nanobabel_output
-
     def make_ligands_invisible(self):
         for ligand in self._ligands:
             ligand.visible = False
         self._plugin.update_structures_shallow(self._ligands)
+
+    def convert_pdbqt_to_sdf(self, pdbqt_file):
+        output_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
+        cmd = ['obabel', '-ipdbqt', pdbqt_file.name, f'-O{output_file.name}']
+        subprocess.run(cmd, cwd=self.temp_dir)
+        assert open(output_file.name).read()
+        return output_file
 
     def update(self):
         pass
