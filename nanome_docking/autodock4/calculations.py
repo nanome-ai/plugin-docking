@@ -31,17 +31,16 @@ class DockingCalculations():
         self._ligands = ligands
 
         docked_ligands = None
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.temp_dir = temp_dir
+        with tempfile.TemporaryDirectory() as self.temp_dir:
             combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
 
             # Save all input files
-            receptor_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
-            ligands_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            receptor_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
+            ligands_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
             receptor.io.to_pdb(receptor_file_pdb.name, pdb_options)
             combined_ligands.io.to_pdb(ligands_file_pdb.name, pdb_options)
             assert open(receptor_file_pdb.name).read()
-            assert open(receptor_file_pdb.name).read()
+            assert open(ligands_file_pdb.name).read()
 
             # Start Ligand/ Receptor prep
             receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
@@ -49,12 +48,12 @@ class DockingCalculations():
 
             # Prepare Grid and Docking parameters.
             autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)
-            autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
+            # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
-            # Creates .map files in the temp folder.
+            # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
-            dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt)
+            dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes)
             dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
             docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
             ComplexUtils.convert_to_frames([docked_ligands])
@@ -111,7 +110,8 @@ class DockingCalculations():
             'python', prepare_gpf4_script,
             '-l', ligands_file_pdbqt.name,
             '-r', receptor_file_pdbqt.name,
-            '-o', autogrid_input_gpf.name
+            '-o', autogrid_input_gpf.name,
+            '-y'
         ]
         subprocess.run(grid_args, cwd=self.temp_dir)
         assert open(autogrid_input_gpf.name).read()
@@ -148,10 +148,11 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt):
+    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, num_modes=5):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
+        # map files created by autogrid call, and are found using the receptor file name.
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
         args = [
             vina_binary,
@@ -160,7 +161,7 @@ class DockingCalculations():
             '--ligand', ligands_file_pdbqt.name,
             '--out', dock_results.name,
             '--exhaustiveness', '8',
-            '--num_modes', '5'
+            '--num_modes', str(num_modes)
         ]
         nanome.util.Logs.debug("Start Autodock")
         subprocess.run(args, cwd=self.temp_dir)

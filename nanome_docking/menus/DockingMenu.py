@@ -58,7 +58,7 @@ class DockingMenu():
         for item in self._selected_ligands:
             ligands.append(item.complex)
         site = None
-        if self._autobox_enabled:
+        if self._autobox_enabled and self._selected_site:
             site = self._selected_site.complex
         self.show_loading(True)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
