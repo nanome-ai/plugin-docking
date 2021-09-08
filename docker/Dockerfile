@@ -9,9 +9,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# Set up conda environment for adfr-suite functions for vina prep steps that require python 2.7
-RUN conda env create --file /app/nanome_docking/autodock4/adfr-suite.yml
-
+# adfr-suite functions required for autodock4. Requires separate python 2.7 environment.
+RUN conda env create --file adfr-suite.yml
+# Openbabel also required for autodock4
 RUN conda install -c conda-forge openbabel
 
 # Ensure executables are executable.
