@@ -15,20 +15,10 @@ class DockingCalculations():
 
     def __init__(self, plugin):
         self._plugin = plugin
-        self._preparation_pending = False
-        self._grid_pending = False
-        self._docking_pending = False
-        self._bond_pending = False
-        self._running = False
         self.requires_site = False
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
-        self._site = site
-        self._align = align
-        self._replace = replace
-        self._visual_scores = visual_scores
-        self._receptor = receptor
-        self._ligands = ligands
+        receptor = receptor
 
         docked_ligands = None
         with tempfile.TemporaryDirectory() as self.temp_dir:
@@ -47,19 +37,20 @@ class DockingCalculations():
             ligands_file_pdbqt = self._prepare_ligands(ligands_file_pdb)
 
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt, site)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
-            dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes)
+            dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes, exhaustiveness=exhaustiveness)
             dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
             docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
-            ComplexUtils.convert_to_frames([docked_ligands])
+        
+        ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible
-        self.make_ligands_invisible()
+        self.make_complexes_invisible(ligands)
 
         if len(combined_ligands.names) == 1:
             docked_ligands.name = combined_ligands.names[0] + " (Docked)"
@@ -67,12 +58,12 @@ class DockingCalculations():
             docked_ligands.name == "Docking Results"
 
         docked_ligands.visible = True
-        if self._align is True:
-            docked_ligands.position = self._receptor.position
-            docked_ligands.rotation = self._receptor.rotation
+        if align:
+            docked_ligands.position = receptor.position
+            docked_ligands.rotation = receptor.rotation
 
         nanome.util.Logs.debug("Update workspace")
-        self._plugin.add_result_to_workspace([docked_ligands], self._align)
+        self._plugin.add_result_to_workspace([docked_ligands], align)
 
     def _prepare_receptor(self, pdb_file):
         """Convert pdb file into pdbqt."""
@@ -102,7 +93,7 @@ class DockingCalculations():
         assert open(ligands_file_pdbqt.name).read()
         return ligands_file_pdbqt
 
-    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
+    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt, site):
         prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py')
         autogrid_input_gpf = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf", dir=self.temp_dir)
         grid_args = [
@@ -148,7 +139,7 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, num_modes=5):
+    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, num_modes=5, exhaustiveness=8):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
@@ -160,7 +151,7 @@ class DockingCalculations():
             '--maps', maps_identifier,
             '--ligand', ligands_file_pdbqt.name,
             '--out', dock_results.name,
-            '--exhaustiveness', '8',
+            '--exhaustiveness', str(exhaustiveness),
             '--num_modes', str(num_modes)
         ]
         nanome.util.Logs.debug("Start Autodock")
@@ -168,10 +159,10 @@ class DockingCalculations():
         assert open(dock_results.name).read()
         return dock_results
 
-    def make_ligands_invisible(self):
-        for ligand in self._ligands:
-            ligand.visible = False
-        self._plugin.update_structures_shallow(self._ligands)
+    def make_complexes_invisible(self, complexes):
+        for comp in complexes:
+            comp.visible = False
+        self._plugin.update_structures_shallow(complexes)
 
     def convert_pdbqt_to_sdf(self, pdbqt_file):
         output_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")

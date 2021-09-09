@@ -44,7 +44,7 @@ class DockingMenu():
 
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
-        for key, value in params.items():
+        for key in params.keys():
             newvalue = getattr(self, "_" + key)
             params[key] = newvalue
         return params
