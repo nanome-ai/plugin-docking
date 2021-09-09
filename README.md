@@ -2,11 +2,15 @@
 
 A Nanome Plugin to interface with a variety of docking softwares to dock ligands to a receptor.
 
+Supported Docking algorithms:
+- Smina
+- Autodock4
+- Rhodium (Coming soon)
+
 ## Dependencies
 
 [Docker](https://docs.docker.com/get-docker/)
 
-To use Autodock4 on Windows, Autodock4 must be installed on the computer and in the PATH variable.
 
 ## Usage
 
@@ -18,15 +22,12 @@ $ ./build.sh
 $ ./deploy.sh -a <plugin_server_address> [args]
 ```
 
-To run Docking Autodock4 on Windows:
-
+To run Docking with Autodock4:
 ```
-$ python3 -m pip install -r requirements.txt
-$ python3 run.py -a <plugin_server_address> autodock4 [args]
+$ cd docker
+$ ./build.sh
+$ docker run docking python run.py autodock4 [args]
 ```
-
-Note: requires Autodock4 to be installed on the computer and in the PATH variable.
-
 ---
 
 In Nanome:
@@ -42,7 +43,6 @@ In Nanome:
 ## Development
 
 To run Docking with autoreload:
-
 ```
 $ python3 -m pip install -r requirements.txt
 $ python3 run.py -r -a <plugin_server_address> smina [args]
