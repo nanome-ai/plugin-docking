@@ -47,7 +47,7 @@ To run Docking with autoreload:
 $ python3 -m pip install -r requirements.txt
 $ python3 run.py <algorithm> -r [args]
 ```
-algorithm can be (smina|autodock4)
+algorithm can be (smina | autodock4)
 
 Note for autodock4: The adfr-suite conda environment must be set up to run code requiring Python 2.7
 ```sh
