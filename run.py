@@ -15,7 +15,7 @@ def main():
         name = "Smina"
         plugin_class = SminaDocking
     elif algo == "autodock4":
-        name = "Autodock 4"
+        name = "Autodock4"
         plugin_class = Autodock4Docking
     elif algo == "rhodium":
         name = "Rhodium"

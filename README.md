@@ -11,10 +11,9 @@ Supported Docking algorithms:
 
 [Docker](https://docs.docker.com/get-docker/)
 
-
 ## Usage
 
-To run Docking Smina in a Docker container:
+To run Smina Docking in a Docker container:
 
 ```sh
 $ cd docker
@@ -36,16 +35,23 @@ In Nanome:
 - Select a receptor
 - Click on "Ligand", and select ligands to dock
 - If using Smina, click on "Site", and select which molecule should be used to define the docking site
-- Choose exhaustiveness, number of results and size of the box to generate around the site molecule (Smina only)
+- Choose number of poses to return for each ligand
+- Choose size of the box to generate around the site molecule (Smina only)
 - If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
-- Click on Run
+- Click Run
 
 ## Development
 
 To run Docking with autoreload:
 ```
 $ python3 -m pip install -r requirements.txt
-$ python3 run.py -r -a <plugin_server_address> smina [args]
+$ python3 run.py <algorithm> -r [args]
+```
+algorithm can be (smina|autodock4)
+
+Note for autodock4: The adfr-suite conda environment must be set up to run code requiring Python 2.7
+```sh
+$ conda env create --file adfr-suite.yml
 ```
 
 ## License
