@@ -122,8 +122,8 @@ class Autodock4Docking(Docking):
     def __init__(self):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
-        self._menu = DockingMenu(self)
-        # self._autobox = False
+        self._menu = DockingMenu(self, autodock4=True)
+        self._autobox = False
 
 
 class RhodiumDocking(Docking):

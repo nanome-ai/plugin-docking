@@ -12,7 +12,7 @@ ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listd
 
 class DockingMenu():
 
-    def __init__(self, docking_plugin):
+    def __init__(self, docking_plugin, autodock4=False):
         self._plugin = docking_plugin
         self._selected_receptor = None
         self._selected_ligands = []
@@ -27,6 +27,7 @@ class DockingMenu():
         self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
+        self._autodock4 = autodock4
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -417,7 +418,6 @@ class DockingMenu():
 
         self._plugin.menu = menu
         self._plugin.setting_menu = setting_menu
-
         # registering and saving special nodes
 
         # panels
@@ -528,6 +528,13 @@ class DockingMenu():
         self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
+
+        if self._autodock4:
+            # Autodock4 should hide specific sections
+            menu.root.find_node('Location').enabled = False
+            menu.root.find_node('Size').enabled = False
+            menu.root.find_node('SiteData').enabled = False
+            self._check_arrow._file_path = ICONS['can_dock']
 
         # Update the menu
         self._menu = menu
