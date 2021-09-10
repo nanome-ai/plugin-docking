@@ -18,8 +18,6 @@ class DockingCalculations():
         self.requires_site = False
 
     def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
-        receptor = receptor
-
         docked_ligands = None
         with tempfile.TemporaryDirectory() as self.temp_dir:
             combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
@@ -29,8 +27,6 @@ class DockingCalculations():
             ligands_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
             receptor.io.to_pdb(receptor_file_pdb.name, pdb_options)
             combined_ligands.io.to_pdb(ligands_file_pdb.name, pdb_options)
-            assert open(receptor_file_pdb.name).read()
-            assert open(ligands_file_pdb.name).read()
 
             # Start Ligand/ Receptor prep
             receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
@@ -75,7 +71,6 @@ class DockingCalculations():
             '-o', receptor_file_pdbqt.name,
         ]
         subprocess.run(rec_args, cwd=self.temp_dir)
-        assert open(receptor_file_pdbqt.name).read()
         return receptor_file_pdbqt
 
     def _prepare_ligands(self, ligands_file_pdb):
@@ -90,7 +85,6 @@ class DockingCalculations():
             '-v'
         ]
         subprocess.run(lig_args, cwd=self.temp_dir)
-        assert open(ligands_file_pdbqt.name).read()
         return ligands_file_pdbqt
 
     def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
@@ -105,7 +99,6 @@ class DockingCalculations():
             '-y'
         ]
         subprocess.run(grid_args, cwd=self.temp_dir)
-        assert open(autogrid_input_gpf.name).read()
         return autogrid_input_gpf
 
     def _prepare_docking_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
@@ -121,7 +114,6 @@ class DockingCalculations():
         ]
         nanome.util.Logs.debug("Prepare grid and docking parameter files")
         subprocess.run(dock_args, cwd=self.temp_dir)
-        assert open(autodock_input_dpf.name).read()
         return autodock_input_dpf
 
     def _start_autogrid4(self, autogrid_input_gpf):
@@ -156,7 +148,6 @@ class DockingCalculations():
         ]
         nanome.util.Logs.debug("Start Autodock")
         subprocess.run(args, cwd=self.temp_dir)
-        assert open(dock_results.name).read()
         return dock_results
 
     def make_complexes_invisible(self, complexes):
@@ -168,7 +159,6 @@ class DockingCalculations():
         output_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
         cmd = ['obabel', '-ipdbqt', pdbqt_file.name, f'-O{output_file.name}']
         subprocess.run(cmd, cwd=self.temp_dir)
-        assert open(output_file.name).read()
         return output_file
 
     def update(self):

@@ -7,10 +7,12 @@ ARG CACHEBUST
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# adfr-suite functions required for autodock4. Requires separate python 2.7 environment.
+COPY adfr-suite.yml .
+RUN conda env create --file adfr-suite.yml
+
 COPY . .
 
-# adfr-suite functions required for autodock4. Requires separate python 2.7 environment.
-RUN conda env create --file adfr-suite.yml
 # Openbabel also required for autodock4
 RUN conda install -c conda-forge openbabel
 
