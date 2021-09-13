@@ -50,6 +50,14 @@ class DockingMenu():
             params[key] = newvalue
         return params
 
+    def create_complex_dropdown_items(self, complex_list):
+        ddi_list = []
+        for comp in complex_list:
+            ddi = DropdownItem(comp.full_name)
+            ddi.complex = comp
+            ddi_list.append(ddi)
+        return ddi_list
+
     async def _run_docking(self):
         if self._selected_receptor is None or len(self._selected_ligands) == 0:
             if self._autobox_enabled is True and self._selected_site is None:
@@ -108,19 +116,10 @@ class DockingMenu():
         ligand_list = []
         receptor_list = []
         site_list = []
-        for complex in complex_list:
-            dd_item1 = DropdownItem()
-            dd_item2 = DropdownItem()
-            dd_item3 = DropdownItem()
-            dd_item1.complex = complex
-            dd_item2.complex = complex
-            dd_item3.complex = complex
-            dd_item1._name = complex.full_name
-            dd_item2._name = complex.full_name
-            dd_item3._name = complex.full_name
-            ligand_list.append(dd_item1)
-            receptor_list.append(dd_item2)
-            site_list.append(dd_item3)
+
+        ligand_list = self.create_complex_dropdown_items(complex_list)
+        receptor_list = self.create_complex_dropdown_items(complex_list)
+        site_list = self.create_complex_dropdown_items(complex_list)
 
         self._ligand_dropdown.items = ligand_list
         self._receptor_dropdown.items = receptor_list
@@ -295,38 +294,6 @@ class DockingMenu():
                 self._txt2.input_text = self._modes
                 self._plugin.update_content(self._txt2)
 
-        def tab_button_pressed_callback(button):
-            if self._tab == button:
-                return
-
-            self._tab.selected = False
-            button.selected = True
-            self._tab = button
-
-            if button.text.value_idle == "Receptor":
-                for item in self._complex_list.items:
-                    btn = item.get_children()[0].get_content()
-                    if btn == self._selected_receptor:
-                        btn.selected = True
-                    else:
-                        btn.selected = False
-            elif button.text.value_idle == "Site":
-                for item in self._complex_list.items:
-                    btn = item.get_children()[0].get_content()
-                    if btn == self._selected_site:
-                        btn.selected = True
-                    else:
-                        btn.selected = False
-            elif button.text.value_idle == "Ligand":
-                for item in self._complex_list.items:
-                    btn = item.get_children()[0].get_content()
-                    if btn in self._selected_ligands:
-                        btn.selected = True
-                    else:
-                        btn.selected = False
-
-            self._plugin.update_menu(self._menu)
-
         def align_button_pressed_callback(button):
             self._align = not self._align
             button.selected = self._align
@@ -397,18 +364,6 @@ class DockingMenu():
                 Logs.debug("Update the site location")
                 self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
 
-        # Create a prefab that will be used to populate the lists
-        self._complex_item_prefab = nanome.ui.LayoutNode()
-        self._complex_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
-        child = self._complex_item_prefab.create_child_node()
-        child.add_new_button()
-
-        self._score_item_prefab = nanome.ui.LayoutNode()
-        self._score_item_prefab.layout_orientation = nanome.ui.LayoutNode.LayoutTypes.horizontal
-        child = self._score_item_prefab.create_child_node()
-        # child.forward_dist = 0.002
-        child.add_new_label()
-
         # loading menus
         menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
         setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
@@ -457,18 +412,6 @@ class DockingMenu():
 
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
-        # buttons
-        receptor_btn = menu.root.find_node("ReceptorButton").get_content()
-        receptor_btn.register_pressed_callback(tab_button_pressed_callback)
-        receptor_btn.selected = True
-        self._tab = receptor_btn
-
-        ligand_btn = menu.root.find_node("LigandButton").get_content()
-        ligand_btn.register_pressed_callback(tab_button_pressed_callback)
-
-        self._site_btn = menu.root.find_node("SiteButton").get_content()
-        self._site_btn.register_pressed_callback(tab_button_pressed_callback)
-
         align_btn = menu.root.find_node("AlignButton").get_content()
         align_btn.register_pressed_callback(align_button_pressed_callback)
         align_btn.selected = True
@@ -501,13 +444,6 @@ class DockingMenu():
         self.ln_loading_bar = menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
         self.loading_bar.description = "    Loading...          "
-
-        # lists
-        self._complex_list = menu.root.find_node("ComplexList").get_content()
-        self._score_list = menu.root.find_node("ScoreList").get_content()
-        self._receptor_tab = menu.root.find_node("ReceptorButton").get_content()
-        self._ligand_tab = menu.root.find_node("LigandButton").get_content()
-        self._site_tab = menu.root.find_node("SiteButton").get_content()
 
         # dropdown
         self._ligand_dropdown = menu.root.find_node("LigandDropdown").add_new_dropdown()
