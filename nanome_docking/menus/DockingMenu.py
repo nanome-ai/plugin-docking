@@ -11,7 +11,8 @@ ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listd
 
 
 class DockingMenu():
-    def __init__(self, docking_plugin):
+
+    def __init__(self, docking_plugin, autodock4=False):
         self._plugin = docking_plugin
         self._selected_receptor = None
         self._selected_ligands = []
@@ -26,6 +27,7 @@ class DockingMenu():
         self._visual_scores = False
         self._tab = None
         self._autobox_enabled = True
+        self._autodock4 = autodock4
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -43,7 +45,7 @@ class DockingMenu():
 
     def get_params(self):
         params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
-        for key, value in params.items():
+        for key in params.keys():
             newvalue = getattr(self, "_" + key)
             params[key] = newvalue
         return params
@@ -57,10 +59,11 @@ class DockingMenu():
         for item in self._selected_ligands:
             ligands.append(item.complex)
         site = None
-        if self._autobox_enabled:
+        if self._autobox_enabled and self._selected_site:
             site = self._selected_site.complex
         self.show_loading(True)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        self.show_loading(False)
 
     def disable_autobox(self):
         self._site_btn.unusable = True
@@ -82,40 +85,6 @@ class DockingMenu():
             self.ln_loading_bar.enabled = False
         self._plugin.update_menu(self._menu)
 
-    def receptor_pressed(self, button):
-        last_selected = self._selected_receptor
-        if last_selected is not None:
-            last_selected.selected = False
-            self._plugin.update_content(last_selected)
-        button.selected = True
-        self._selected_receptor = button
-        self._plugin.update_content(button)
-        self._plugin.update_content(self._receptor_checkmark)
-        self.refresh_run_btn_unusable()
-
-    def ligand_pressed(self, button):
-        if button.selected is False:
-            button.selected = True
-            self._selected_ligands.append(button)
-        else:
-            button.selected = False
-            self._selected_ligands.remove(button)
-        self._plugin.update_content(button)
-
-        self._ligand_checkmark.file_path = ICONS['checkmark' if self._selected_ligands else 'none']
-        self._plugin.update_content(self._ligand_checkmark)
-        self.refresh_run_btn_unusable()
-
-    def site_pressed(self, button):
-        last_selected = self._selected_site
-        if last_selected is not None:
-            last_selected.selected = False
-            self._plugin.update_content(last_selected)
-        button.selected = True
-        self._selected_site = button
-        self._plugin.update_content(button)
-        self.refresh_run_btn_unusable()
-
     def refresh_run_btn_unusable(self, update=True, after=False):
         site_requirement_met = self._selected_site is not None or not self._plugin._calculations.requires_site
         if self._selected_receptor is not None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
@@ -136,14 +105,6 @@ class DockingMenu():
         return self._run_button.unusable
 
     def change_complex_list(self, complex_list):
-        def complex_pressed(button):
-            if self._tab.text.value_idle == "Receptor":
-                self.receptor_pressed(button)
-            elif self._tab.text.value_idle == "Ligand":
-                self.ligand_pressed(button)
-            elif self._tab.text.value_idle == "Site":
-                self.site_pressed(button)
-
         ligand_list = []
         receptor_list = []
         site_list = []
@@ -246,7 +207,6 @@ class DockingMenu():
                 item.selected = True
             else:
                 # This part is saved for future version of dropdown api
-
                 # for x in self._selected_ligands:
                 #     if x.complex.index == cur_index:
                 #         self._selected_ligands.remove(x)
@@ -314,7 +274,7 @@ class DockingMenu():
         self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
     def build_menu(self):
-        # defining callbacks
+
         @async_callback
         async def run_button_pressed_callback(button):
             if self._scoring:
@@ -458,7 +418,6 @@ class DockingMenu():
 
         self._plugin.menu = menu
         self._plugin.setting_menu = setting_menu
-
         # registering and saving special nodes
 
         # panels
@@ -569,6 +528,13 @@ class DockingMenu():
         self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
+
+        if self._autodock4:
+            # Autodock4 should hide specific sections
+            menu.root.find_node('Location').enabled = False
+            menu.root.find_node('Size').enabled = False
+            menu.root.find_node('SiteData').enabled = False
+            self._check_arrow._file_path = ICONS['can_dock']
 
         # Update the menu
         self._menu = menu

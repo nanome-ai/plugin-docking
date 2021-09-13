@@ -2,15 +2,18 @@
 
 A Nanome Plugin to interface with a variety of docking softwares to dock ligands to a receptor.
 
+Supported Docking algorithms:
+- Smina
+- Autodock4
+- Rhodium (Coming soon)
+
 ## Dependencies
 
 [Docker](https://docs.docker.com/get-docker/)
 
-To use Autodock4 on Windows, Autodock4 must be installed on the computer and in the PATH variable.
-
 ## Usage
 
-To run Docking Smina in a Docker container:
+To run Smina Docking in a Docker container:
 
 ```sh
 $ cd docker
@@ -18,15 +21,12 @@ $ ./build.sh
 $ ./deploy.sh -a <plugin_server_address> [args]
 ```
 
-To run Docking Autodock4 on Windows:
-
+To run Docking with Autodock4:
 ```
-$ python3 -m pip install -r requirements.txt
-$ python3 run.py -a <plugin_server_address> autodock4 [args]
+$ cd docker
+$ ./build.sh
+$ docker run docking python run.py autodock4 [args]
 ```
-
-Note: requires Autodock4 to be installed on the computer and in the PATH variable.
-
 ---
 
 In Nanome:
@@ -35,17 +35,23 @@ In Nanome:
 - Select a receptor
 - Click on "Ligand", and select ligands to dock
 - If using Smina, click on "Site", and select which molecule should be used to define the docking site
-- Choose exhaustiveness, number of results and size of the box to generate around the site molecule (Smina only)
+- Choose number of poses to return for each ligand
+- Choose size of the box to generate around the site molecule (Smina only)
 - If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
-- Click on Run
+- Click Run
 
 ## Development
 
 To run Docking with autoreload:
-
 ```
 $ python3 -m pip install -r requirements.txt
-$ python3 run.py -r -a <plugin_server_address> smina [args]
+$ python3 run.py <algorithm> -r [args]
+```
+algorithm can be (smina | autodock4)
+
+Note for autodock4: The adfr-suite conda environment must be set up to run code requiring Python 2.7
+```sh
+$ conda env create --file adfr-suite.yml
 ```
 
 ## License

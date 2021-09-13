@@ -210,5 +210,4 @@ if __name__ == '__main__':
         if verbose: print "not epdb_output"
         dm.write_dpf(dpf_filename, parameter_list, pop_seed)
     
-#prepare_dpf42.py -l indinavir.pdbqt -r 1hsg.pdbqt -p ga_num_evals=25000000 -p ga_pop_size=150 -p ga_run=17 -i ref.dpf -o testing.dpf 
-
+#prepare_dpf42.py -l indinavir.pdbqt -r 1hsg.pdbqt -p ga_num_evals=25000000 -p ga_pop_size=150 -p ga_run=17 -i ref.dpf -o testing.dpf

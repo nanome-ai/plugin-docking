@@ -7,7 +7,8 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["smina", "-r", "-v", "-n", "[wip]-smina-docking"]
+            "args": ["smina", "-r", "-v", "-n", "[wip]-smina-docking"],
+            "justMyCode": false
         },
         {
             "name": "Autodock4 run.py",
@@ -15,7 +16,8 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["autodock4", "-r", "-v", "-n", "[wip]-autodock4-docking"]
+            "args": ["autodock4", "-r", "-v", "-n", "[wip]-autodock4-docking"],
+            "justMyCode": false
         },
         {
             "name": "Rhodium run.py",
@@ -23,7 +25,8 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["rhodium", "-r", "-v", "-n", "[wip]-rhodium-docking"]
+            "args": ["rhodium", "-r", "-v", "-n", "[wip]-rhodium-docking"],
+            "justMyCode": false
         },
     ]
 }

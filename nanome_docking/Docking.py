@@ -12,11 +12,13 @@ __metaclass__ = type
 
 
 class Docking(nanome.AsyncPluginInstance):
+
     def __init__(self):
         self._menu = None
         self.setting_menu = None
         self._calculations = None
         self._autobox = True
+        self._site = None
 
     @async_callback
     async def start(self):
@@ -99,7 +101,7 @@ class Docking(nanome.AsyncPluginInstance):
             complex.position = self._receptor.position
             complex.rotation = self._receptor.rotation
 
-            if align:
+            if align and self._site:
                 ComplexUtils.align_to(complex, self._site)
                 complex.boxed = True
 
@@ -120,7 +122,7 @@ class Autodock4Docking(Docking):
     def __init__(self):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
-        self._menu = DockingMenu(self)
+        self._menu = DockingMenu(self, autodock4=True)
         self._autobox = False
 
 
