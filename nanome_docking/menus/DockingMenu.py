@@ -2,8 +2,9 @@ from functools import partial
 import os
 
 import nanome
-from nanome.util import Logs, async_callback
+from nanome.util import Logs, async_callback, Vector3
 from nanome.api.ui import DropdownItem
+from nanome.api.shapes import Sphere, Shape
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
@@ -196,7 +197,8 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
-    def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
+    @async_callback
+    async def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
         if component_name == 'ligand':
             # cur_index = item.complex.index
             # this line is saved for future version of dropdown api
@@ -218,12 +220,6 @@ class DockingMenu():
                     self._selected_ligands = []
                     item.selected = False
 
-            # This part is saved for future version of dropdown api
-
-            # if len(self._selected_ligands) > 1:
-            #     self._ligand_txt._text_value = 'Multiple'
-            #     self._ligand_dropdown.use_permanent_title = True
-            #     self._ligand_dropdown.permanent_title = "Multiple"
             if len(self._selected_ligands) == 1:
                 self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
                 self._ligand_dropdown.use_permanent_title = False
@@ -249,7 +245,21 @@ class DockingMenu():
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in item.complex.position]
+                
+                # Draw sphere indicating the site 
+                self.site_sphere = Sphere()
+                self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
+                self.site_sphere.radius = 4  # self._slider.current_value
+                anchor = self.site_sphere.anchors[0]
+                anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
+                comp = await self._plugin.request_complexes([self._selected_site.complex.index])
+                comp = comp[0]
+                anchor.target = comp.index
+
+                complex_center = self.get_center(comp)
+                anchor.local_offset = complex_center
+                await Shape.upload(self.site_sphere)
+                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex_center]
             else:
                 self._selected_site = None
                 item.selected = False
@@ -476,3 +486,20 @@ class DockingMenu():
         self._menu = menu
         self._plugin.update_menu(menu)
         Logs.debug("Constructed plugin menu")
+
+    @staticmethod
+    def get_center(complex):
+        # Calculate the center of a complex
+        inf = float('inf')
+        min_pos = Vector3(inf, inf, inf)
+        max_pos = Vector3(-inf, -inf, -inf)
+
+        for atom in complex.atoms:
+            min_pos.x = min(min_pos.x, atom.position.x)
+            min_pos.y = min(min_pos.y, atom.position.y)
+            min_pos.z = min(min_pos.z, atom.position.z)
+            max_pos.x = max(max_pos.x, atom.position.x)
+            max_pos.y = max(max_pos.y, atom.position.y)
+            max_pos.z = max(max_pos.z, atom.position.z)
+
+        return (min_pos + max_pos) * 0.5
