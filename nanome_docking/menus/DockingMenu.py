@@ -249,7 +249,7 @@ class DockingMenu():
                 # Draw sphere indicating the site 
                 self.site_sphere = Sphere()
                 self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
-                self.site_sphere.radius = 4  # self._slider.current_value
+                self.site_sphere.radius = self._slider.current_value
                 anchor = self.site_sphere.anchors[0]
                 anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
                 comp = await self._plugin.request_complexes([self._selected_site.complex.index])
