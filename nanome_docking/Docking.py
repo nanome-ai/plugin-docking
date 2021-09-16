@@ -14,7 +14,6 @@ __metaclass__ = type
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
-        self._menu = None
         self.setting_menu = None
         self._calculations = None
         self._site = None
@@ -22,15 +21,15 @@ class Docking(nanome.AsyncPluginInstance):
     @async_callback
     async def start(self):
         # Called when Nanome connects to the Plugin, after its instantiation
-        self._menu.build_menu()
+        self.menu = DockingMenu(self)
+        self.menu.build_menu()
         # Request shallow complex (name, position, orientation), to display them in a list
         complexes = await self.request_complex_list()
-        self._menu.change_complex_list(complexes)
+        self.menu.change_complex_list(complexes)
 
     def on_run(self):
         # Called when user clicks on the "Run" button in Nanome
-        self.menu.enabled = True
-        self.update_menu(self.menu)
+        self.menu.build_menu()
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
@@ -42,16 +41,16 @@ class Docking(nanome.AsyncPluginInstance):
     async def on_complex_added(self):
         # Called when a complex is added to the workspace in Nanome
         complexes = await self.request_complex_list()
-        self._menu.change_complex_list(complexes)
+        self.menu.change_complex_list(complexes)
 
     @async_callback
     async def on_complex_removed(self):
         # Called when a complex is removed from the workspace in Nanome
         complexes = await self.request_complex_list()
-        self._menu.change_complex_list(complexes)
+        self.menu.change_complex_list(complexes)
 
     def make_plugin_usable(self):
-        self._menu.make_plugin_usable()
+        self.menu.make_plugin_usable()
 
     def set_and_convert_structures(self, has_site, params, complexes):
         # When deep complexes data are received, unpack them and prepare ligand for docking
@@ -73,10 +72,11 @@ class Docking(nanome.AsyncPluginInstance):
 
     async def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
-        if self._menu._run_button.unusable is True:
+        if self.menu._run_button.unusable is True:
             return
-        self._menu.make_plugin_usable(False)
-        # self._menu.show_loading(True)
+
+        self.menu.make_plugin_usable(False)
+        # self.menu.show_loading(True)
 
         # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
         request_list = [receptor.index]
@@ -87,7 +87,7 @@ class Docking(nanome.AsyncPluginInstance):
         complexes = await self.request_complexes(request_list)
         has_site = site is not None
         self.set_and_convert_structures(has_site, params, complexes)
-        # self._menu.show_loading(False)
+        # self.menu.show_loading(False)
 
     # Called every update tick of the Plugin
     def update(self):
@@ -105,7 +105,7 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_deep(results)
 
     def display_scoring_result(self, result):
-        self._menu.display_scoring_result(result)
+        self.menu.display_scoring_result(result)
 
 
 class SminaDocking(Docking):

@@ -31,14 +31,11 @@ class DockingMenu():
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
         self._setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+
         # Algorithm is part of the plugin class name. Easiest way to access that.
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
-        self._plugin.menu = self._menu
         self._plugin.setting_menu = self._setting_menu
-
-        # self._site_btn = self._menu.root.find_node("SiteButton").get_content()
-        # self._site_btn.register_pressed_callback(self.tab_button_pressed_callback)
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -240,8 +237,8 @@ class DockingMenu():
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
-                
-                # Draw sphere indicating the site 
+
+                # Draw sphere indicating the site
                 self.site_sphere = Sphere()
                 self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
                 self.site_sphere.radius = self._slider.current_value
@@ -279,100 +276,99 @@ class DockingMenu():
 
     def build_menu(self):
         # registering and saving special nodes
-        menu = self._menu
+        # menu = self._menu
         setting_menu = self._setting_menu
         # panels
-        self._docking_param_panel = menu.root.find_node("LeftSide")
-        self._score_panel = menu.root.find_node("LeftSideScore")
-        self._panel_separator = menu.root.find_node("MiddleLine")
+        root = self._menu.root
+        self._docking_param_panel = root.find_node("LeftSide")
+        self._score_panel = root.find_node("LeftSideScore")
+        self._panel_separator = root.find_node("MiddleLine")
 
         # images
-        self._check_arrow = menu.root.find_node("CheckArrow").add_new_image(ICONS['cannot_dock'])
-        self._ligand_icon = menu.root.find_node("LigandIcon").add_new_image(ICONS['ligand_gray'])
-        self._receptor_icon = menu.root.find_node("ReceptorIcon").add_new_image(ICONS['receptor_gray'])
+        self._check_arrow = root.find_node("CheckArrow").add_new_image(ICONS['cannot_dock'])
+        self._ligand_icon = root.find_node("LigandIcon").add_new_image(ICONS['ligand_gray'])
+        self._receptor_icon = root.find_node("ReceptorIcon").add_new_image(ICONS['receptor_gray'])
 
-        slider_oval = menu.root.find_node("SizeOval")
+        slider_oval = root.find_node("SizeOval")
         slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
-        refresh_icon = menu.root.find_node("RefreshIcon")
+        refresh_icon = root.find_node("RefreshIcon")
         refresh_icon.add_new_image(file_path=ICONS['refresh'])
         setting_slider_oval = setting_menu.root.find_node("ExhaustOval")
         setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
         # text
-
-        self._txt2 = menu.root.find_node("ModesInput").get_content()
+        self._txt2 = root.find_node("ModesInput").get_content()
         self._txt2.register_changed_callback(self.modes_changed)
-        self._ligand_txt = menu.root.find_node("LigandName").get_content()
-        self._receptor_txt = menu.root.find_node("ReceptorName").get_content()
+        self._ligand_txt = root.find_node("LigandName").get_content()
+        self._receptor_txt = root.find_node("ReceptorName").get_content()
 
-        self._LocXInput = menu.root.find_node("LocXInput").get_content()
+        self._LocXInput = root.find_node("LocXInput").get_content()
         self._LocXInput.register_submitted_callback(partial(self.loc_submitted, 0))
-        self._LocYInput = menu.root.find_node("LocYInput").get_content()
+        self._LocYInput = root.find_node("LocYInput").get_content()
         self._LocYInput.register_submitted_callback(partial(self.loc_submitted, 1))
-        self._LocZInput = menu.root.find_node("LocZInput").get_content()
+        self._LocZInput = root.find_node("LocZInput").get_content()
         self._LocZInput.register_submitted_callback(partial(self.loc_submitted, 2))
 
         self._exhaustiveness_txt = setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
 
-        self.size_value_txt = menu.root.find_node("SizeValue").get_content()
+        self.size_value_txt = root.find_node("SizeValue").get_content()
 
-        align_btn = menu.root.find_node("AlignButton").get_content()
+        align_btn = root.find_node("AlignButton").get_content()
         align_btn.register_pressed_callback(self.align_button_pressed_callback)
         align_btn.selected = True
 
-        self._score_btn = menu.root.find_node("ScoringButton").get_content()
+        self._score_btn = root.find_node("ScoringButton").get_content()
         self._score_btn.register_pressed_callback(self.scoring_button_pressed_callback)
 
         self._display_score_btn = setting_menu.root.find_node("VisualScoresButton").get_content()
         self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
 
-        close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
+        close_score_btn = root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
 
-        self.ln_run_button = menu.root.find_node("RunButton")
+        self.ln_run_button = root.find_node("RunButton")
         run_button = self.ln_run_button.get_content()
         run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
 
-        pose_sub_btn = menu.root.find_node("PoseSub").get_content()
+        pose_sub_btn = root.find_node("PoseSub").get_content()
         pose_sub_btn.register_pressed_callback(self.pose_subbed_callback)
-        pose_add_btn = menu.root.find_node("PoseAdd").get_content()
+        pose_add_btn = root.find_node("PoseAdd").get_content()
         pose_add_btn.register_pressed_callback(self.pose_added_callback)
 
-        location_refresh_btn = menu.root.find_node("LocationRefresh").get_content()
+        location_refresh_btn = root.find_node("LocationRefresh").get_content()
         location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
 
         # loading bar
-        self.ln_loading_bar = menu.root.find_node("LoadingBar")
+        self.ln_loading_bar = root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
         self.loading_bar.description = "    Loading...          "
 
         # dropdown
-        self._ligand_dropdown = menu.root.find_node("LigandDropdown").add_new_dropdown()
+        self._ligand_dropdown = root.find_node("LigandDropdown").add_new_dropdown()
         self._ligand_dropdown.use_permanent_title = True
         self._ligand_dropdown.permanent_title = "None"
-        self._receptor_dropdown = menu.root.find_node("ReceptorDropdown").add_new_dropdown()
+        self._receptor_dropdown = root.find_node("ReceptorDropdown").add_new_dropdown()
         self._receptor_dropdown.use_permanent_title = True
         self._receptor_dropdown.permanent_title = "None"
-        self._site_dropdown = menu._root.find_node("SiteDropdown").add_new_dropdown()
+        self._site_dropdown = self._menu._root.find_node("SiteDropdown").add_new_dropdown()
         self._site_dropdown.use_permanent_title = True
         self._site_dropdown.permanent_title = "None"
 
         # slider
-        self._slider = menu.root.find_node("Slider").get_content()
+        self._slider = root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
 
         self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
 
-        # Update the menu
-        self._menu = menu
-        self._plugin.update_menu(menu)
+        self._menu.enabled = True
+        self._plugin.update_menu(self._menu)
         Logs.debug("Constructed plugin menu")
 
     @staticmethod
