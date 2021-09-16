@@ -13,7 +13,7 @@ ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listd
 
 class DockingMenu():
 
-    def __init__(self, docking_plugin, autodock4=False):
+    def __init__(self, docking_plugin):
         self._plugin = docking_plugin
         self._selected_receptor = None
         self._selected_ligands = []
@@ -27,8 +27,18 @@ class DockingMenu():
         self._scoring = False
         self._visual_scores = False
         self._tab = None
-        self._autobox_enabled = True
-        self._autodock4 = autodock4
+
+        # loading menus
+        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
+        self._setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+        # Algorithm is part of the plugin class name. Easiest way to access that.
+        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
+        self._menu.title = f'{algo_name} Docking'
+        self._plugin.menu = self._menu
+        self._plugin.setting_menu = self._setting_menu
+
+        # self._site_btn = self._menu.root.find_node("SiteButton").get_content()
+        # self._site_btn.register_pressed_callback(self.tab_button_pressed_callback)
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -61,25 +71,18 @@ class DockingMenu():
 
     async def _run_docking(self):
         if self._selected_receptor is None or len(self._selected_ligands) == 0:
-            if self._autobox_enabled is True and self._selected_site is None:
+            if self._selected_site is None:
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
         ligands = []
         for item in self._selected_ligands:
             ligands.append(item.complex)
         site = None
-        if self._autobox_enabled and self._selected_site:
+        if self._selected_site:
             site = self._selected_site.complex
         self.show_loading(True)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
         self.show_loading(False)
-
-    def disable_autobox(self):
-        self._site_btn.unusable = True
-        self._score_btn.unusable = True
-        self._txt2.unusable = True
-        self._autobox_enabled = False
-        self._plugin.update_menu(self._menu)
 
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update=False)
@@ -200,18 +203,10 @@ class DockingMenu():
     @async_callback
     async def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
         if component_name == 'ligand':
-            # cur_index = item.complex.index
-            # this line is saved for future version of dropdown api
-            # if cur_index not in [x.complex.index for x in self._selected_ligands]:
             if not self._selected_ligands:
                 self._selected_ligands.append(item)
                 item.selected = True
             else:
-                # This part is saved for future version of dropdown api
-                # for x in self._selected_ligands:
-                #     if x.complex.index == cur_index:
-                #         self._selected_ligands.remove(x)
-                #         break
                 if (len(self._selected_ligands) > 1) or\
                    (len(self._selected_ligands) == 1 and self._selected_ligands[0].complex.index != item.complex.index):
                     self._selected_ligands = [item]
@@ -283,108 +278,9 @@ class DockingMenu():
         self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
     def build_menu(self):
-
-        @async_callback
-        async def run_button_pressed_callback(button):
-            if self._scoring:
-                self._docking_param_panel.enabled = False
-                self._score_panel.enabled = True
-                self._score_list.items = []
-                self._plugin.update_menu(self._menu)
-            await self._run_docking()
-
-        def modes_changed(input):
-            try:
-                self._modes = int(input.input_text)
-            except:
-                self._modes = 9
-
-            if self._modes <= 0:
-                self._modes = 1
-                self._txt2.input_text = self._modes
-                self._plugin.update_content(self._txt2)
-
-        def align_button_pressed_callback(button):
-            self._align = not self._align
-            button.selected = self._align
-            self._plugin.update_content(button)
-
-        def close_score_pressed_callback(button):
-            self._docking_param_panel.enabled = True
-            self._score_panel.enabled = False
-            self._plugin.update_menu(self._menu)
-
-        def scoring_button_pressed_callback(button):
-            self._scoring = not self._scoring
-            button.selected = self._scoring
-            self._plugin.update_content(button)
-
-        def visual_scores_button_pressed_callback(button):
-            self._visual_scores = not self._visual_scores
-            button.selected = self._visual_scores
-            self._plugin.update_content(button)
-
-        def slider_released_callback(slider):
-            slider.current_value = round(slider.current_value)
-            self._plugin.update_content(slider)
-            self._autobox = slider.current_value
-            self.size_value_txt.text_value = str(slider.current_value)
-            self._plugin.update_content(self.size_value_txt)
-
-        def exhaust_slider_released_callback(slider):
-            slider.current_value = round(slider.current_value)
-            self._plugin.update_content(slider)
-            self._exhaustiveness = slider.current_value
-            self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
-            self._plugin.update_content(self._exhaustiveness_txt)
-
-        def loc_submitted(index, text_input):
-            try:
-                float(text_input.input_text)
-                self._selected_site.complex.position[index] = float(text_input.input_text)
-            except:
-                Logs.debug("Input is not a float")
-            self._plugin.update_structures_shallow([self._selected_site.complex])
-
-        def pose_added_callback(button):
-            self._modes += 1
-            self._txt2.input_text = self._modes
-            self._plugin.update_content(self._txt2)
-
-        def pose_subbed_callback(button):
-            self._modes -= 1
-            if self._modes <= 0:
-                self._modes = 1
-            self._txt2.input_text = self._modes
-            self._plugin.update_content(self._txt2)
-
-        def loc_refresh_pressed_callback(button):
-            def update_site_loc(complexes_list):
-                for complex in complexes_list:
-                    if complex.index == self._selected_site.complex.index:
-                        self._selected_site.complex = complex
-                        self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex.position]
-                        self._plugin.update_menu(self._menu)
-
-            if not self._selected_site:
-                Logs.debug("No Site Selected")
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
-                self._plugin.update_menu(self._menu)
-            else:
-                Logs.debug("Update the site location")
-                self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
-
-        # loading menus
-        menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
-        setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
-        # Algorithm is part of the plugin class name. Easiest way to access that.
-        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
-        menu.title = f'{algo_name} Docking'
-
-        self._plugin.menu = menu
-        self._plugin.setting_menu = setting_menu
         # registering and saving special nodes
-
+        menu = self._menu
+        setting_menu = self._setting_menu
         # panels
         self._docking_param_panel = menu.root.find_node("LeftSide")
         self._score_panel = menu.root.find_node("LeftSideScore")
@@ -406,16 +302,16 @@ class DockingMenu():
         # text
 
         self._txt2 = menu.root.find_node("ModesInput").get_content()
-        self._txt2.register_changed_callback(modes_changed)
+        self._txt2.register_changed_callback(self.modes_changed)
         self._ligand_txt = menu.root.find_node("LigandName").get_content()
         self._receptor_txt = menu.root.find_node("ReceptorName").get_content()
 
         self._LocXInput = menu.root.find_node("LocXInput").get_content()
-        self._LocXInput.register_submitted_callback(partial(loc_submitted, 0))
+        self._LocXInput.register_submitted_callback(partial(self.loc_submitted, 0))
         self._LocYInput = menu.root.find_node("LocYInput").get_content()
-        self._LocYInput.register_submitted_callback(partial(loc_submitted, 1))
+        self._LocYInput.register_submitted_callback(partial(self.loc_submitted, 1))
         self._LocZInput = menu.root.find_node("LocZInput").get_content()
-        self._LocZInput.register_submitted_callback(partial(loc_submitted, 2))
+        self._LocZInput.register_submitted_callback(partial(self.loc_submitted, 2))
 
         self._exhaustiveness_txt = setting_menu.root.find_node("ExhaustValue").get_content()
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
@@ -423,32 +319,32 @@ class DockingMenu():
         self.size_value_txt = menu.root.find_node("SizeValue").get_content()
 
         align_btn = menu.root.find_node("AlignButton").get_content()
-        align_btn.register_pressed_callback(align_button_pressed_callback)
+        align_btn.register_pressed_callback(self.align_button_pressed_callback)
         align_btn.selected = True
 
         self._score_btn = menu.root.find_node("ScoringButton").get_content()
-        self._score_btn.register_pressed_callback(scoring_button_pressed_callback)
+        self._score_btn.register_pressed_callback(self.scoring_button_pressed_callback)
 
         self._display_score_btn = setting_menu.root.find_node("VisualScoresButton").get_content()
-        self._display_score_btn.register_pressed_callback(visual_scores_button_pressed_callback)
+        self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
 
         close_score_btn = menu.root.find_node("CloseScoreButton").get_content()
-        close_score_btn.register_pressed_callback(close_score_pressed_callback)
+        close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
 
         self.ln_run_button = menu.root.find_node("RunButton")
         run_button = self.ln_run_button.get_content()
-        run_button.register_pressed_callback(run_button_pressed_callback)
+        run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button = run_button
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
 
         pose_sub_btn = menu.root.find_node("PoseSub").get_content()
-        pose_sub_btn.register_pressed_callback(pose_subbed_callback)
+        pose_sub_btn.register_pressed_callback(self.pose_subbed_callback)
         pose_add_btn = menu.root.find_node("PoseAdd").get_content()
-        pose_add_btn.register_pressed_callback(pose_added_callback)
+        pose_add_btn.register_pressed_callback(self.pose_added_callback)
 
         location_refresh_btn = menu.root.find_node("LocationRefresh").get_content()
-        location_refresh_btn.register_pressed_callback(loc_refresh_pressed_callback)
+        location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
 
         # loading bar
         self.ln_loading_bar = menu.root.find_node("LoadingBar")
@@ -468,19 +364,12 @@ class DockingMenu():
 
         # slider
         self._slider = menu.root.find_node("Slider").get_content()
-        self._slider.register_released_callback(slider_released_callback)
+        self._slider.register_released_callback(self.slider_released_callback)
         self._slider.current_value = self._autobox
 
         self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
-        self._exhaust_slider.register_released_callback(exhaust_slider_released_callback)
+        self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
-
-        if self._autodock4:
-            # Autodock4 should hide specific sections
-            menu.root.find_node('Location').enabled = False
-            menu.root.find_node('Size').enabled = False
-            menu.root.find_node('SiteData').enabled = False
-            self._check_arrow._file_path = ICONS['can_dock']
 
         # Update the menu
         self._menu = menu
@@ -489,7 +378,7 @@ class DockingMenu():
 
     @staticmethod
     def get_center(complex):
-        # Calculate the center of a complex
+        """Calculate the center of a complex."""
         inf = float('inf')
         min_pos = Vector3(inf, inf, inf)
         max_pos = Vector3(-inf, -inf, -inf)
@@ -503,3 +392,93 @@ class DockingMenu():
             max_pos.z = max(max_pos.z, atom.position.z)
 
         return (min_pos + max_pos) * 0.5
+
+    @async_callback
+    async def run_button_pressed_callback(self, button):
+        if self._scoring:
+            self._docking_param_panel.enabled = False
+            self._score_panel.enabled = True
+            self._score_list.items = []
+            self._plugin.update_menu(self._menu)
+        await self._run_docking()
+
+    def modes_changed(self, input):
+        try:
+            self._modes = int(input.input_text)
+        except:
+            self._modes = 9
+
+        if self._modes <= 0:
+            self._modes = 1
+            self._txt2.input_text = self._modes
+            self._plugin.update_content(self._txt2)
+
+    def align_button_pressed_callback(self, button):
+        self._align = not self._align
+        button.selected = self._align
+        self._plugin.update_content(button)
+
+    def close_score_pressed_callback(self, button):
+        self._docking_param_panel.enabled = True
+        self._score_panel.enabled = False
+        self._plugin.update_menu(self._menu)
+
+    def scoring_button_pressed_callback(self, button):
+        self._scoring = not self._scoring
+        button.selected = self._scoring
+        self._plugin.update_content(button)
+
+    def visual_scores_button_pressed_callback(self, button):
+        self._visual_scores = not self._visual_scores
+        button.selected = self._visual_scores
+        self._plugin.update_content(button)
+
+    def slider_released_callback(self, slider):
+        slider.current_value = round(slider.current_value)
+        self._plugin.update_content(slider)
+        self._autobox = slider.current_value
+        self.size_value_txt.text_value = str(slider.current_value)
+        self._plugin.update_content(self.size_value_txt)
+
+    def exhaust_slider_released_callback(self, slider):
+        slider.current_value = round(slider.current_value)
+        self._plugin.update_content(slider)
+        self._exhaustiveness = slider.current_value
+        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
+        self._plugin.update_content(self._exhaustiveness_txt)
+
+    def loc_submitted(index, self, text_input):
+        try:
+            float(text_input.input_text)
+            self._selected_site.complex.position[index] = float(text_input.input_text)
+        except:
+            Logs.debug("Input is not a float")
+        self._plugin.update_structures_shallow([self._selected_site.complex])
+
+    def pose_added_callback(self, button):
+        self._modes += 1
+        self._txt2.input_text = self._modes
+        self._plugin.update_content(self._txt2)
+
+    def pose_subbed_callback(self, button):
+        self._modes -= 1
+        if self._modes <= 0:
+            self._modes = 1
+        self._txt2.input_text = self._modes
+        self._plugin.update_content(self._txt2)
+
+    def loc_refresh_pressed_callback(self, button):
+        def update_site_loc(complexes_list):
+            for complex in complexes_list:
+                if complex.index == self._selected_site.complex.index:
+                    self._selected_site.complex = complex
+                    self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex.position]
+                    self._plugin.update_menu(self._menu)
+
+        if not self._selected_site:
+            Logs.debug("No Site Selected")
+            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
+            self._plugin.update_menu(self._menu)
+        else:
+            Logs.debug("Update the site location")
+            self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)

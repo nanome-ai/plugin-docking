@@ -17,15 +17,12 @@ class Docking(nanome.AsyncPluginInstance):
         self._menu = None
         self.setting_menu = None
         self._calculations = None
-        self._autobox = True
         self._site = None
 
     @async_callback
     async def start(self):
         # Called when Nanome connects to the Plugin, after its instantiation
         self._menu.build_menu()
-        if self._autobox is False:
-            self._menu.disable_autobox()
         # Request shallow complex (name, position, orientation), to display them in a list
         complexes = await self.request_complex_list()
         self._menu.change_complex_list(complexes)
@@ -112,6 +109,7 @@ class Docking(nanome.AsyncPluginInstance):
 
 
 class SminaDocking(Docking):
+
     def __init__(self):
         super(SminaDocking, self).__init__()
         self._calculations = Smina(self)
@@ -119,14 +117,15 @@ class SminaDocking(Docking):
 
 
 class Autodock4Docking(Docking):
+
     def __init__(self):
         super(Autodock4Docking, self).__init__()
         self._calculations = Autodock4(self)
-        self._menu = DockingMenu(self, autodock4=True)
-        self._autobox = False
+        self._menu = DockingMenu(self)
 
 
 class RhodiumDocking(Docking):
+
     def __init__(self):
         super(RhodiumDocking, self).__init__()
         self._calculations = Rhodium(self)
