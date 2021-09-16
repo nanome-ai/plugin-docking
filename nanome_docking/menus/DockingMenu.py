@@ -365,7 +365,6 @@ class DockingMenu():
         # slider
         self._slider = menu.root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
-        self._slider.current_value = self._autobox
 
         self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
@@ -433,11 +432,17 @@ class DockingMenu():
         button.selected = self._visual_scores
         self._plugin.update_content(button)
 
-    def slider_released_callback(self, slider):
+    @async_callback
+    async def slider_released_callback(self, slider):
         slider.current_value = round(slider.current_value)
         self._plugin.update_content(slider)
         self._autobox = slider.current_value
         self.size_value_txt.text_value = str(slider.current_value)
+
+        if hasattr(self, 'site_sphere'):
+            # Update site sphere to show new radius
+            self.site_sphere.radius = slider.current_value
+            await Shape.upload(self.site_sphere)
         self._plugin.update_content(self.size_value_txt)
 
     def exhaust_slider_released_callback(self, slider):
