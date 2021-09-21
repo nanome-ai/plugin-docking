@@ -18,7 +18,6 @@ class DockingMenu():
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
-        self._exhaustiveness = 10
         self._modes = 5
         self._autobox = 4
         self._run_button = None
@@ -30,12 +29,10 @@ class DockingMenu():
 
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
-        self._setting_menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
 
         # Algorithm is part of the plugin class name. Easiest way to access that.
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
-        self._plugin.setting_menu = self._setting_menu
 
     def get_receptor(self):
         return self._selected_receptor.complex
@@ -52,9 +49,24 @@ class DockingMenu():
         return self._selected_site.complex
 
     def get_params(self):
-        params = {"exhaustiveness": None, "modes": None, "align": None, "replace": None, "scoring": None, "visual_scores": None, "autobox": None}
+        """Collect parameters from this menu and the  Settings Menu."""
+        params = {
+            "exhaustiveness": None,
+            "modes": None,
+            "align": None,
+            "replace": None,
+            "scoring": None,
+            "visual_scores": None,
+            "autobox": None
+        }
+        settings_menu = self._plugin.settings_menu
         for key in params.keys():
-            newvalue = getattr(self, "_" + key)
+            attr_key = f'_{key}'
+            if hasattr(self, attr_key):
+                newvalue = getattr(self, attr_key)
+            else:
+                # Get value from Settings menu
+                newvalue = getattr(settings_menu, attr_key)
             params[key] = newvalue
         return params
 
@@ -275,9 +287,6 @@ class DockingMenu():
         self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
     def build_menu(self):
-        # registering and saving special nodes
-        # menu = self._menu
-        setting_menu = self._setting_menu
         # panels
         root = self._menu.root
         self._docking_param_panel = root.find_node("LeftSide")
@@ -294,8 +303,6 @@ class DockingMenu():
 
         refresh_icon = root.find_node("RefreshIcon")
         refresh_icon.add_new_image(file_path=ICONS['refresh'])
-        setting_slider_oval = setting_menu.root.find_node("ExhaustOval")
-        setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
 
         # text
         self._txt2 = root.find_node("ModesInput").get_content()
@@ -310,9 +317,6 @@ class DockingMenu():
         self._LocZInput = root.find_node("LocZInput").get_content()
         self._LocZInput.register_submitted_callback(partial(self.loc_submitted, 2))
 
-        self._exhaustiveness_txt = setting_menu.root.find_node("ExhaustValue").get_content()
-        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
-
         self.size_value_txt = root.find_node("SizeValue").get_content()
 
         align_btn = root.find_node("AlignButton").get_content()
@@ -321,9 +325,6 @@ class DockingMenu():
 
         self._score_btn = root.find_node("ScoringButton").get_content()
         self._score_btn.register_pressed_callback(self.scoring_button_pressed_callback)
-
-        self._display_score_btn = setting_menu.root.find_node("VisualScoresButton").get_content()
-        self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
 
         close_score_btn = root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
@@ -362,10 +363,6 @@ class DockingMenu():
         # slider
         self._slider = root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
-
-        self._exhaust_slider = setting_menu.root.find_node("ExhaustSlider").get_content()
-        self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
-        self._exhaust_slider.current_value = self._exhaustiveness
 
         self._menu.enabled = True
         self._plugin.update_menu(self._menu)
@@ -423,11 +420,6 @@ class DockingMenu():
         button.selected = self._scoring
         self._plugin.update_content(button)
 
-    def visual_scores_button_pressed_callback(self, button):
-        self._visual_scores = not self._visual_scores
-        button.selected = self._visual_scores
-        self._plugin.update_content(button)
-
     @async_callback
     async def slider_released_callback(self, slider):
         slider.current_value = round(slider.current_value)
@@ -440,13 +432,6 @@ class DockingMenu():
             self.site_sphere.radius = slider.current_value
             await Shape.upload(self.site_sphere)
         self._plugin.update_content(self.size_value_txt)
-
-    def exhaust_slider_released_callback(self, slider):
-        slider.current_value = round(slider.current_value)
-        self._plugin.update_content(slider)
-        self._exhaustiveness = slider.current_value
-        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
-        self._plugin.update_content(self._exhaustiveness_txt)
 
     def loc_submitted(index, self, text_input):
         try:
@@ -483,3 +468,34 @@ class DockingMenu():
         else:
             Logs.debug("Update the site location")
             self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
+
+
+class SettingsMenu:
+
+    def __init__(self, plugin):
+        self._plugin = plugin
+        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+        self._exhaustiveness = 10
+
+        menu_root = self._menu.root
+        self.setting_slider_oval = menu_root.find_node("ExhaustOval")
+        self.setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
+        self._exhaustiveness_txt = menu_root.find_node("ExhaustValue").get_content()
+        self._display_score_btn = menu_root.find_node("VisualScoresButton").get_content()
+        self._exhaust_slider = menu_root.find_node("ExhaustSlider").get_content()
+
+        self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
+        self._exhaust_slider.current_value = self._exhaustiveness
+        self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
+
+    def exhaust_slider_released_callback(self, slider):
+        slider.current_value = round(slider.current_value)
+        self._plugin.update_content(slider)
+        self._exhaustiveness = slider.current_value
+        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
+        self._plugin.update_content(self._exhaustiveness_txt)
+
+    def visual_scores_button_pressed_callback(self, button):
+        self._visual_scores = not self._visual_scores
+        button.selected = self._visual_scores
+        self._plugin.update_content(button)

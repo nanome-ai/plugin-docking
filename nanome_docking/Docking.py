@@ -4,7 +4,7 @@ from nanome.util import async_callback, ComplexUtils
 from nanome_docking.smina.calculations import DockingCalculations as Smina
 from nanome_docking.autodock4.calculations import DockingCalculations as Autodock4
 from nanome_docking.rhodium.calculations import DockingCalculations as Rhodium
-from nanome_docking.menus.DockingMenu import DockingMenu
+from nanome_docking.menus.DockingMenu import DockingMenu, SettingsMenu
 from nanome_docking.menus.DockingMenuRhodium import DockingMenuRhodium
 
 
@@ -14,7 +14,7 @@ __metaclass__ = type
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
-        self.setting_menu = None
+        self.settings_menu = None
         self._calculations = None
         self._site = None
 
@@ -22,6 +22,8 @@ class Docking(nanome.AsyncPluginInstance):
     async def start(self):
         # Called when Nanome connects to the Plugin, after its instantiation
         self.menu = DockingMenu(self)
+        self.settings_menu = SettingsMenu(self)
+        
         self.menu.build_menu()
         # Request shallow complex (name, position, orientation), to display them in a list
         complexes = await self.request_complex_list()
@@ -33,9 +35,9 @@ class Docking(nanome.AsyncPluginInstance):
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
-        self.setting_menu.enabled = True
-        self.setting_menu.index = 1
-        self.update_menu(self.setting_menu)
+        self.settings_menu.enabled = True
+        self.settings_menu.index = 1
+        self.update_menu(self.settings_menu)
 
     @async_callback
     async def on_complex_added(self):
