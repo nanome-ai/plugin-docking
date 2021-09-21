@@ -30,7 +30,6 @@ class DockingMenu():
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
 
-        # Algorithm is part of the plugin class name. Easiest way to access that.
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
 
@@ -49,7 +48,7 @@ class DockingMenu():
         return self._selected_site.complex
 
     def get_params(self):
-        """Collect parameters from this menu and the  Settings Menu."""
+        """Collect parameters from this menu and the Settings Menu."""
         params = {
             "exhaustiveness": None,
             "modes": None,
@@ -138,7 +137,12 @@ class DockingMenu():
         self.dd_ligands.items = ligand_list
         self.dd_receptor.items = receptor_list
         self.dd_site.items = site_list
-        self.dd_ligands.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_ligands, 'ligand'))
+
+        # Ligands should allow multiple selections
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
+        self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
+
         self.dd_receptor.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_receptor, 'receptor'))
         self.dd_site.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
 
@@ -192,6 +196,16 @@ class DockingMenu():
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
 
+    def handle_ligand_selected(self, dropdown, item):
+        self.multi_select_dropdown(dropdown, item)
+        self._selected_ligands = dropdown._selected_items
+        if not self._selected_ligands:
+            self._ligand_txt._text_value = "Ligand"
+        else:
+            label = ', '.join([item.complex.full_name for item in self._selected_ligands])
+            self._ligand_txt._text_value = label if len(label) <= 4 else label[:8] + '...'
+        self._plugin.update_content(self._ligand_txt)
+
     def display_scoring_result(self, result):
         self.reset()
 
@@ -212,28 +226,7 @@ class DockingMenu():
 
     @async_callback
     async def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
-        if component_name == 'ligand':
-            if not self._selected_ligands:
-                self._selected_ligands.append(item)
-                item.selected = True
-            else:
-                if (len(self._selected_ligands) > 1) or\
-                   (len(self._selected_ligands) == 1 and self._selected_ligands[0].complex.index != item.complex.index):
-                    self._selected_ligands = [item]
-                    item.selected = True
-                else:
-                    self._selected_ligands = []
-                    item.selected = False
-
-            if len(self._selected_ligands) == 1:
-                self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
-                self.dd_ligands.use_permanent_title = False
-            elif len(self._selected_ligands) == 0:
-                self.dd_ligands.use_permanent_title = True
-                self.dd_ligands.permanent_title = "None"
-                self._ligand_txt._text_value = "Ligand"
-
-        elif component_name == 'receptor':
+        if component_name == 'receptor':
             if self._selected_receptor and self._selected_receptor.index == item.complex.index:
                 self._selected_receptor = None
             else:
@@ -479,6 +472,26 @@ class DockingMenu():
     def dd_site(self):
         return self._menu.root.find_node("SiteDropdown").get_content()
 
+    def multi_select_dropdown(self, dropdown, item):
+        if not hasattr(dropdown, '_selected_items'):
+            dropdown._selected_items = []
+
+        selected_items = dropdown._selected_items
+        if item not in selected_items:
+            selected_items.append(item)
+        else:
+            selected_items.remove(item)
+            item.selected = False
+
+        for ddi in selected_items:
+            ddi.selected = True
+
+        dropdown.use_permanent_title = True
+        permanent_title = ','.join([ddi.name for ddi in selected_items]) if selected_items else 'None'
+        dropdown.permanent_title = permanent_title
+
+        dropdown.use_permanent_title = len(selected_items) > 1
+        self._plugin.update_content(dropdown)
 
 class SettingsMenu:
 
