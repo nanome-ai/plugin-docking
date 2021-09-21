@@ -204,11 +204,12 @@ class DockingMenu():
         else:
             label = ', '.join([item.complex.full_name for item in self._selected_ligands])
             self._ligand_txt._text_value = label if len(label) <= 4 else label[:8] + '...'
-        self._plugin.update_content(self._ligand_txt)
+        self.update_icons()
+        self.refresh_run_btn_unusable()
+        self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
         self.reset()
-
         for molecule in result.molecules:
             clone = self._score_item_prefab.clone()
             ln_lbl = clone.get_children()[0]
