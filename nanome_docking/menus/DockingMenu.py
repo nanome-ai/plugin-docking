@@ -26,9 +26,17 @@ class DockingMenu():
         self._scoring = False
         self._visual_scores = False
         self._tab = None
-
+        
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
+        
+        # Run button
+        self.ln_run_button = self._menu.root.find_node("RunButton")
+        self._run_button = self.ln_run_button.get_content()
+        # loading bar
+        self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
+        self.loading_bar = self.ln_loading_bar.get_content()
+        self.loading_bar.description = "    Loading...          "
 
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
@@ -142,8 +150,7 @@ class DockingMenu():
         for item in self.dd_ligands.items:
             item.close_on_selected = False
         self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
-
-        self.dd_receptor.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_receptor, 'receptor'))
+        self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
         self.dd_site.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
 
         ligand_stayed = False
@@ -208,6 +215,23 @@ class DockingMenu():
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
 
+    def handle_receptor_selected(self, dropdown, item):
+        # If selected complex was previously selected, we are actually unselecting it.
+        unselecting_complex = self._selected_receptor and item.complex.index == self._selected_receptor.index
+        self._selected_receptor = None if unselecting_complex else item.complex
+        
+        if self._selected_receptor:
+            self.dd_receptor.use_permanent_title = False
+            self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
+        else:
+            self._receptor_txt._text_value = "Receptor"
+            self.dd_receptor.use_permanent_title = True
+            self.dd_receptor.permanent_title = "None"
+        self.update_icons()
+        self.refresh_run_btn_unusable()
+        self._plugin.update_menu(self._menu)
+
+
     def display_scoring_result(self, result):
         self.reset()
         for molecule in result.molecules:
@@ -227,21 +251,7 @@ class DockingMenu():
 
     @async_callback
     async def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
-        if component_name == 'receptor':
-            if self._selected_receptor and self._selected_receptor.index == item.complex.index:
-                self._selected_receptor = None
-            else:
-                self._selected_receptor = item.complex
-
-            if self._selected_receptor:
-                self.dd_receptor.use_permanent_title = False
-                self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
-            else:
-                self._receptor_txt._text_value = "Receptor"
-                self.dd_receptor.use_permanent_title = True
-                self.dd_receptor.permanent_title = "None"
-
-        elif component_name == 'site':
+        if component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
                 self._selected_site = item
 
@@ -323,11 +333,8 @@ class DockingMenu():
 
         close_score_btn = root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
-
-        self.ln_run_button = root.find_node("RunButton")
-        run_button = self.ln_run_button.get_content()
-        run_button.register_pressed_callback(self.run_button_pressed_callback)
-        self._run_button = run_button
+        
+        self._run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
 
@@ -338,11 +345,6 @@ class DockingMenu():
 
         location_refresh_btn = root.find_node("LocationRefresh").get_content()
         location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
-
-        # loading bar
-        self.ln_loading_bar = root.find_node("LoadingBar")
-        self.loading_bar = self.ln_loading_bar.get_content()
-        self.loading_bar.description = "    Loading...          "
 
         # dropdown
         self.dd_ligands.use_permanent_title = True
