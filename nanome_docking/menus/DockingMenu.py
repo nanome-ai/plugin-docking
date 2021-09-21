@@ -126,6 +126,7 @@ class DockingMenu():
         return self._run_button.unusable
 
     def change_complex_list(self, complex_list):
+        """When complex list is updated, repopulate dropdowns."""
         ligand_list = []
         receptor_list = []
         site_list = []
@@ -134,58 +135,58 @@ class DockingMenu():
         receptor_list = self.create_complex_dropdown_items(complex_list)
         site_list = self.create_complex_dropdown_items(complex_list)
 
-        self._ligand_dropdown.items = ligand_list
-        self._receptor_dropdown.items = receptor_list
-        self._site_dropdown.items = site_list
-        self._ligand_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_ligands, 'ligand'))
-        self._receptor_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_receptor, 'receptor'))
-        self._site_dropdown.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
+        self.dd_ligands.items = ligand_list
+        self.dd_receptor.items = receptor_list
+        self.dd_site.items = site_list
+        self.dd_ligands.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_ligands, 'ligand'))
+        self.dd_receptor.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_receptor, 'receptor'))
+        self.dd_site.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
 
         ligand_stayed = False
         if not ligand_list:
-            self._ligand_dropdown.use_permanent_title = True
-            self._ligand_dropdown.permanent_title = "None"
+            self.dd_ligands.use_permanent_title = True
+            self.dd_ligands.permanent_title = "None"
             self._selected_ligands = []
-        elif self._selected_ligands and self._ligand_dropdown.items:
-            for i, x in enumerate(self._ligand_dropdown.items):
+        elif self._selected_ligands and self.dd_ligands.items:
+            for i, x in enumerate(self.dd_ligands.items):
                 if self._selected_ligands[0].complex.index == x.complex.index:
-                    self._ligand_dropdown.items[i].selected = True
+                    self.dd_ligands.items[i].selected = True
                     ligand_stayed = True
                     break
             if not ligand_stayed:
-                self._ligand_dropdown.use_permanent_title = True
-                self._ligand_dropdown.permanent_title = "None"
+                self.dd_ligands.use_permanent_title = True
+                self.dd_ligands.permanent_title = "None"
                 self._selected_ligands = []
 
         receptor_stayed = False
         if not receptor_list:
-            self._receptor_dropdown.use_permanent_title = True
-            self._receptor_dropdown.permanent_title = "None"
+            self.dd_receptor.use_permanent_title = True
+            self.dd_receptor.permanent_title = "None"
             self._selected_receptor = None
-        elif self._selected_receptor and self._receptor_dropdown.items:
-            for i, x in enumerate(self._receptor_dropdown.items):
+        elif self._selected_receptor and self.dd_receptor.items:
+            for i, x in enumerate(self.dd_receptor.items):
                 if self._selected_receptor.index == x.complex.index:
-                    self._receptor_dropdown.items[i].selected = True
+                    self.dd_receptor.items[i].selected = True
                     receptor_stayed = True
                     break
             if not receptor_stayed:
-                self._receptor_dropdown.use_permanent_title = True
-                self._receptor_dropdown.permanent_title = "None"
+                self.dd_receptor.use_permanent_title = True
+                self.dd_receptor.permanent_title = "None"
                 self._selected_receptor = None
 
         site_stayed = False
         if not site_list:
-            self._site_dropdown.use_permanent_title = True
-            self._site_dropdown.permanent_title = "None"
+            self.dd_site.use_permanent_title = True
+            self.dd_site.permanent_title = "None"
             self._selected_site = None
-        if self._selected_site and self._site_dropdown.items:
-            for i, x in enumerate(self._site_dropdown.items):
+        if self._selected_site and self.dd_site.items:
+            for i, x in enumerate(self.dd_site.items):
                 if self._selected_site.complex.index == x.complex.index:
-                    self._site_dropdown.items[i].selected = True
+                    self.dd_site.items[i].selected = True
                     site_stayed = True
             if not site_stayed:
-                self._site_dropdown.use_permanent_title = True
-                self._site_dropdown.permanent_title = "None"
+                self.dd_site.use_permanent_title = True
+                self.dd_site.permanent_title = "None"
                 self._selected_site = None
 
         self.refresh_run_btn_unusable()
@@ -226,10 +227,10 @@ class DockingMenu():
 
             if len(self._selected_ligands) == 1:
                 self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
-                self._ligand_dropdown.use_permanent_title = False
+                self.dd_ligands.use_permanent_title = False
             elif len(self._selected_ligands) == 0:
-                self._ligand_dropdown.use_permanent_title = True
-                self._ligand_dropdown.permanent_title = "None"
+                self.dd_ligands.use_permanent_title = True
+                self.dd_ligands.permanent_title = "None"
                 self._ligand_txt._text_value = "Ligand"
 
         elif component_name == 'receptor':
@@ -239,12 +240,12 @@ class DockingMenu():
                 self._selected_receptor = item.complex
 
             if self._selected_receptor:
-                self._receptor_dropdown.use_permanent_title = False
+                self.dd_receptor.use_permanent_title = False
                 self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
             else:
                 self._receptor_txt._text_value = "Receptor"
-                self._receptor_dropdown.use_permanent_title = True
-                self._receptor_dropdown.permanent_title = "None"
+                self.dd_receptor.use_permanent_title = True
+                self.dd_receptor.permanent_title = "None"
 
         elif component_name == 'site':
             if not self._selected_site or self._selected_site.complex.index != item.complex.index:
@@ -270,10 +271,10 @@ class DockingMenu():
                 self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
 
             if self._selected_site:
-                self._site_dropdown.use_permanent_title = False
+                self.dd_site.use_permanent_title = False
             else:
-                self._site_dropdown.use_permanent_title = True
-                self._site_dropdown.permanent_title = "None"
+                self.dd_site.use_permanent_title = True
+                self.dd_site.permanent_title = "None"
 
         self.update_icons()
         self.refresh_run_btn_unusable()
@@ -350,15 +351,12 @@ class DockingMenu():
         self.loading_bar.description = "    Loading...          "
 
         # dropdown
-        self._ligand_dropdown = root.find_node("LigandDropdown").add_new_dropdown()
-        self._ligand_dropdown.use_permanent_title = True
-        self._ligand_dropdown.permanent_title = "None"
-        self._receptor_dropdown = root.find_node("ReceptorDropdown").add_new_dropdown()
-        self._receptor_dropdown.use_permanent_title = True
-        self._receptor_dropdown.permanent_title = "None"
-        self._site_dropdown = self._menu._root.find_node("SiteDropdown").add_new_dropdown()
-        self._site_dropdown.use_permanent_title = True
-        self._site_dropdown.permanent_title = "None"
+        self.dd_ligands.use_permanent_title = True
+        self.dd_ligands.permanent_title = "None"
+        self.dd_receptor.use_permanent_title = True
+        self.dd_receptor.permanent_title = "None"
+        self.dd_site.use_permanent_title = True
+        self.dd_site.permanent_title = "None"
 
         # slider
         self._slider = root.find_node("Slider").get_content()
@@ -468,6 +466,18 @@ class DockingMenu():
         else:
             Logs.debug("Update the site location")
             self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
+
+    @property
+    def dd_ligands(self):
+        return self._menu.root.find_node("LigandDropdown").get_content()
+
+    @property
+    def dd_receptor(self):
+        return self._menu.root.find_node("ReceptorDropdown").get_content()
+
+    @property
+    def dd_site(self):
+        return self._menu.root.find_node("SiteDropdown").get_content()
 
 
 class SettingsMenu:
