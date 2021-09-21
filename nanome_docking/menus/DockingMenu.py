@@ -26,10 +26,10 @@ class DockingMenu():
         self._scoring = False
         self._visual_scores = False
         self._tab = None
-        
+
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
-        
+
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
         self._run_button = self.ln_run_button.get_content()
@@ -151,7 +151,7 @@ class DockingMenu():
             item.close_on_selected = False
         self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
         self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
-        self.dd_site.register_item_clicked_callback(partial(self.handle_dropdown_pressed, self._selected_site, 'site'))
+        self.dd_site.register_item_clicked_callback(self.handle_site_selected)
 
         ligand_stayed = False
         if not ligand_list:
@@ -219,7 +219,7 @@ class DockingMenu():
         # If selected complex was previously selected, we are actually unselecting it.
         unselecting_complex = self._selected_receptor and item.complex.index == self._selected_receptor.index
         self._selected_receptor = None if unselecting_complex else item.complex
-        
+
         if self._selected_receptor:
             self.dd_receptor.use_permanent_title = False
             self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
@@ -230,7 +230,6 @@ class DockingMenu():
         self.update_icons()
         self.refresh_run_btn_unusable()
         self._plugin.update_menu(self._menu)
-
 
     def display_scoring_result(self, result):
         self.reset()
@@ -249,36 +248,39 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
+    async def draw_site_sphere(self, comp, radius):
+        site_sphere = Sphere()
+        site_sphere.color = nanome.util.Color(100, 100, 100, 120)
+        site_sphere.radius = radius
+        anchor = site_sphere.anchors[0]
+        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
+        anchor.target = comp.index
+        complex_center = self.get_center(comp)
+        anchor.local_offset = complex_center
+        await Shape.upload(site_sphere)
+        return site_sphere
+
     @async_callback
-    async def handle_dropdown_pressed(self, docking_component, component_name, dropdown, item):
-        if component_name == 'site':
-            if not self._selected_site or self._selected_site.complex.index != item.complex.index:
-                self._selected_site = item
+    async def handle_site_selected(self, dropdown, item):
+        # If site was previously selected, we are actually unselecting it.
+        unselecting_site = self._selected_site and item.complex.index == self._selected_site.complex.index
+        self._selected_site = None if unselecting_site else item
 
-                # Draw sphere indicating the site
-                self.site_sphere = Sphere()
-                self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
-                self.site_sphere.radius = self._slider.current_value
-                anchor = self.site_sphere.anchors[0]
-                anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
-                comp = await self._plugin.request_complexes([self._selected_site.complex.index])
-                comp = comp[0]
-                anchor.target = comp.index
-
-                complex_center = self.get_center(comp)
-                anchor.local_offset = complex_center
-                await Shape.upload(self.site_sphere)
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex_center]
-            else:
-                self._selected_site = None
-                item.selected = False
-                self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
-
-            if self._selected_site:
-                self.dd_site.use_permanent_title = False
-            else:
-                self.dd_site.use_permanent_title = True
-                self.dd_site.permanent_title = "None"
+        if self._selected_site:
+            self.dd_site.use_permanent_title = False
+            # Draw sphere indicating the site
+            radius = self._slider.current_value
+            comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
+            self.site_sphere = await self.draw_site_sphere(comp, radius)
+            complex_center = self.get_center(comp)
+            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex_center]
+        else:
+            self.dd_site.use_permanent_title = True
+            self.dd_site.permanent_title = "None"
+            item.selected = False
+            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
+            if hasattr(self, 'site_sphere'):
+                Shape.destroy(self.site_sphere)
 
         self.update_icons()
         self.refresh_run_btn_unusable()
@@ -287,7 +289,6 @@ class DockingMenu():
     def update_icons(self):
         self._ligand_icon._file_path = ICONS['ligand_white' if self._selected_ligands else 'ligand_gray']
         self._receptor_icon._file_path = ICONS['receptor_white' if self._selected_receptor else 'receptor_gray']
-
         can_dock = self._selected_ligands and self._selected_receptor and self._selected_site
         self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
@@ -333,7 +334,7 @@ class DockingMenu():
 
         close_score_btn = root.find_node("CloseScoreButton").get_content()
         close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
-        
+
         self._run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button.enabled = False
         self.refresh_run_btn_unusable()
@@ -495,6 +496,7 @@ class DockingMenu():
 
         dropdown.use_permanent_title = len(selected_items) > 1
         self._plugin.update_content(dropdown)
+
 
 class SettingsMenu:
 
