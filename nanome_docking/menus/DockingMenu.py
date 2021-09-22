@@ -29,7 +29,7 @@ class DockingMenu():
         self._tab = None
 
         # loading menus
-        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_menu.json'))
+        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_menu.json'))
 
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
@@ -283,7 +283,6 @@ class DockingMenu():
         # panels
         root = self._menu.root
         self._docking_param_panel = root.find_node("LeftSide")
-        self._score_panel = root.find_node("LeftSideScore")
         self._panel_separator = root.find_node("MiddleLine")
 
         # images
@@ -376,11 +375,6 @@ class DockingMenu():
 
     @async_callback
     async def run_button_pressed_callback(self, button):
-        if self._scoring:
-            self._docking_param_panel.enabled = False
-            self._score_panel.enabled = True
-            self._score_list.items = []
-            self._plugin.update_menu(self._menu)
         await self._run_docking()
 
     def modes_changed(self, input):
@@ -496,7 +490,7 @@ class SettingsMenu:
 
     def __init__(self, plugin):
         self._plugin = plugin
-        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', '_docking_setting_new.json'))
+        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_settings.json'))
         self._exhaustiveness = 10
 
         menu_root = self._menu.root
