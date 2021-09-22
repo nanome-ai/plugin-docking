@@ -26,7 +26,6 @@ class DockingMenu():
         self._replace = False
         self._scoring = False
         self._visual_scores = False
-        self._tab = None
 
         # loading menus
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_menu.json'))
@@ -215,15 +214,6 @@ class DockingMenu():
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
-    def display_scoring_result(self, result):
-        self.reset()
-        for molecule in result.molecules:
-            clone = self._score_item_prefab.clone()
-            ln_lbl = clone.get_children()[0]
-            lbl = ln_lbl.get_content()
-            lbl.text_value = molecule.name + " - " + molecule._associated["> <minimizedAffinity>"]
-            self._score_list.items.append(clone)
-
     def reset(self, update_menu=True):
         self._selected_receptor = None
         self._selected_ligands = []
@@ -311,16 +301,6 @@ class DockingMenu():
 
         self.size_value_txt = root.find_node("SizeValue").get_content()
 
-        align_btn = root.find_node("AlignButton").get_content()
-        align_btn.register_pressed_callback(self.align_button_pressed_callback)
-        align_btn.selected = True
-
-        self._score_btn = root.find_node("ScoringButton").get_content()
-        self._score_btn.register_pressed_callback(self.scoring_button_pressed_callback)
-
-        close_score_btn = root.find_node("CloseScoreButton").get_content()
-        close_score_btn.register_pressed_callback(self.close_score_pressed_callback)
-
         self._run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button.enabled = False
         self.refresh_run_btn_unusable(update=False)
@@ -387,21 +367,6 @@ class DockingMenu():
             self._modes = 1
             self._txt2.input_text = self._modes
             self._plugin.update_content(self._txt2)
-
-    def align_button_pressed_callback(self, button):
-        self._align = not self._align
-        button.selected = self._align
-        self._plugin.update_content(button)
-
-    def close_score_pressed_callback(self, button):
-        self._docking_param_panel.enabled = True
-        self._score_panel.enabled = False
-        self._plugin.update_menu(self._menu)
-
-    def scoring_button_pressed_callback(self, button):
-        self._scoring = not self._scoring
-        button.selected = self._scoring
-        self._plugin.update_content(button)
 
     @async_callback
     async def slider_released_callback(self, slider):

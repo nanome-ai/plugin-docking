@@ -85,9 +85,6 @@ class Docking(nanome.AsyncPluginInstance):
 
         self.update_structures_deep(results)
 
-    def display_scoring_result(self, result):
-        self.menu.display_scoring_result(result)
-
 
 class SminaDocking(Docking):
 
