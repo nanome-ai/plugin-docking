@@ -1,5 +1,6 @@
-from functools import partial
+import asyncio
 import os
+from functools import partial
 
 import nanome
 from nanome.util import Logs, async_callback, Vector3
@@ -200,7 +201,7 @@ class DockingMenu():
                 self.dd_site.permanent_title = "None"
                 self._selected_site = None
 
-        self.refresh_run_btn_unusable()
+        self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
     def handle_ligand_selected(self, dropdown, item):
@@ -212,7 +213,7 @@ class DockingMenu():
             label = ', '.join([item.complex.full_name for item in self._selected_ligands])
             self._ligand_txt._text_value = label if len(label) <= 4 else label[:8] + '...'
         self.update_icons()
-        self.refresh_run_btn_unusable()
+        self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
     def handle_receptor_selected(self, dropdown, item):
@@ -228,7 +229,7 @@ class DockingMenu():
             self.dd_receptor.use_permanent_title = True
             self.dd_receptor.permanent_title = "None"
         self.update_icons()
-        self.refresh_run_btn_unusable()
+        self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
     def display_scoring_result(self, result):
@@ -249,16 +250,19 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     async def draw_site_sphere(self, comp, radius):
-        site_sphere = Sphere()
-        site_sphere.color = nanome.util.Color(100, 100, 100, 120)
-        site_sphere.radius = radius
-        anchor = site_sphere.anchors[0]
+        Logs.debug('Drawing site sphere.')
+        if hasattr(self, 'site_sphere'):
+            Shape.destroy(self.site_sphere)
+        self.site_sphere = Sphere()
+        self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
+        self.site_sphere.radius = radius
+        anchor = self.site_sphere.anchors[0]
         anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
         anchor.target = comp.index
         complex_center = self.get_center(comp)
         anchor.local_offset = complex_center
-        await Shape.upload(site_sphere)
-        return site_sphere
+        await Shape.upload(self.site_sphere)
+        return self.site_sphere
 
     @async_callback
     async def handle_site_selected(self, dropdown, item):
@@ -271,7 +275,7 @@ class DockingMenu():
             # Draw sphere indicating the site
             radius = self._slider.current_value
             comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
-            self.site_sphere = await self.draw_site_sphere(comp, radius)
+            asyncio.create_task(self.draw_site_sphere(comp, radius))
             complex_center = self.get_center(comp)
             self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex_center]
         else:
@@ -283,7 +287,7 @@ class DockingMenu():
                 Shape.destroy(self.site_sphere)
 
         self.update_icons()
-        self.refresh_run_btn_unusable()
+        self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
     def update_icons(self):
@@ -337,7 +341,7 @@ class DockingMenu():
 
         self._run_button.register_pressed_callback(self.run_button_pressed_callback)
         self._run_button.enabled = False
-        self.refresh_run_btn_unusable()
+        self.refresh_run_btn_unusable(update=False)
 
         pose_sub_btn = root.find_node("PoseSub").get_content()
         pose_sub_btn.register_pressed_callback(self.pose_subbed_callback)
