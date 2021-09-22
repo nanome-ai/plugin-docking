@@ -94,7 +94,7 @@ class DockingMenu():
         ligands = []
         for item in self._selected_ligands:
             ligands.append(item.complex)
-        
+
         # Get site values
         site = Vector3(float(self._LocXInput.input_text), float(self._LocYInput.input_text), float(self._LocZInput.input_text))
         self.show_loading(True)
@@ -150,56 +150,40 @@ class DockingMenu():
         # Ligands should allow multiple selections
         for item in self.dd_ligands.items:
             item.close_on_selected = False
-        self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
-        self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
-        self.dd_site.register_item_clicked_callback(self.handle_site_selected)
 
-        ligand_stayed = False
-        if not ligand_list:
+        # Reselect previously selected ligands
+        for lig_item in self._selected_ligands:
+            dd_item = next((item for item in self.dd_ligands.items if item.complex.index == lig_item.complex.index), None)
+            if dd_item:
+                dd_item.selected = True
+
+        if not any([item.selected for item in self.dd_ligands.items]):
             self.dd_ligands.use_permanent_title = True
             self.dd_ligands.permanent_title = "None"
             self._selected_ligands = []
-        elif self._selected_ligands and self.dd_ligands.items:
-            for i, x in enumerate(self.dd_ligands.items):
-                if self._selected_ligands[0].complex.index == x.complex.index:
-                    self.dd_ligands.items[i].selected = True
-                    ligand_stayed = True
-                    break
-            if not ligand_stayed:
-                self.dd_ligands.use_permanent_title = True
-                self.dd_ligands.permanent_title = "None"
-                self._selected_ligands = []
 
-        receptor_stayed = False
-        if not receptor_list:
+        # Reselect previously selected receptor
+        if self._selected_receptor:
+            new_receptor_item = next((item for item in self.dd_receptor.items if item.complex.index == self._selected_receptor.index), None)
+            if new_receptor_item:
+                new_receptor_item.selected = True
+
+        if not any([item.selected for item in self.dd_receptor.items]):
             self.dd_receptor.use_permanent_title = True
             self.dd_receptor.permanent_title = "None"
             self._selected_receptor = None
-        elif self._selected_receptor and self.dd_receptor.items:
-            for i, x in enumerate(self.dd_receptor.items):
-                if self._selected_receptor.index == x.complex.index:
-                    self.dd_receptor.items[i].selected = True
-                    receptor_stayed = True
-                    break
-            if not receptor_stayed:
-                self.dd_receptor.use_permanent_title = True
-                self.dd_receptor.permanent_title = "None"
-                self._selected_receptor = None
 
-        site_stayed = False
-        if not site_list:
+        # Reselect previously selected site.
+        if self._selected_site:
+            new_site_item = next(
+                (item for item in self.dd_site.items if item.complex.index == self._selected_site.complex.index), None)
+            if new_site_item:
+                new_site_item.selected = True
+
+        if not any([item.selected for item in self.dd_site.items]):
             self.dd_site.use_permanent_title = True
             self.dd_site.permanent_title = "None"
             self._selected_site = None
-        if self._selected_site and self.dd_site.items:
-            for i, x in enumerate(self.dd_site.items):
-                if self._selected_site.complex.index == x.complex.index:
-                    self.dd_site.items[i].selected = True
-                    site_stayed = True
-            if not site_stayed:
-                self.dd_site.use_permanent_title = True
-                self.dd_site.permanent_title = "None"
-                self._selected_site = None
 
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
@@ -358,6 +342,13 @@ class DockingMenu():
         self.dd_receptor.permanent_title = "None"
         self.dd_site.use_permanent_title = True
         self.dd_site.permanent_title = "None"
+
+        # Ligands should allow multiple selections
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
+        self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
+        self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
+        self.dd_site.register_item_clicked_callback(self.handle_site_selected)
 
         # slider
         self._slider = root.find_node("Slider").get_content()
