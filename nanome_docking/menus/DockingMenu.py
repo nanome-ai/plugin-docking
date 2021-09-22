@@ -93,9 +93,9 @@ class DockingMenu():
         ligands = []
         for item in self._selected_ligands:
             ligands.append(item.complex)
-        site = None
-        if self._selected_site:
-            site = self._selected_site.complex
+        
+        # Get site values
+        site = Vector3(float(self._LocXInput.input_text), float(self._LocYInput.input_text), float(self._LocZInput.input_text))
         self.show_loading(True)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
         self.show_loading(False)

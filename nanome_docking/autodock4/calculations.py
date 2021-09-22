@@ -17,8 +17,12 @@ class DockingCalculations():
         self._plugin = plugin
         self.requires_site = False
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
+    def start_docking(self, receptor, ligands, site, **params):
         docked_ligands = None
+        modes = params.get('modes')
+        exhaustiveness = params.get('exhaustiveness')
+        align = params.get('align')
+
         with tempfile.TemporaryDirectory() as self.temp_dir:
             combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
 
@@ -33,7 +37,7 @@ class DockingCalculations():
             ligands_file_pdbqt = self._prepare_ligands(ligands_file_pdb)
 
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt, site)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files and saves in the temp folder.
@@ -87,15 +91,18 @@ class DockingCalculations():
         subprocess.run(lig_args, cwd=self.temp_dir)
         return ligands_file_pdbqt
 
-    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
+    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt, site):
         prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py')
         autogrid_input_gpf = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf", dir=self.temp_dir)
+
+        # gridcenter = ','.join(str(coord) for coord in site.unpack())
         grid_args = [
             'conda', 'run', '-n', 'adfr-suite',
             'python', prepare_gpf4_script,
             '-l', ligands_file_pdbqt.name,
             '-r', receptor_file_pdbqt.name,
             '-o', autogrid_input_gpf.name,
+            # '-p', f"gridcenter='{gridcenter}'",
             '-y'
         ]
         subprocess.run(grid_args, cwd=self.temp_dir)
@@ -160,6 +167,3 @@ class DockingCalculations():
         cmd = ['obabel', '-ipdbqt', pdbqt_file.name, f'-O{output_file.name}']
         subprocess.run(cmd, cwd=self.temp_dir)
         return output_file
-
-    def update(self):
-        pass

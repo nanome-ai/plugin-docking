@@ -54,24 +54,6 @@ class Docking(nanome.AsyncPluginInstance):
     def make_plugin_usable(self):
         self.menu.make_plugin_usable()
 
-    def set_and_convert_structures(self, has_site, params, complexes):
-        # When deep complexes data are received, unpack them and prepare ligand for docking
-        receptor = complexes[0]
-        self._receptor = receptor
-        starting_lig_idx = 1
-        site = None
-
-        if has_site:
-            site = complexes[1]
-            self._site = site
-            ComplexUtils.align_to(site, receptor)
-            starting_lig_idx = 2
-
-        # convert ligands to frame representation
-        ligands = complexes[starting_lig_idx:]
-        ComplexUtils.convert_to_frames(ligands)
-        self._calculations.start_docking(receptor, ligands, site, **params)
-
     async def run_docking(self, receptor, ligands, site, params):
         # Change the plugin to be "unusable"
         if self.menu._run_button.unusable is True:
@@ -80,20 +62,17 @@ class Docking(nanome.AsyncPluginInstance):
         self.menu.make_plugin_usable(False)
         # self.menu.show_loading(True)
 
-        # Request complexes to Nanome in this order: [receptor, site (if any), ligand, ligand,...]
-        request_list = [receptor.index]
-        if site is not None:
-            request_list.append(site.index)
-        request_list += [x.index for x in ligands]
+        # Request complexes to Nanome in this order: [receptor, ligand, ligand,...]
+        complex_indices = [receptor.index]
+        complex_indices += [x.index for x in ligands]
 
-        complexes = await self.request_complexes(request_list)
-        has_site = site is not None
-        self.set_and_convert_structures(has_site, params, complexes)
-        # self.menu.show_loading(False)
+        complexes = await self.request_complexes(complex_indices)
+        receptor = complexes[0]        
+        self._receptor = receptor
 
-    # Called every update tick of the Plugin
-    def update(self):
-        self._calculations.update()
+        ligands = complexes[1:]
+        ComplexUtils.convert_to_frames(ligands)
+        self._calculations.start_docking(receptor, ligands, site, **params)
 
     def add_result_to_workspace(self, results, align=False):
         for complex in results:
