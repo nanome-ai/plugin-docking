@@ -87,16 +87,15 @@ class DockingMenu():
         return ddi_list
 
     async def _run_docking(self):
-        if self._selected_receptor is None or len(self._selected_ligands) == 0:
+        receptor = self._selected_receptor
+        ligands = [item.complex for item in self._selected_ligands]
+        site = Vector3(float(self._LocXInput.input_text), float(self._LocYInput.input_text), float(self._LocZInput.input_text))
+
+        if not receptor or not ligands:
             if self._selected_site is None:
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
-        ligands = []
-        for item in self._selected_ligands:
-            ligands.append(item.complex)
 
-        # Get site values
-        site = Vector3(float(self._LocXInput.input_text), float(self._LocYInput.input_text), float(self._LocZInput.input_text))
         self.show_loading(True)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
         self.show_loading(False)
