@@ -53,7 +53,6 @@ class DockingCalculations():
         Logs.debug("Saved PDB", self._ligands_input.name)
 
     def _start_docking(self):
-
         smina_args = [
             '-r', self._receptor_input.name,
             '-l', self._ligands_input.name,
