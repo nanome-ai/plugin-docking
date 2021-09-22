@@ -52,7 +52,6 @@ class DockingCalculations():
         self._combined_ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
         Logs.debug("Saved PDB", self._ligands_input.name)
 
-
     def _start_docking(self):
 
         smina_args = [
@@ -64,7 +63,6 @@ class DockingCalculations():
             '--size_x', str(self._autobox),
             '--size_y', str(self._autobox),
             '--size_z', str(self._autobox),
-
         ]
 
         if self._scoring:
@@ -76,7 +74,8 @@ class DockingCalculations():
                 '--exhaustiveness', str(self._exhaustiveness),
                 '--num_modes', str(self._modes),
                 '--autobox_add', str(self._autobox),
-                '--atom_term_data']
+                '--atom_term_data'
+            ]
 
         Logs.debug("Run SMINA")
         self._start_timer = timer()
