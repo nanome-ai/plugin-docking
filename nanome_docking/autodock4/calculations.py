@@ -95,6 +95,7 @@ class DockingCalculations():
         prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py')
         autogrid_input_gpf = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf", dir=self.temp_dir)
 
+        # TODO: Get gridcenter to work.
         # gridcenter = ','.join(str(coord) for coord in site.unpack())
         grid_args = [
             'conda', 'run', '-n', 'adfr-suite',
