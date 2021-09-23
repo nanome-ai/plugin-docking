@@ -253,12 +253,12 @@ class DockingMenu():
             comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
             asyncio.create_task(self.draw_site_sphere(comp, radius))
             complex_center = self.get_center(comp)
-            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex_center]
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
         else:
             self.dd_site.use_permanent_title = True
             self.dd_site.permanent_title = "None"
             item.selected = False
-            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
             if hasattr(self, 'site_sphere'):
                 Shape.destroy(self.site_sphere)
 
@@ -295,12 +295,12 @@ class DockingMenu():
         self._ligand_txt = root.find_node("LigandName").get_content()
         self._receptor_txt = root.find_node("ReceptorName").get_content()
 
-        self._LocXInput = root.find_node("LocXInput").get_content()
-        self._LocXInput.register_submitted_callback(partial(self.loc_submitted, 0))
-        self._LocYInput = root.find_node("LocYInput").get_content()
-        self._LocYInput.register_submitted_callback(partial(self.loc_submitted, 1))
-        self._LocZInput = root.find_node("LocZInput").get_content()
-        self._LocZInput.register_submitted_callback(partial(self.loc_submitted, 2))
+        self._site_x = root.find_node("LocXInput").get_content()
+        self._site_x.register_submitted_callback(partial(self.loc_submitted, 0))
+        self._site_y = root.find_node("LocYInput").get_content()
+        self._site_y.register_submitted_callback(partial(self.loc_submitted, 1))
+        self._site_z = root.find_node("LocZInput").get_content()
+        self._site_z.register_submitted_callback(partial(self.loc_submitted, 2))
 
         self.size_value_txt = root.find_node("SizeValue").get_content()
 
@@ -409,12 +409,12 @@ class DockingMenu():
             for complex in complexes_list:
                 if complex.index == self._selected_site.complex.index:
                     self._selected_site.complex = complex
-                    self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = [round(x, 2) for x in complex.position]
+                    self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex.position]
                     self._plugin.update_menu(self._menu)
 
         if not self._selected_site:
             Logs.debug("No Site Selected")
-            self._LocXInput.input_text, self._LocYInput.input_text, self._LocZInput.input_text = '', '', ''
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
             self._plugin.update_menu(self._menu)
         else:
             Logs.debug("Update the site location")
