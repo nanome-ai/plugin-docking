@@ -70,21 +70,25 @@ class DockingCalculations():
                 '--exhaustiveness', str(self._exhaustiveness),
                 '--num_modes', str(self._modes),
                 '--autobox_add', str(self._autobox),
-                '--atom_term_data'
-            ]
+                '--atom_term_data']
 
         Logs.debug("Run SMINA")
         self._start_timer = timer()
 
         p = Process(SMINA_PATH, smina_args)
         p.on_done = self._docking_finished
+        # p.on_error = self.handle_error
         p.start()
-
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
 
+    # def handle_error(self, error_message):
+    #     self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
+    #     raise RuntimeError(error_message.decode())
+
     def _docking_finished(self, return_code):
-        if return_code != 0:
+        if return_code > 0:
             self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
+            Logs.error('Docking Failed =(')
             return
 
         end = timer()

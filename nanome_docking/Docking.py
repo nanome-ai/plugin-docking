@@ -58,15 +58,23 @@ class Docking(nanome.AsyncPluginInstance):
         self.menu.make_plugin_usable(False)
         # self.menu.show_loading(True)
 
-        # Request complexes to Nanome in this order: [receptor, ligand, ligand,...]
+        # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
+        # site not always required.
         complex_indices = [receptor.index]
+        if site:
+            complex_indices += [site.index]
         complex_indices += [x.index for x in ligands]
 
         complexes = await self.request_complexes(complex_indices)
         receptor = complexes[0]        
         self._receptor = receptor
 
-        ligands = complexes[1:]
+        if site:
+            site = complexes[1]
+            ligands = complexes[2:]
+        else:
+            ligands = complexes[1:]
+
         ComplexUtils.convert_to_frames(ligands)
         self._calculations.start_docking(receptor, ligands, site, **params)
 
