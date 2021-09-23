@@ -23,22 +23,23 @@ class DockingCalculations():
         self.temp_dir = tempfile.TemporaryDirectory()
         self._receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
+        self._site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=self.temp_dir.name)
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._log_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir.name)
 
-    def start_docking(self, receptor, ligands, site, **params):
-        self._exhaustiveness = params.get('exhaustiveness')
-        self._modes = params.get('modes')
+    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
+        self._exhaustiveness = exhaustiveness
+        self._modes = modes
         self._receptor = receptor
         self._ligands = ligands
         self._combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         self._site = site
-        self._align = params.get('align')
-        self._replace = params.get('replace')
-        self._scoring = params.get('scoring')
-        self._visual_scores = params.get('visual_scores')
-        self._autobox = params.get('autobox')
+        self._align = align
+        self._replace = replace
+        self._scoring = scoring
+        self._visual_scores = visual_scores
+        self._autobox = autobox
 
         # Start docking process
         self._write_structures_to_file()
@@ -51,18 +52,14 @@ class DockingCalculations():
         Logs.debug("Saved PDB", self._receptor_input.name)
         self._combined_ligands.io.to_pdb(self._ligands_input.name, PDBOPTIONS)
         Logs.debug("Saved PDB", self._ligands_input.name)
+        self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
+        Logs.debug("Saved PDB", self._site_input.name)
 
     def _start_docking(self):
         smina_args = [
             '-r', self._receptor_input.name,
             '-l', self._ligands_input.name,
-            '--center_x', str(self._site.x),
-            '--center_y', str(self._site.y),
-            '--center_z', str(self._site.z),
-            '--size_x', str(self._autobox),
-            '--size_y', str(self._autobox),
-            '--size_z', str(self._autobox),
-        ]
+            '--autobox_ligand', self._site_input.name]
 
         if self._scoring:
             smina_args += ['--score_only', '--out', self._ligand_output.name]

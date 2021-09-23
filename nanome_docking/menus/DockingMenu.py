@@ -88,7 +88,10 @@ class DockingMenu():
     async def _run_docking(self):
         receptor = self._selected_receptor
         ligands = [item.complex for item in self._selected_ligands]
-        site = Vector3(float(self._LocXInput.input_text), float(self._LocYInput.input_text), float(self._LocZInput.input_text))
+        
+        site = None
+        if self._selected_site:
+            site = self._selected_site.complex
 
         if not receptor or not ligands:
             if self._selected_site is None:
