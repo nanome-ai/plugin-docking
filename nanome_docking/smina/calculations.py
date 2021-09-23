@@ -77,13 +77,8 @@ class DockingCalculations():
 
         p = Process(SMINA_PATH, smina_args)
         p.on_done = self._docking_finished
-        # p.on_error = self.handle_error
         p.start()
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
-
-    # def handle_error(self, error_message):
-    #     self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
-    #     raise RuntimeError(error_message.decode())
 
     def _docking_finished(self, return_code):
         if return_code > 0:
