@@ -230,13 +230,12 @@ class DockingMenu():
         if hasattr(self, 'site_sphere'):
             Shape.destroy(self.site_sphere)
         self.site_sphere = Sphere()
-        self.site_sphere.color = nanome.util.Color(100, 100, 100, 120)
+        self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
-        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
-        anchor.target = comp.index
+        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Workspace
         complex_center = self.get_center(comp)
-        anchor.local_offset = complex_center
+        anchor.local_offset = comp.get_complex_to_workspace_matrix() * complex_center
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
