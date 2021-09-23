@@ -31,9 +31,7 @@ class Docking(nanome.AsyncPluginInstance):
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
-        self.settings_menu.enabled = True
-        self.settings_menu.index = 1
-        self.update_menu(self.settings_menu)
+        self.settings_menu.enable()
 
     @async_callback
     async def on_complex_added(self):

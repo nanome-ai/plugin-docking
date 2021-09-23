@@ -459,6 +459,7 @@ class SettingsMenu:
     def __init__(self, plugin):
         self._plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_settings.json'))
+        self._menu.index = 1
         self._exhaustiveness = 10
 
         menu_root = self._menu.root
@@ -467,10 +468,15 @@ class SettingsMenu:
         self._exhaustiveness_txt = menu_root.find_node("ExhaustValue").get_content()
         self._display_score_btn = menu_root.find_node("VisualScoresButton").get_content()
         self._exhaust_slider = menu_root.find_node("ExhaustSlider").get_content()
+        self._visual_scores = False
 
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
         self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
+
+    def enable(self):
+        self._menu.enabled = True
+        self._plugin.update_menu(self._menu)
 
     def exhaust_slider_released_callback(self, slider):
         slider.current_value = round(slider.current_value)
