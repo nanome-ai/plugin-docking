@@ -87,8 +87,6 @@ class DockingCalculations():
 
     def _docking_finished(self, return_code):
         if return_code != 0:
-            self.plugin.make_plugin_usable()
-            self.plugin._menu.show_loading(False)
             self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
             return
 
@@ -134,8 +132,6 @@ class DockingCalculations():
             self.plugin.add_result_to_workspace([docking_results], self._align)
 
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
-        self.plugin._menu.show_loading(False)
-        self.plugin._menu.refresh_run_btn_unusable(update=True, after=True)
 
     def _set_scores(self, molecule):
         molecule.min_atom_score = float('inf')
