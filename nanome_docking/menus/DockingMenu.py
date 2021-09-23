@@ -88,7 +88,7 @@ class DockingMenu():
     async def _run_docking(self):
         receptor = self._selected_receptor
         ligands = [item.complex for item in self._selected_ligands]
-        
+
         site = None
         if self._selected_site:
             site = self._selected_site.complex
@@ -225,17 +225,20 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
-    async def draw_site_sphere(self, comp, radius):
+    async def draw_site_sphere(self, origin, radius):
+        """Draw sphere at origin with provided radius.
+
+        :arg origin: Vector3, center of the site sphere
+        :arg radius: int, radius of sphere.
+        """
         Logs.debug('Drawing site sphere.')
-        if hasattr(self, 'site_sphere'):
-            Shape.destroy(self.site_sphere)
-        self.site_sphere = Sphere()
-        self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
+        if not hasattr(self, 'site_sphere'):
+            self.site_sphere = Sphere()
+            self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
         anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Workspace
-        complex_center = self.get_center(comp)
-        anchor.local_offset = comp.get_complex_to_workspace_matrix() * complex_center
+        anchor.local_offset = origin
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
@@ -247,11 +250,11 @@ class DockingMenu():
 
         if self._selected_site:
             self.dd_site.use_permanent_title = False
+            comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
+            complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
-            comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
-            asyncio.create_task(self.draw_site_sphere(comp, radius))
-            complex_center = self.get_center(comp)
+            asyncio.create_task(self.draw_site_sphere(complex_center, radius))
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
         else:
             self.dd_site.use_permanent_title = True
@@ -295,12 +298,14 @@ class DockingMenu():
         self._receptor_txt = root.find_node("ReceptorName").get_content()
 
         self._site_x = root.find_node("LocXInput").get_content()
-        self._site_x.register_submitted_callback(partial(self.loc_submitted, 0))
+        self._site_x.register_changed_callback(self.site_location_text_changed)
         self._site_y = root.find_node("LocYInput").get_content()
-        self._site_y.register_submitted_callback(partial(self.loc_submitted, 1))
+        self._site_y.register_changed_callback(self.site_location_text_changed)
         self._site_z = root.find_node("LocZInput").get_content()
-        self._site_z.register_submitted_callback(partial(self.loc_submitted, 2))
+        self._site_z.register_changed_callback(self.site_location_text_changed)
+        self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
 
+        self._site_x.input_text
         self.size_value_txt = root.find_node("SizeValue").get_content()
 
         self._run_button.register_pressed_callback(self.run_button_pressed_callback)
@@ -383,13 +388,14 @@ class DockingMenu():
             await Shape.upload(self.site_sphere)
         self._plugin.update_content(self.size_value_txt)
 
-    def loc_submitted(index, self, text_input):
+    async def site_location_text_changed(self, text_input):
         try:
-            float(text_input.input_text)
-            self._selected_site.complex.position[index] = float(text_input.input_text)
-        except:
-            Logs.debug("Input is not a float")
-        self._plugin.update_structures_shallow([self._selected_site.complex])
+            loc = Vector3(float(self._site_x.input_text), float(self._site_y.input_text), float(self._site_z.input_text))
+        except ValueError as e:
+            # Not all inputs filled in, just return
+            return
+        radius = self._slider.current_value
+        asyncio.create_task(self.draw_site_sphere(loc, radius))
 
     def pose_added_callback(self, button):
         self._modes += 1
@@ -403,13 +409,8 @@ class DockingMenu():
         self._txt2.input_text = self._modes
         self._plugin.update_content(self._txt2)
 
-    def loc_refresh_pressed_callback(self, button):
-        def update_site_loc(complexes_list):
-            for complex in complexes_list:
-                if complex.index == self._selected_site.complex.index:
-                    self._selected_site.complex = complex
-                    self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex.position]
-                    self._plugin.update_menu(self._menu)
+    @async_callback
+    async def loc_refresh_pressed_callback(self, button):
 
         if not self._selected_site:
             Logs.debug("No Site Selected")
@@ -417,7 +418,13 @@ class DockingMenu():
             self._plugin.update_menu(self._menu)
         else:
             Logs.debug("Update the site location")
-            self._plugin.request_complexes([self._selected_site.complex.index], update_site_loc)
+            comp = self._selected_site.complex
+            comp = (await self._plugin.request_complexes([comp.index]))[0]
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
+            radius = self._slider.current_value
+            complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
+            asyncio.create_task(self.draw_site_sphere(complex_center, radius))
+            self._plugin.update_menu(self._menu)
 
     @property
     def dd_ligands(self):
