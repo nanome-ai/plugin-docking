@@ -89,7 +89,7 @@ class DockingMenu():
         self.show_loading(False)
 
     def make_plugin_usable(self, state=True):
-        self._run_button.unusable = (not state) | self.refresh_run_btn_unusable(update=False)
+        self._run_button.unusable = (not state) or self.refresh_run_btn_unusable(update=False)
         self._plugin.update_content(self._run_button)
 
     def show_loading(self, show=False):
