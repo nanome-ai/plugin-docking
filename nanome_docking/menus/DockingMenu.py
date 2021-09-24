@@ -41,20 +41,6 @@ class DockingMenu():
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
 
-    def get_receptor(self):
-        return self._selected_receptor.complex
-
-    def get_ligands(self):
-        ligands = []
-        for item in self._selected_ligands:
-            ligands.append(item.complex)
-        return ligands
-
-    def get_site(self):
-        if self._selected_site is None:
-            return None
-        return self._selected_site.complex
-
     def get_params(self):
         """Collect parameters from this menu and the Settings Menu."""
         params = {
@@ -215,14 +201,6 @@ class DockingMenu():
             self.dd_receptor.permanent_title = "None"
         self.update_icons()
         self.refresh_run_btn_unusable(update=False)
-        self._plugin.update_menu(self._menu)
-
-    def reset(self, update_menu=True):
-        self._selected_receptor = None
-        self._selected_ligands = []
-        self._selected_site = None
-        self._complex_list.items = []
-        self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
     async def draw_site_sphere(self, site_complex, radius):
