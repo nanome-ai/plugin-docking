@@ -54,7 +54,6 @@ class Docking(nanome.AsyncPluginInstance):
             return
 
         self.menu.make_plugin_usable(False)
-        # self.menu.show_loading(True)
 
         # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
         # site not always required.
