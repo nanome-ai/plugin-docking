@@ -43,10 +43,11 @@ class DockingCalculations():
             # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
+            # Run vina, and convert output from pdbqt into a Complex object.
             dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes, exhaustiveness=exhaustiveness)
             dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
             docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
-        
+
         ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible

@@ -225,7 +225,7 @@ class DockingMenu():
         self.make_plugin_usable()
         self._plugin.update_menu(self._menu)
 
-    async def draw_site_sphere(self, origin, radius):
+    async def draw_site_sphere(self, site_complex, radius):
         """Draw sphere at origin with provided radius.
 
         :arg origin: Vector3, center of the site sphere
@@ -237,8 +237,9 @@ class DockingMenu():
             self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
-        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Workspace
-        anchor.local_offset = origin
+        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
+        anchor.target = site_complex.index
+        anchor.local_offset = self.get_center(site_complex)
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
@@ -254,7 +255,7 @@ class DockingMenu():
             complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
-            asyncio.create_task(self.draw_site_sphere(complex_center, radius))
+            asyncio.create_task(self.draw_site_sphere(comp, radius))
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
         else:
             self.dd_site.use_permanent_title = True
@@ -298,11 +299,8 @@ class DockingMenu():
         self._receptor_txt = root.find_node("ReceptorName").get_content()
 
         self._site_x = root.find_node("LocXInput").get_content()
-        self._site_x.register_changed_callback(self.site_location_text_changed)
         self._site_y = root.find_node("LocYInput").get_content()
-        self._site_y.register_changed_callback(self.site_location_text_changed)
         self._site_z = root.find_node("LocZInput").get_content()
-        self._site_z.register_changed_callback(self.site_location_text_changed)
         self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
 
         self._site_x.input_text
@@ -388,15 +386,6 @@ class DockingMenu():
             await Shape.upload(self.site_sphere)
         self._plugin.update_content(self.size_value_txt)
 
-    async def site_location_text_changed(self, text_input):
-        try:
-            loc = Vector3(float(self._site_x.input_text), float(self._site_y.input_text), float(self._site_z.input_text))
-        except ValueError as e:
-            # Not all inputs filled in, just return
-            return
-        radius = self._slider.current_value
-        asyncio.create_task(self.draw_site_sphere(loc, radius))
-
     def pose_added_callback(self, button):
         self._modes += 1
         self._txt2.input_text = self._modes
@@ -422,8 +411,7 @@ class DockingMenu():
             comp = (await self._plugin.request_complexes([comp.index]))[0]
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
             radius = self._slider.current_value
-            complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
-            asyncio.create_task(self.draw_site_sphere(complex_center, radius))
+            asyncio.create_task(self.draw_site_sphere(comp, radius))
             self._plugin.update_menu(self._menu)
 
     @property

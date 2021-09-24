@@ -64,7 +64,7 @@ class Docking(nanome.AsyncPluginInstance):
         complex_indices += [x.index for x in ligands]
 
         complexes = await self.request_complexes(complex_indices)
-        receptor = complexes[0]        
+        receptor = complexes[0]
         self._receptor = receptor
 
         if site:
