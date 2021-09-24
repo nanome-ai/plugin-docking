@@ -327,9 +327,12 @@ class DockingMenu():
         self._slider = root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
 
-        self._menu.enabled = True
         self._plugin.update_menu(self._menu)
         Logs.debug("Constructed plugin menu")
+
+    def enable(self):
+        self._menu.enabled = True
+        self._plugin.update_menu(self._menu)
 
     @staticmethod
     def get_center(complex):

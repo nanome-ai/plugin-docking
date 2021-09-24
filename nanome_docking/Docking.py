@@ -27,7 +27,7 @@ class Docking(nanome.AsyncPluginInstance):
 
     def on_run(self):
         # Called when user clicks on the "Run" button in Nanome
-        self.menu.build_menu()
+        self.menu.enable()
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
