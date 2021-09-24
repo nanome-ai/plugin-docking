@@ -85,6 +85,7 @@ class DockingMenu():
                 return
 
         self.show_loading(True)
+        self.make_plugin_usable(False)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
         self.show_loading(False)
 

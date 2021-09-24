@@ -45,16 +45,7 @@ class Docking(nanome.AsyncPluginInstance):
         complexes = await self.request_complex_list()
         self.menu.change_complex_list(complexes)
 
-    def make_plugin_usable(self):
-        self.menu.make_plugin_usable()
-
     async def run_docking(self, receptor, ligands, site, params):
-        # Change the plugin to be "unusable"
-        if self.menu._run_button.unusable is True:
-            return
-
-        self.menu.make_plugin_usable(False)
-
         # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
         # site not always required.
         complex_indices = [receptor.index]
