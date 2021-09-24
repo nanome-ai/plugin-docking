@@ -11,6 +11,8 @@ BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
 ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listdir(ICONS_DIR)}
 
+SETTINGS_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_settings.json')
+MENU_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_menu.json')
 
 class DockingMenu():
 
@@ -28,7 +30,7 @@ class DockingMenu():
         self._visual_scores = False
 
         # loading menus
-        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_menu.json'))
+        self._menu = nanome.ui.Menu.io.from_json(MENU_JSON_PATH)
 
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
@@ -179,13 +181,17 @@ class DockingMenu():
 
     def handle_ligand_selected(self, dropdown, item):
         # self.multi_select_dropdown(dropdown, item)
+        if not hasattr(self, '_selected_ligands'):
+            self._selected_ligands = []
+
         unselecting_complex = (
             self._selected_ligands
             and item.complex.index in [ddi.complex.index for ddi in self._selected_ligands]
         )
         if unselecting_complex:
             # Remove all traces on menu of selected ligands.
-            self._selected_ligands = []
+            self._selected_ligands.remove(item)
+            item.selected = False
             self._ligand_txt._text_value = "Ligands"
             dropdown.use_permanent_title = True
             dropdown.permanent_title = "None"
@@ -307,13 +313,13 @@ class DockingMenu():
         location_refresh_btn = root.find_node("LocationRefresh").get_content()
         location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
 
-        # dropdown
-        self.dd_ligands.use_permanent_title = True
-        self.dd_ligands.permanent_title = "None"
-        self.dd_receptor.use_permanent_title = True
-        self.dd_receptor.permanent_title = "None"
-        self.dd_site.use_permanent_title = True
-        self.dd_site.permanent_title = "None"
+        # dropdowns
+        self.dd_ligands = self._menu.root.find_node("LigandDropdown").get_content()    
+        self.dd_receptor = self._menu.root.find_node("ReceptorDropdown").get_content()
+        self.dd_site = self._menu.root.find_node("SiteDropdown").get_content()
+        for dd in [self.dd_ligands, self.dd_receptor, self.dd_site]:
+            dd.use_permanent_title = True
+            dd.permanent_title = "None"
 
         # Ligands should allow multiple selections
         # TODO: Test and implement multi ligand selections
@@ -408,18 +414,6 @@ class DockingMenu():
             asyncio.create_task(self.draw_site_sphere(comp, radius))
             self._plugin.update_menu(self._menu)
 
-    @property
-    def dd_ligands(self):
-        return self._menu.root.find_node("LigandDropdown").get_content()
-
-    @property
-    def dd_receptor(self):
-        return self._menu.root.find_node("ReceptorDropdown").get_content()
-
-    @property
-    def dd_site(self):
-        return self._menu.root.find_node("SiteDropdown").get_content()
-
     def multi_select_dropdown(self, dropdown, item):
         if not hasattr(dropdown, '_selected_items'):
             dropdown._selected_items = []
@@ -446,7 +440,7 @@ class SettingsMenu:
 
     def __init__(self, plugin):
         self._plugin = plugin
-        self._menu = nanome.ui.Menu.io.from_json(os.path.join(BASE_DIR, 'jsons', 'docking_settings.json'))
+        self._menu = nanome.ui.Menu.io.from_json(SETTINGS_JSON_PATH)
         self._menu.index = 1
         self._exhaustiveness = 10
 
