@@ -217,6 +217,7 @@ class DockingMenu():
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
 
+    @async_callback
     async def draw_site_sphere(self, site_complex, radius):
         """Draw sphere at origin with provided radius.
 
@@ -247,7 +248,7 @@ class DockingMenu():
             complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
-            await self.draw_site_sphere(comp, radius)
+            self.draw_site_sphere(comp, radius)
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
         else:
             self.dd_site.use_permanent_title = True
@@ -408,7 +409,7 @@ class DockingMenu():
             comp = (await self._plugin.request_complexes([comp.index]))[0]
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
             radius = self._slider.current_value
-            await self.draw_site_sphere(comp, radius)
+            self.draw_site_sphere(comp, radius)
             self._plugin.update_menu(self._menu)
 
     def multi_select_dropdown(self, dropdown, item):
