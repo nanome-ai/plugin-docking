@@ -81,9 +81,10 @@ class DockingCalculations():
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
 
     def _docking_finished(self, return_code):
-        if return_code > 0:
-            self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
-            Logs.error('Docking Failed =(')
+        if return_code != 0:
+            message = 'Docking error, check plugin'
+            self.plugin.send_notification(NotificationTypes.error, message)
+            Logs.error(message)
             return
 
         end = timer()
