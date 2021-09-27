@@ -17,8 +17,12 @@ class DockingCalculations():
         self._plugin = plugin
         self.requires_site = False
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
+    def start_docking(self, receptor, ligands, site, **params):
         docked_ligands = None
+        modes = params.get('modes')
+        exhaustiveness = params.get('exhaustiveness')
+        align = params.get('align')
+
         with tempfile.TemporaryDirectory() as self.temp_dir:
             combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
 
@@ -39,10 +43,11 @@ class DockingCalculations():
             # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
+            # Run vina, and convert output from pdbqt into a Complex object.
             dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes, exhaustiveness=exhaustiveness)
             dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
             docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
-        
+
         ComplexUtils.convert_to_frames([docked_ligands])
 
         # make ligands invisible
@@ -96,7 +101,7 @@ class DockingCalculations():
             '-l', ligands_file_pdbqt.name,
             '-r', receptor_file_pdbqt.name,
             '-o', autogrid_input_gpf.name,
-            '-y'
+            '-y'  # centers search space on ligand.
         ]
         subprocess.run(grid_args, cwd=self.temp_dir)
         return autogrid_input_gpf
@@ -160,6 +165,3 @@ class DockingCalculations():
         cmd = ['obabel', '-ipdbqt', pdbqt_file.name, f'-O{output_file.name}']
         subprocess.run(cmd, cwd=self.temp_dir)
         return output_file
-
-    def update(self):
-        pass

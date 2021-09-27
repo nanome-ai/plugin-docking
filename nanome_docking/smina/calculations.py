@@ -45,9 +45,6 @@ class DockingCalculations():
         self._write_structures_to_file()
         self._start_docking()
 
-    def update(self):
-        pass
-
     def _write_structures_to_file(self):
         self.initialize()
         # Save all input files
@@ -81,14 +78,13 @@ class DockingCalculations():
         p = Process(SMINA_PATH, smina_args)
         p.on_done = self._docking_finished
         p.start()
-
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
 
     def _docking_finished(self, return_code):
         if return_code != 0:
-            self.plugin.make_plugin_usable()
-            self.plugin._menu.show_loading(False)
-            self.plugin.send_notification(NotificationTypes.error, "Docking error, check plugin")
+            message = 'Docking error, check plugin'
+            self.plugin.send_notification(NotificationTypes.error, message)
+            Logs.error(message)
             return
 
         end = timer()
@@ -133,8 +129,6 @@ class DockingCalculations():
             self.plugin.add_result_to_workspace([docking_results], self._align)
 
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
-        self.plugin._menu.show_loading(False)
-        self.plugin._menu.refresh_run_btn_unusable(update=True, after=True)
 
     def _set_scores(self, molecule):
         molecule.min_atom_score = float('inf')
