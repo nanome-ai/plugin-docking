@@ -135,9 +135,8 @@ class DockingMenu():
         self.dd_site.items = site_list
 
         # Ligands should allow multiple selections
-        # TODO: Uncomment when ready for multi-select ligands
-        # for item in self.dd_ligands.items:
-        #     item.close_on_selected = False
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
 
         # Reselect previously selected ligands
         for lig_item in self._selected_ligands:
@@ -177,26 +176,18 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def handle_ligand_selected(self, dropdown, item):
-        # self.multi_select_dropdown(dropdown, item)
-        if not hasattr(self, '_selected_ligands'):
-            self._selected_ligands = []
+        self.multi_select_dropdown(dropdown, item)
 
-        unselecting_complex = (
-            self._selected_ligands
-            and item.complex.index in [ddi.complex.index for ddi in self._selected_ligands]
-        )
-        if unselecting_complex:
-            # Remove all traces on menu of selected ligands.
-            self._selected_ligands.remove(item)
-            item.selected = False
-            self._ligand_txt._text_value = "Ligands"
-            dropdown.use_permanent_title = True
+        dropdown.use_permanent_title = len(dropdown._selected_items) > 1
+        if not dropdown._selected_items:
+            ligand_text = "Ligands"
             dropdown.permanent_title = "None"
         else:
-            # update menu to reflect selected ligand
-            self._selected_ligands.append(item)
-            dropdown.use_permanent_title = False
-            self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'            
+            complex_names = ','.join([ddi.complex.full_name for ddi in dropdown._selected_items])
+            ligand_text = complex_names if len(complex_names) <=8 else f'{complex_names[:7]}...'
+            dropdown.permanent_title = complex_names
+
+        self._ligand_txt._text_value = ligand_text
         self.update_icons()
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
@@ -320,10 +311,8 @@ class DockingMenu():
             dd.permanent_title = "None"
 
         # Ligands should allow multiple selections
-        # TODO: Test and implement multi ligand selections
-        # For now leave commented out
-        # for item in self.dd_ligands.items:
-        #     item.close_on_selected = False
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
         self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
         self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
         self.dd_site.register_item_clicked_callback(self.handle_site_selected)
@@ -425,13 +414,6 @@ class DockingMenu():
 
         for ddi in selected_items:
             ddi.selected = True
-
-        dropdown.use_permanent_title = True
-        permanent_title = ','.join([ddi.name for ddi in selected_items]) if selected_items else 'None'
-        dropdown.permanent_title = permanent_title
-
-        dropdown.use_permanent_title = len(selected_items) > 1
-        self._plugin.update_content(dropdown)
 
 
 class SettingsMenu:
