@@ -72,7 +72,7 @@ class DockingMenu():
 
     async def _run_docking(self):
         receptor = self._selected_receptor
-        ligands = [item.complex for item in self._selected_ligands]
+        ligands = [comp for comp in self._selected_ligands]
 
         site = None
         if self._selected_site:
@@ -139,8 +139,8 @@ class DockingMenu():
             item.close_on_selected = False
 
         # Reselect previously selected ligands
-        for lig_item in self._selected_ligands:
-            dd_item = next((item for item in self.dd_ligands.items if item.complex.index == lig_item.complex.index), None)
+        for comp in self._selected_ligands:
+            dd_item = next((item for item in self.dd_ligands.items if item.complex.index == comp.index), None)
             if dd_item:
                 dd_item.selected = True
 
