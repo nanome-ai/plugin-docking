@@ -188,6 +188,8 @@ class DockingMenu():
             dropdown.permanent_title = complex_names
 
         self._ligand_txt._text_value = ligand_text
+        self._selected_ligands = [ddi.complex for ddi in dropdown.items]
+
         self.update_icons()
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
