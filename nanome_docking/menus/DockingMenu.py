@@ -76,7 +76,7 @@ class DockingMenu():
 
         site = None
         if self._selected_site:
-            site = self._selected_site.complex
+            site = self._selected_site
 
         if not receptor or not ligands:
             if self._selected_site is None:
@@ -163,7 +163,7 @@ class DockingMenu():
         # Reselect previously selected site.
         if self._selected_site:
             new_site_item = next(
-                (item for item in self.dd_site.items if item.complex.index == self._selected_site.complex.index), None)
+                (item for item in self.dd_site.items if item.complex.index == self._selected_site.index), None)
             if new_site_item:
                 new_site_item.selected = True
 
@@ -188,7 +188,7 @@ class DockingMenu():
             dropdown.permanent_title = complex_names
 
         self._ligand_txt._text_value = ligand_text
-        self._selected_ligands = [ddi.complex for ddi in dropdown.items]
+        self._selected_ligands = [ddi.complex for ddi in dropdown._selected_items]
 
         self.update_icons()
         self.refresh_run_btn_unusable(update=False)
@@ -232,20 +232,20 @@ class DockingMenu():
     @async_callback
     async def handle_site_selected(self, dropdown, item):
         # If site was previously selected, we are actually unselecting it.
-        unselecting_site = self._selected_site and item.complex.index == self._selected_site.complex.index
-        self._selected_site = None if unselecting_site else item
+        unselecting_site = self._selected_site and item.complex.index == self._selected_site.index
+        self._selected_site = None if unselecting_site else item.complex
 
         if self._selected_site:
-            self.dd_site.use_permanent_title = False
-            comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
+            dropdown.use_permanent_title = False
+            comp = next(iter(await self._plugin.request_complexes([self._selected_site.index])))
             complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
         else:
-            self.dd_site.use_permanent_title = True
-            self.dd_site.permanent_title = "None"
+            dropdown.use_permanent_title = True
+            dropdown.permanent_title = "None"
             item.selected = False
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
             if hasattr(self, 'site_sphere'):
@@ -396,7 +396,7 @@ class DockingMenu():
             self._plugin.update_menu(self._menu)
         else:
             Logs.debug("Update the site location")
-            comp = self._selected_site.complex
+            comp = self._selected_site
             comp = (await self._plugin.request_complexes([comp.index]))[0]
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
             radius = self._slider.current_value
