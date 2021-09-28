@@ -3,6 +3,8 @@ import nanome
 from nanome.util import Logs, async_callback, Vector3
 from nanome.api.ui import DropdownItem
 from nanome.api.shapes import Sphere, Shape
+from nanome_docking.utils import get_complex_center
+
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
@@ -225,7 +227,7 @@ class DockingMenu():
         anchor = self.site_sphere.anchors[0]
         anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
         anchor.target = site_complex.index
-        anchor.local_offset = self.get_center(site_complex)
+        anchor.local_offset = get_complex_center(site_complex)
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
@@ -238,7 +240,7 @@ class DockingMenu():
         if self._selected_site:
             dropdown.use_permanent_title = False
             comp = next(iter(await self._plugin.request_complexes([self._selected_site.index])))
-            complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
+            complex_center = comp.get_complex_to_workspace_matrix() * get_complex_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
@@ -329,23 +331,6 @@ class DockingMenu():
     def enable(self):
         self._menu.enabled = True
         self._plugin.update_menu(self._menu)
-
-    @staticmethod
-    def get_center(complex):
-        """Calculate the center of a complex."""
-        inf = float('inf')
-        min_pos = Vector3(inf, inf, inf)
-        max_pos = Vector3(-inf, -inf, -inf)
-
-        for atom in complex.atoms:
-            min_pos.x = min(min_pos.x, atom.position.x)
-            min_pos.y = min(min_pos.y, atom.position.y)
-            min_pos.z = min(min_pos.z, atom.position.z)
-            max_pos.x = max(max_pos.x, atom.position.x)
-            max_pos.y = max(max_pos.y, atom.position.y)
-            max_pos.z = max(max_pos.z, atom.position.z)
-
-        return (min_pos + max_pos) * 0.5
 
     @async_callback
     async def run_button_pressed_callback(self, button):
