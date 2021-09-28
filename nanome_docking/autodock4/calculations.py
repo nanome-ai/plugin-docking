@@ -37,7 +37,7 @@ class DockingCalculations():
             ligands_file_pdbqt = self._prepare_ligands(ligands_file_pdb)
 
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt, site)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files and saves in the temp folder.
@@ -92,8 +92,8 @@ class DockingCalculations():
         subprocess.run(lig_args, cwd=self.temp_dir)
         return ligands_file_pdbqt
 
-    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
-        prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'prepare_gpf4.py')
+    def _prepare_grid_params(self, receptor_file_pdbqt, site):
+        prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'py2', 'prepare_gpf4.py')
         autogrid_input_gpf = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf", dir=self.temp_dir)
         grid_args = [
             'conda', 'run', '-n', 'adfr-suite',
@@ -108,7 +108,7 @@ class DockingCalculations():
 
     def _prepare_docking_params(self, receptor_file_pdbqt, ligands_file_pdbqt):
         # Prepare Docking parameters
-        prepare_dpf42_script = os.path.join(os.path.dirname(__file__), 'prepare_dpf42.py')
+        prepare_dpf42_script = os.path.join(os.path.dirname(__file__), 'py2', 'prepare_dpf42.py')
         autodock_input_dpf = tempfile.NamedTemporaryFile(delete=False, suffix=".dpf", dir=self.temp_dir)
         dock_args = [
             'conda', 'run', '-n', 'adfr-suite',
