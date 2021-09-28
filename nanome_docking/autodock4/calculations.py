@@ -161,7 +161,17 @@ class DockingCalculations():
             '--num_modes', str(num_modes)
         ]
         nanome.util.Logs.debug("Start Autodock")
-        subprocess.run(args, cwd=self.temp_dir)
+        process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
+
+        # stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        # update loading bar on menu accordingly
+        star_count = 0
+        total_stars = 51
+        for c in iter(lambda: process.stdout.read(1), b''): 
+            if c.decode() == '*':
+                star_count += 1
+                self._plugin.update_loading_bar(star_count, total_stars)
+            # sys.stdout.buffer.write(c)
         return dock_results
 
     def make_complexes_invisible(self, complexes):

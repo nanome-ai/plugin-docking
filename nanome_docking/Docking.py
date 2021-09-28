@@ -77,6 +77,12 @@ class Docking(nanome.AsyncPluginInstance):
 
         self.update_structures_deep(results)
 
+    def enable_loading_bar(self, enabled=True):
+        self.menu.enable_loading_bar(enabled)
+
+    def update_loading_bar(self, current, total):
+        self.menu.update_loading_bar(current, total)
+
 
 class SminaDocking(Docking):
 

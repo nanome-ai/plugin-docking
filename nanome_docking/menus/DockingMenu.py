@@ -37,7 +37,6 @@ class DockingMenu():
         # loading bar
         self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
-        self.loading_bar.description = "    Loading...          "
 
         algo_name = self._plugin.__class__.__name__.split('Docking')[0]
         self._menu.title = f'{algo_name} Docking'
@@ -74,8 +73,7 @@ class DockingMenu():
 
     async def _run_docking(self):
         receptor = self._selected_receptor
-        ligands = [comp for comp in self._selected_ligands]
-
+        ligands = self._selected_ligands
         site = None
         if self._selected_site:
             site = self._selected_site
@@ -85,23 +83,14 @@ class DockingMenu():
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
 
-        self.show_loading(True)
+        self.enable_loading_bar()
         self.make_plugin_usable(False)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
-        self.show_loading(False)
+        self.enable_loading_bar(False)
 
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) or self.refresh_run_btn_unusable(update=False)
         self._plugin.update_content(self._run_button)
-
-    def show_loading(self, show=False):
-        if show:
-            self.ln_run_button.enabled = False
-            self.ln_loading_bar.enabled = True
-        else:
-            self.ln_run_button.enabled = True
-            self.ln_loading_bar.enabled = False
-        self._plugin.update_menu(self._menu)
 
     def refresh_run_btn_unusable(self, update=True, after=False):
         site_requirement_met = self._selected_site is not None or not self._plugin._calculations.requires_site
@@ -401,6 +390,14 @@ class DockingMenu():
 
         for ddi in selected_items:
             ddi.selected = True
+
+    def enable_loading_bar(self, enabled=True):
+        self.ln_loading_bar.enabled = enabled
+        self._plugin.update_node(self.ln_loading_bar)
+
+    def update_loading_bar(self, current, total):
+        self.loading_bar.percentage = current / total
+        self._plugin.update_content(self.loading_bar)
 
 
 class SettingsMenu:
