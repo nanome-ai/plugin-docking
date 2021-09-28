@@ -12,7 +12,7 @@ if [ -n "$existing" ]; then
     docker rm -f $existing
 fi
 
-ARGS=("smina" $*)
+ARGS="$*"
 
 docker run -d \
 --name docking \
