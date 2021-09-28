@@ -25,34 +25,52 @@ class DockingCalculations():
         align = params.get('align')
 
         with tempfile.TemporaryDirectory() as self.temp_dir, tempfile.TemporaryDirectory() as self.output_dir:
-            combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
+            # combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
 
             # Save all input files
             receptor_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
-            ligands_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
             receptor.io.to_pdb(receptor_file_pdb.name, pdb_options)
-            combined_ligands.io.to_pdb(ligands_file_pdb.name, pdb_options)
+
+            # Map ligand index to its pdb file, so that we can find it later
+            lig_files_pdb = []
+            for lig in ligands:
+                lig_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
+                lig.io.to_pdb(lig_pdb.name, pdb_options)
+                lig_files_pdb.append((lig.index, lig_pdb))
 
             # Start Ligand/ Receptor prep
             receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
-            ligands_file_pdbqt = self._prepare_ligands(ligands_file_pdb)
+
+            ligand_files_pdbqt = []
+            for index, lig_pdb in lig_files_pdb:
+                lig_file_pdbqt = self._prepare_ligands(lig_pdb)
+                ligand_files_pdbqt.append((index, lig_file_pdbqt))
 
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligands_file_pdbqt, site)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligand_files_pdbqt[0][1], site)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
             # Run vina, and convert output from pdbqt into a Complex object.
+
+            ligand_pdbqts = [f for index, f in ligand_files_pdbqt]
             dock_results_dir = self._start_vina(
-                receptor_file_pdbqt, ligands_file_pdbqt, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
+                receptor_file_pdbqt, ligand_pdbqts, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
 
             for dock_result in os.listdir(self.output_dir):
                 filepath = f'{dock_results_dir}/{dock_result}'
                 with open(filepath) as f:
+                    # Look up original ligand for name
+                    result_filename = dock_result.split('_out')[0]
+                    comp_index = next(
+                        index for index, pdbqt_file in ligand_files_pdbqt if result_filename in pdbqt_file.name)
+                    original_lig = next(lig for lig in ligands if lig.index == comp_index)
+                    # Convert pdbqt into Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
                     docked_ligand = Complex.io.from_sdf(path=dock_results_sdf.name)
+                    docked_ligand.full_name = f'{original_lig.full_name} (Docked)'
                     docked_ligands.append(docked_ligand)
 
         ComplexUtils.convert_to_frames(docked_ligands)
@@ -61,15 +79,10 @@ class DockingCalculations():
         self.make_complexes_invisible(ligands)
 
         for comp in docked_ligands:
-            if len(combined_ligands.names) == 1:
-                comp.name = combined_ligands.names[0] + " (Docked)"
-            else:
-                comp.name == "Docking Results"
-            comp.visible = True
-
             if align:
                 comp.position = receptor.position
                 comp.rotation = receptor.rotation
+            comp.visible = True
 
         nanome.util.Logs.debug("Update workspace")
         self._plugin.add_result_to_workspace(docked_ligands, align)
@@ -152,16 +165,20 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, output_dir, num_modes=5, exhaustiveness=8):
+    def _start_vina(self, receptor_file_pdbqt, ligand_files_pdbqt, output_dir, num_modes=5, exhaustiveness=8):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         # map files created by autogrid call, and are found using the receptor file name.
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
+
+        batch_args = []
+        for lig_file in ligand_files_pdbqt:
+            batch_args += ['--batch', lig_file.name]
         args = [
             vina_binary,
             '--scoring', 'ad4',
             '--maps', maps_identifier,
-            '--batch', ligands_file_pdbqt.name,
+            *batch_args,
             '--dir', output_dir,
             '--exhaustiveness', str(exhaustiveness),
             '--num_modes', str(num_modes)
@@ -172,11 +189,14 @@ class DockingCalculations():
         # stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
         # update loading bar on menu accordingly
         star_count = 0
-        total_stars = 51
+        stars_per_complex = 51
+        total_stars = stars_per_complex * len(ligand_files_pdbqt)
+
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 star_count += 1
                 self._plugin.update_loading_bar(star_count, total_stars)
+            # import sys
             # sys.stdout.buffer.write(c)
         return output_dir
 
