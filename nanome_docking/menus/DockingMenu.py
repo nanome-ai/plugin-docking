@@ -86,7 +86,7 @@ class DockingMenu():
         self.enable_loading_bar()
         self.make_plugin_usable(False)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
-        # self.enable_loading_bar(False)
+        self.enable_loading_bar(False)
 
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) or self.refresh_run_btn_unusable(update=False)

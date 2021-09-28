@@ -64,7 +64,7 @@ class Docking(nanome.AsyncPluginInstance):
             ligands = complexes[1:]
 
         ComplexUtils.convert_to_frames(ligands)
-        self._calculations.start_docking(receptor, ligands, site, **params)
+        await self._calculations.start_docking(receptor, ligands, site, **params)
 
     def add_result_to_workspace(self, results, align=False):
         for complex in results:

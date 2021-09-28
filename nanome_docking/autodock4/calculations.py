@@ -18,7 +18,7 @@ class DockingCalculations():
         self._plugin = plugin
         self.requires_site = False
 
-    def start_docking(self, receptor, ligands, site, **params):
+    async def start_docking(self, receptor, ligands, site, **params):
         docked_ligands = None
         modes = params.get('modes')
         exhaustiveness = params.get('exhaustiveness')
@@ -66,7 +66,6 @@ class DockingCalculations():
 
         nanome.util.Logs.debug("Update workspace")
         self._plugin.add_result_to_workspace([docked_ligands], align)
-        self._plugin.enable_loading_bar(False)
 
     def _prepare_receptor(self, pdb_file):
         """Convert pdb file into pdbqt."""

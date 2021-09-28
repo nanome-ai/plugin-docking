@@ -30,7 +30,7 @@ class DockingCalculations():
         self._ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir.name)
         self._log_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir.name)
 
-    def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
+    async def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
         self._exhaustiveness = exhaustiveness
         self._modes = modes
         self._receptor = receptor
@@ -45,7 +45,7 @@ class DockingCalculations():
 
         # Start docking process
         self._write_structures_to_file()
-        self._start_docking()
+        await self._start_docking()
 
     def _write_structures_to_file(self):
         self.initialize()
@@ -57,7 +57,7 @@ class DockingCalculations():
         self._site.io.to_pdb(self._site_input.name, PDBOPTIONS)
         Logs.debug("Saved PDB", self._site_input.name)
 
-    def _start_docking(self):
+    async def _start_docking(self):
         smina_args = [
             '-r', self._receptor_input.name,
             '-l', self._ligands_input.name,
@@ -80,8 +80,8 @@ class DockingCalculations():
         p = Process(SMINA_PATH, smina_args)
         p.on_done = self._docking_finished
         p.on_output = self.update_loading_bar
-        p.start()
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
+        await p.start()
 
     def update_loading_bar(self, output):
         # Smina program outputs a loading bar to stdout using asterisks.
@@ -141,7 +141,6 @@ class DockingCalculations():
             ComplexUtils.convert_to_conformers([docking_results])
             self.plugin.add_result_to_workspace([docking_results], self._align)
 
-        self.plugin.enable_loading_bar(False)
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
 
     def _set_scores(self, molecule):
