@@ -66,6 +66,7 @@ class DockingCalculations():
 
         nanome.util.Logs.debug("Update workspace")
         self._plugin.add_result_to_workspace([docked_ligands], align)
+        self._plugin.enable_loading_bar(False)
 
     def _prepare_receptor(self, pdb_file):
         """Convert pdb file into pdbqt."""

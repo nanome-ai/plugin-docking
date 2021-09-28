@@ -5,6 +5,7 @@ import tempfile
 from timeit import default_timer as timer
 
 from nanome.util import ComplexUtils, Logs, Process
+from nanome.util.asyncio import async_callback
 from nanome.util.enums import NotificationTypes
 
 
@@ -18,6 +19,7 @@ class DockingCalculations():
     def __init__(self, plugin):
         self.plugin = plugin
         self.requires_site = True
+        self.loading_bar_counter = 0
 
     def initialize(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -77,8 +79,19 @@ class DockingCalculations():
 
         p = Process(SMINA_PATH, smina_args)
         p.on_done = self._docking_finished
+        p.on_output = self.update_loading_bar
         p.start()
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
+
+    def update_loading_bar(self, output):
+        # Smina program outputs a loading bar to stdout using asterisks.
+        # Update UI loading bar based on number of asterisks outputted
+        total_stars = 51
+        output_str = output.decode()
+        star_count = output_str.count('*')
+        if star_count:
+            self.loading_bar_counter += star_count
+            self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
 
     def _docking_finished(self, return_code):
         if return_code != 0:
@@ -128,6 +141,7 @@ class DockingCalculations():
             ComplexUtils.convert_to_conformers([docking_results])
             self.plugin.add_result_to_workspace([docking_results], self._align)
 
+        self.plugin.enable_loading_bar(False)
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
 
     def _set_scores(self, molecule):
