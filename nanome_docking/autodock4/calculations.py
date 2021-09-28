@@ -19,12 +19,12 @@ class DockingCalculations():
         self.requires_site = False
 
     async def start_docking(self, receptor, ligands, site, **params):
-        docked_ligands = None
+        docked_ligands = []
         modes = params.get('modes')
         exhaustiveness = params.get('exhaustiveness')
         align = params.get('align')
 
-        with tempfile.TemporaryDirectory() as self.temp_dir:
+        with tempfile.TemporaryDirectory() as self.temp_dir, tempfile.TemporaryDirectory() as self.output_dir:
             combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
 
             # Save all input files
@@ -45,27 +45,34 @@ class DockingCalculations():
             self._start_autogrid4(autogrid_input_gpf)
 
             # Run vina, and convert output from pdbqt into a Complex object.
-            dock_results_pdbqt = self._start_vina(receptor_file_pdbqt, ligands_file_pdbqt, num_modes=modes, exhaustiveness=exhaustiveness)
-            dock_results_sdf = self.convert_pdbqt_to_sdf(dock_results_pdbqt)
-            docked_ligands = Complex.io.from_sdf(path=dock_results_sdf.name)
+            dock_results_dir = self._start_vina(
+                receptor_file_pdbqt, ligands_file_pdbqt, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
 
-        ComplexUtils.convert_to_frames([docked_ligands])
+            for dock_result in os.listdir(self.output_dir):
+                filepath = f'{dock_results_dir}/{dock_result}'
+                with open(filepath) as f:
+                    dock_results_sdf = self.convert_pdbqt_to_sdf(f)
+                    docked_ligand = Complex.io.from_sdf(path=dock_results_sdf.name)
+                    docked_ligands.append(docked_ligand)
+
+        ComplexUtils.convert_to_frames(docked_ligands)
 
         # make ligands invisible
         self.make_complexes_invisible(ligands)
 
-        if len(combined_ligands.names) == 1:
-            docked_ligands.name = combined_ligands.names[0] + " (Docked)"
-        else:
-            docked_ligands.name == "Docking Results"
+        for comp in docked_ligands:
+            if len(combined_ligands.names) == 1:
+                comp.name = combined_ligands.names[0] + " (Docked)"
+            else:
+                comp.name == "Docking Results"
+            comp.visible = True
 
-        docked_ligands.visible = True
-        if align:
-            docked_ligands.position = receptor.position
-            docked_ligands.rotation = receptor.rotation
+            if align:
+                comp.position = receptor.position
+                comp.rotation = receptor.rotation
 
         nanome.util.Logs.debug("Update workspace")
-        self._plugin.add_result_to_workspace([docked_ligands], align)
+        self._plugin.add_result_to_workspace(docked_ligands, align)
 
     def _prepare_receptor(self, pdb_file):
         """Convert pdb file into pdbqt."""
@@ -145,18 +152,17 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, num_modes=5, exhaustiveness=8):
+    def _start_vina(self, receptor_file_pdbqt, ligands_file_pdbqt, output_dir, num_modes=5, exhaustiveness=8):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
-        dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
         # map files created by autogrid call, and are found using the receptor file name.
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
         args = [
             vina_binary,
             '--scoring', 'ad4',
             '--maps', maps_identifier,
-            '--ligand', ligands_file_pdbqt.name,
-            '--out', dock_results.name,
+            '--batch', ligands_file_pdbqt.name,
+            '--dir', output_dir,
             '--exhaustiveness', str(exhaustiveness),
             '--num_modes', str(num_modes)
         ]
@@ -167,12 +173,12 @@ class DockingCalculations():
         # update loading bar on menu accordingly
         star_count = 0
         total_stars = 51
-        for c in iter(lambda: process.stdout.read(1), b''): 
+        for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 star_count += 1
                 self._plugin.update_loading_bar(star_count, total_stars)
             # sys.stdout.buffer.write(c)
-        return dock_results
+        return output_dir
 
     def make_complexes_invisible(self, complexes):
         for comp in complexes:
