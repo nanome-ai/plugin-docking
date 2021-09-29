@@ -16,6 +16,7 @@ SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary'
 
 
 class DockingCalculations():
+
     def __init__(self, plugin):
         self.plugin = plugin
         self.requires_site = True
@@ -77,11 +78,23 @@ class DockingCalculations():
         Logs.debug("Run SMINA")
         self._start_timer = timer()
 
-        p = Process(SMINA_PATH, smina_args)
-        p.on_done = self._docking_finished
-        p.on_output = self.update_loading_bar
+        import subprocess
+        cmd = [SMINA_PATH, *smina_args]
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
-        await p.start()
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        # stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        # update loading bar on menu accordingly
+        star_count = 0
+        total_stars = 51
+
+        import sys
+        for c in iter(lambda: process.stdout.read(1), b''):
+            if c.decode() == '*':
+                star_count += 1
+                self.plugin.update_loading_bar(star_count, total_stars)
+            sys.stdout.buffer.write(c)
+
+        self._docking_finished(0)
 
     def update_loading_bar(self, output):
         # Smina program outputs a loading bar to stdout using asterisks.
