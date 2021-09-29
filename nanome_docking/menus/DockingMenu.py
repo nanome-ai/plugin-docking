@@ -196,7 +196,12 @@ class DockingMenu():
 
         if self._selected_receptor:
             dropdown.use_permanent_title = False
-            self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
+            receptor_text = ''
+            if len(item.complex.full_name) <= 4:
+                receptor_text = item.complex.full_name
+            else:
+                receptor_text = item.complex.full_name[:8] + '...'
+            self._receptor_txt._text_value = receptor_text
         else:
             self._receptor_txt._text_value = "Receptor"
             dropdown.use_permanent_title = True
@@ -408,6 +413,7 @@ class DockingMenu():
     def update(self):
         self._plugin.update_menu(self._menu)
 
+
 class SettingsMenu:
 
     def __init__(self, plugin):
@@ -448,7 +454,3 @@ class SettingsMenu:
 
     def on_algorithm_selected(self, dropdown, item):
         self.plugin.change_algorithm(item.name)
-        
-
-        
-
