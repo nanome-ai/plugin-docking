@@ -13,6 +13,7 @@ ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listd
 SETTINGS_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_settings.json')
 MENU_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_menu.json')
 
+
 class DockingMenu():
 
     def __init__(self, docking_plugin):
@@ -83,6 +84,7 @@ class DockingMenu():
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
 
+        self.loading_bar.percentage = 0
         self.enable_loading_bar()
         self.make_plugin_usable(False)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
@@ -103,7 +105,7 @@ class DockingMenu():
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
         else:
-            self._run_button.text.value.unusable = "Please Select Complexes"
+            self._run_button.text.value.unusable = "Run"
             self._run_button.text.size = 0.25
             self._run_button.unusable = True
         if update:
@@ -142,7 +144,8 @@ class DockingMenu():
 
         # Reselect previously selected receptor
         if self._selected_receptor:
-            new_receptor_item = next((item for item in self.dd_receptor.items if item.complex.index == self._selected_receptor.index), None)
+            new_receptor_item = next(
+                (item for item in self.dd_receptor.items if item.complex.index == self._selected_receptor.index), None)
             if new_receptor_item:
                 new_receptor_item.selected = True
 
@@ -175,7 +178,7 @@ class DockingMenu():
             dropdown.permanent_title = "None"
         else:
             complex_names = ','.join([ddi.complex.full_name for ddi in dropdown._selected_items])
-            ligand_text = complex_names if len(complex_names) <=8 else f'{complex_names[:7]}...'
+            ligand_text = complex_names if len(complex_names) <= 8 else f'{complex_names[:7]}...'
             dropdown.permanent_title = complex_names
 
         self._ligand_txt._text_value = ligand_text
@@ -214,9 +217,9 @@ class DockingMenu():
             self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
-        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
-        anchor.target = site_complex.index
-        anchor.local_offset = get_complex_center(site_complex)
+        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Workspace
+        site_center = get_complex_center(site_complex)
+        anchor.local_offset = site_complex.get_complex_to_workspace_matrix() * site_center
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
@@ -229,11 +232,12 @@ class DockingMenu():
         if self._selected_site:
             dropdown.use_permanent_title = False
             comp = next(iter(await self._plugin.request_complexes([self._selected_site.index])))
-            complex_center = comp.get_complex_to_workspace_matrix() * get_complex_center(comp)
             # Draw sphere indicating the site
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
-            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
+            complex_center = get_complex_center(comp)
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [
+                round(x, 2) for x in complex_center]
         else:
             dropdown.use_permanent_title = True
             dropdown.permanent_title = "None"
@@ -296,7 +300,7 @@ class DockingMenu():
         location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
 
         # dropdowns
-        self.dd_ligands = self._menu.root.find_node("LigandDropdown").get_content()    
+        self.dd_ligands = self._menu.root.find_node("LigandDropdown").get_content()
         self.dd_receptor = self._menu.root.find_node("ReceptorDropdown").get_content()
         self.dd_site = self._menu.root.find_node("SiteDropdown").get_content()
         for dd in [self.dd_ligands, self.dd_receptor, self.dd_site]:
@@ -372,7 +376,8 @@ class DockingMenu():
             Logs.debug("Update the site location")
             comp = self._selected_site
             comp = (await self._plugin.request_complexes([comp.index]))[0]
-            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [
+                round(x, 2) for x in comp.position]
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
             self._plugin.update_menu(self._menu)
