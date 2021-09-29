@@ -63,7 +63,7 @@ class DockingCalculations():
         cmd = [SMINA_PATH, *smina_args]
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.handle_loading_bar(process)
+        self.handle_loading_bar(process, len(ligands))
         end = timer()
         Logs.debug("Docking Finished in", end - _start_timer, "seconds")
 
@@ -97,10 +97,15 @@ class DockingCalculations():
         self.plugin.add_result_to_workspace([docking_results], _align)
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
 
-    def handle_loading_bar(self, process):
-        """Render loading bar from stdout on menu."""
+    def handle_loading_bar(self, process, ligand_count):
+        """Render loading bar from stdout on the menu.
+
+        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        """
         star_count = 0
-        total_stars = 51
+        stars_per_complex = 51
+        total_stars = stars_per_complex * ligand_count
+
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 star_count += 1
