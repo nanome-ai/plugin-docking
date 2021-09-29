@@ -220,9 +220,10 @@ class DockingMenu():
             self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
-        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Workspace
+        anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
+        anchor.target = site_complex.index
         site_center = get_complex_center(site_complex)
-        anchor.local_offset = site_complex.get_complex_to_workspace_matrix() * site_center
+        anchor.local_offset = site_center
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
