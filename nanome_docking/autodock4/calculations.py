@@ -41,23 +41,22 @@ class DockingCalculations():
             # Start Ligand/ Receptor prep
             receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
 
-            ligand_files_pdbqt = []
+            ligand_tracker = []
             for index, lig_pdb in lig_files_pdb:
                 lig_file_pdbqt = self._prepare_ligands(lig_pdb)
-                ligand_files_pdbqt.append((index, lig_file_pdbqt))
+                ligand_tracker.append((index, lig_file_pdbqt))
 
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligand_files_pdbqt[0][1], site)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligand_tracker[0][1], site)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
 
             # Creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
             # Run vina, and convert output from pdbqt into a Complex object.
-
-            ligand_pdbqts = [f for index, f in ligand_files_pdbqt]
+            ligand_files = [f for index, f in ligand_tracker]
             dock_results_dir = self._start_vina(
-                receptor_file_pdbqt, ligand_pdbqts, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
+                receptor_file_pdbqt, ligand_files, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
 
             for dock_result in os.listdir(self.output_dir):
                 filepath = f'{dock_results_dir}/{dock_result}'
@@ -65,7 +64,7 @@ class DockingCalculations():
                     # Look up original ligand for name
                     result_filename = dock_result.split('_out')[0]
                     comp_index = next(
-                        index for index, pdbqt_file in ligand_files_pdbqt if result_filename in pdbqt_file.name)
+                        index for index, pdbqt_file in ligand_files if result_filename in pdbqt_file.name)
                     original_lig = next(lig for lig in ligands if lig.index == comp_index)
                     # Convert pdbqt into Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
