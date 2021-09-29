@@ -67,19 +67,22 @@ class DockingCalculations():
                     original_lig = next(lig for lig in ligands if lig.index == comp_index)
                     # Convert pdbqt into new Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
-                    docked_ligand = Complex.io.from_sdf(path=dock_results_sdf.name)
-                    docked_ligand.full_name = f'{original_lig.full_name} (Docked)'
-                    docked_ligands.append(docked_ligand)
-
-        ComplexUtils.convert_to_frames(docked_ligands)
+                    new_complex = Complex.io.from_sdf(path=dock_results_sdf.name)
+                    ComplexUtils.convert_to_frames(new_complex)
+                    
+                    # Set complex attributes and each individual frame.
+                    new_complex.full_name = f'{original_lig.full_name} (Docked)'
+                    new_complex.boxed = True
+                    new_complex.visible = True
+                    for molecule in new_complex.molecules:
+                        molecule.name = original_lig.full_name
+                    if align:
+                        new_complex.position = receptor.position
+                        new_complex.rotation = receptor.rotation
+                    docked_ligands.append(new_complex)
 
         # Make original ligands hidden, and add docked ligands to workspace.
         self.make_complexes_invisible(ligands)
-        for comp in docked_ligands:
-            if align:
-                comp.position = receptor.position
-                comp.rotation = receptor.rotation
-            comp.visible = True
         nanome.util.Logs.debug("Update workspace")
         self._plugin.add_result_to_workspace(docked_ligands, align)
 
