@@ -90,7 +90,8 @@ class Docking(nanome.AsyncPluginInstance):
         self.menu.update_loading_bar(current, total)
 
     def change_algorithm(self, algorithm_name):
-        self.menu.build_menu(algorithm_name)        
+        self.menu.build_menu(algorithm_name)
+        self.menu.update()
 
 
 class SminaDocking(Docking):

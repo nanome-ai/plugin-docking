@@ -320,7 +320,6 @@ class DockingMenu():
         self._slider = root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
 
-        self._plugin.update_menu(self._menu)
         Logs.debug("Constructed plugin menu")
 
     def enable(self):
@@ -406,6 +405,8 @@ class DockingMenu():
         self.loading_bar.percentage = current / total
         self._plugin.update_content(self.loading_bar)
 
+    def update(self):
+        self._plugin.update_menu(self._menu)
 
 class SettingsMenu:
 
