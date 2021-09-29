@@ -181,19 +181,23 @@ class DockingCalculations():
         ]
         nanome.util.Logs.debug("Start Autodock")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
+        self.handle_loading_bar(process, len(ligand_files_pdbqt))
+        return output_dir
 
-        # stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
-        # update loading bar on menu accordingly
+    def handle_loading_bar(self, process, ligand_count):
+        """Render loading bar from stdout on the menu.
+
+        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        """
         star_count = 0
         stars_per_complex = 51
-        total_stars = stars_per_complex * len(ligand_files_pdbqt)
+        total_stars = stars_per_complex * ligand_count
 
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 star_count += 1
                 self._plugin.update_loading_bar(star_count, total_stars)
             sys.stdout.buffer.write(c)
-        return output_dir
 
     def make_complexes_invisible(self, complexes):
         for comp in complexes:

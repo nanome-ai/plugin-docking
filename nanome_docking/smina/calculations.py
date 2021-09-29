@@ -63,16 +63,7 @@ class DockingCalculations():
         cmd = [SMINA_PATH, *smina_args]
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        # stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
-        # update loading bar on menu accordingly
-        star_count = 0
-        total_stars = 51
-        for c in iter(lambda: process.stdout.read(1), b''):
-            if c.decode() == '*':
-                star_count += 1
-                self.plugin.update_loading_bar(star_count, total_stars)
-            sys.stdout.buffer.write(c)
-
+        self.handle_loading_bar(process)
         end = timer()
         Logs.debug("Docking Finished in", end - _start_timer, "seconds")
 
@@ -98,14 +89,23 @@ class DockingCalculations():
             docking_results.name += "Docking Results"
         elif len(_combined_ligands.names) == 1:
             docking_results.name = _combined_ligands.names[0] + " (Docked)"
+
         docking_results.visible = True
         docking_results.locked = True
 
-        Logs.debug("Update workspace")
-        Logs.debug(f'** result index {docking_results.index}')
         ComplexUtils.convert_to_conformers([docking_results])
         self.plugin.add_result_to_workspace([docking_results], _align)
         self.plugin.send_notification(NotificationTypes.success, "Docking finished")
+
+    def handle_loading_bar(self, process):
+        """Render loading bar from stdout on menu."""
+        star_count = 0
+        total_stars = 51
+        for c in iter(lambda: process.stdout.read(1), b''):
+            if c.decode() == '*':
+                star_count += 1
+                self.plugin.update_loading_bar(star_count, total_stars)
+            sys.stdout.buffer.write(c)
 
     def _set_scores(self, molecule):
         molecule.min_atom_score = float('inf')
