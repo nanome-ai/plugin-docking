@@ -25,8 +25,6 @@ class DockingCalculations():
         align = params.get('align')
 
         with tempfile.TemporaryDirectory() as self.temp_dir, tempfile.TemporaryDirectory() as self.output_dir:
-            # combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
-
             # Save all input files
             receptor_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
             receptor.io.to_pdb(receptor_file_pdb.name, pdb_options)
@@ -61,12 +59,12 @@ class DockingCalculations():
             for dock_result in os.listdir(self.output_dir):
                 filepath = f'{dock_results_dir}/{dock_result}'
                 with open(filepath) as f:
-                    # Look up original ligand for name
+                    # Look up original ligand complex
                     result_filename = dock_result.split('_out')[0]
                     comp_index = next(
                         index for index, pdbqt_file in ligand_files if result_filename in pdbqt_file.name)
                     original_lig = next(lig for lig in ligands if lig.index == comp_index)
-                    # Convert pdbqt into Complex object.
+                    # Convert pdbqt into new Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
                     docked_ligand = Complex.io.from_sdf(path=dock_results_sdf.name)
                     docked_ligand.full_name = f'{original_lig.full_name} (Docked)'
@@ -74,15 +72,13 @@ class DockingCalculations():
 
         ComplexUtils.convert_to_frames(docked_ligands)
 
-        # make ligands invisible
+        # Make original ligands hidden, and add docked ligands to workspace.
         self.make_complexes_invisible(ligands)
-
         for comp in docked_ligands:
             if align:
                 comp.position = receptor.position
                 comp.rotation = receptor.rotation
             comp.visible = True
-
         nanome.util.Logs.debug("Update workspace")
         self._plugin.add_result_to_workspace(docked_ligands, align)
 
