@@ -1,6 +1,7 @@
 import nanome
 import os
 import subprocess
+import sys
 import tempfile
 
 from nanome.api.structure import Complex
@@ -62,7 +63,7 @@ class DockingCalculations():
                     # Look up original ligand complex
                     result_filename = dock_result.split('_out')[0]
                     comp_index = next(
-                        index for index, pdbqt_file in ligand_files if result_filename in pdbqt_file.name)
+                        index for index, pdbqt_file in ligand_tracker if result_filename in pdbqt_file.name)
                     original_lig = next(lig for lig in ligands if lig.index == comp_index)
                     # Convert pdbqt into new Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
@@ -191,8 +192,7 @@ class DockingCalculations():
             if c.decode() == '*':
                 star_count += 1
                 self._plugin.update_loading_bar(star_count, total_stars)
-            # import sys
-            # sys.stdout.buffer.write(c)
+            sys.stdout.buffer.write(c)
         return output_dir
 
     def make_complexes_invisible(self, complexes):

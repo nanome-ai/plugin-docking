@@ -6,7 +6,7 @@ from nanome_docking.autodock4.calculations import DockingCalculations as Autodoc
 from nanome_docking.rhodium.calculations import DockingCalculations as Rhodium
 from nanome_docking.menus.DockingMenu import DockingMenu, SettingsMenu
 from nanome_docking.menus.DockingMenuRhodium import DockingMenuRhodium
-
+from nanome_docking.utils import get_complex_center
 
 __metaclass__ = type
 
@@ -14,20 +14,19 @@ __metaclass__ = type
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
-        self.menu = None
-        self._calculations = None
+        self.menu = DockingMenu(self)
+        self.settings_menu = SettingsMenu(self)
+
+    def start(self):
+        current_algorithm = self.settings_menu.current_algorithm
+        self.menu.build_menu(current_algorithm)
 
     @async_callback
-    async def start(self):
-        self.settings_menu = SettingsMenu(self)
-        self.menu.build_menu()
-        # Request shallow complex (name, position, orientation), to display them in a list
-        complexes = await self.request_complex_list()
-        self.menu.change_complex_list(complexes)
-
-    def on_run(self):
+    async def on_run(self):
         # Called when user clicks on the "Run" button in Nanome
         self.menu.enable()
+        complexes = await self.request_complex_list()
+        self.menu.change_complex_list(complexes)
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
@@ -64,6 +63,13 @@ class Docking(nanome.AsyncPluginInstance):
             ligands = complexes[1:]
 
         ComplexUtils.convert_to_frames(ligands)
+
+        algorithm = self.settings_menu.current_algorithm
+        if algorithm == 'smina':
+            self._calculations = Smina(self)
+        elif algorithm == 'autodock4':
+            self._calculations = Autodock4(self)
+
         await self._calculations.start_docking(receptor, ligands, site, **params)
 
     def add_result_to_workspace(self, results, align=False):
@@ -83,26 +89,30 @@ class Docking(nanome.AsyncPluginInstance):
     def update_loading_bar(self, current, total):
         self.menu.update_loading_bar(current, total)
 
+    def change_algorithm(self, algorithm_name):
+        self.menu.build_menu(algorithm_name)        
+
 
 class SminaDocking(Docking):
 
-    def __init__(self):
-        super(SminaDocking, self).__init__()
-        self.menu = DockingMenu(self)
-        self._calculations = Smina(self)
-
+    # def __init__(self):
+    #     super(SminaDocking, self).__init__()
+    #     self.menu = DockingMenu(self)
+    #     self._calculations = Smina(self)
+    pass
 
 class Autodock4Docking(Docking):
 
-    def __init__(self):
-        super(Autodock4Docking, self).__init__()
-        self.menu = DockingMenu(self)
-        self._calculations = Autodock4(self)
-
+    # def __init__(self):
+    #     super(Autodock4Docking, self).__init__()
+    #     self.menu = DockingMenu(self)
+    #     self._calculations = Autodock4(self)
+    pass
 
 class RhodiumDocking(Docking):
 
-    def __init__(self):
-        super(RhodiumDocking, self).__init__()
-        self.menu = DockingMenuRhodium(self)
-        self._calculations = Rhodium(self)
+    # def __init__(self):
+    #     super(RhodiumDocking, self).__init__()
+    #     self.menu = DockingMenuRhodium(self)
+    #     self._calculations = Rhodium(self)
+    pass

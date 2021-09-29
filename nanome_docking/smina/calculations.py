@@ -1,13 +1,13 @@
 import re
+import sys
 import nanome
 import os
 import tempfile
+import subprocess
 from timeit import default_timer as timer
 
-from nanome.util import ComplexUtils, Logs, Process
-from nanome.util.asyncio import async_callback
+from nanome.util import ComplexUtils, Logs
 from nanome.util.enums import NotificationTypes
-
 
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
@@ -30,9 +30,6 @@ class DockingCalculations():
         _combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
         _site = site
         _align = align
-        _replace = replace
-        _scoring = scoring
-        _visual_scores = visual_scores
         _autobox = autobox
 
         # Start docking process
@@ -41,17 +38,13 @@ class DockingCalculations():
         _ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
         _site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
         _docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir.name)
-        _ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
         _log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir.name)
 
         # Save all input files
         _receptor.io.to_pdb(_receptor_input.name, PDBOPTIONS)
-        Logs.debug("Saved PDB", _receptor_input.name)
         _combined_ligands.io.to_pdb(_ligands_input.name, PDBOPTIONS)
-        Logs.debug("Saved PDB", _ligands_input.name)
         _site.io.to_pdb(_site_input.name, PDBOPTIONS)
-        Logs.debug("Saved PDB", _site_input.name)
-        
+
         smina_args = [
             '-r', _receptor_input.name,
             '-l', _ligands_input.name,
@@ -67,7 +60,6 @@ class DockingCalculations():
         Logs.debug("Run SMINA")
         _start_timer = timer()
 
-        import subprocess
         cmd = [SMINA_PATH, *smina_args]
         self.plugin.send_notification(NotificationTypes.message, "Docking started")
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -75,8 +67,6 @@ class DockingCalculations():
         # update loading bar on menu accordingly
         star_count = 0
         total_stars = 51
-
-        import sys
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 star_count += 1
@@ -136,7 +126,6 @@ class DockingCalculations():
                 residue.labeled = True
             interaction_terms = associated['Atomic Interaction Terms']
             interaction_values = re.findall(pattern, interaction_terms)
-            atom_count = len(list(molecule.atoms))
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
                     Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
