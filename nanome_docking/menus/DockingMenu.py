@@ -22,7 +22,6 @@ class DockingMenu():
 
         self._menu = nanome.ui.Menu.io.from_json(MENU_JSON_PATH)
         self._menu.title = f'{algorithm} Docking'
-    
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
@@ -34,14 +33,12 @@ class DockingMenu():
         self._scoring = False
         self._visual_scores = False
 
-
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
         self._run_button = self.ln_run_button.get_content()
         # loading bar
         self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
-
 
     def get_params(self):
         """Collect parameters from this menu and the Settings Menu."""
