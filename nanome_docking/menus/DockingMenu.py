@@ -16,12 +16,13 @@ MENU_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_menu.json')
 
 class DockingMenu():
 
-    def __init__(self, docking_plugin, algorithm=None):
-        algorithm = algorithm or ''
+    def __init__(self, docking_plugin):
         self._plugin = docking_plugin
 
         self._menu = nanome.ui.Menu.io.from_json(MENU_JSON_PATH)
-        self._menu.title = f'{algorithm} Docking'
+        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
+        self._menu.title = f'{algo_name} Docking'
+
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
@@ -36,6 +37,7 @@ class DockingMenu():
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
         self._run_button = self.ln_run_button.get_content()
+
         # loading bar
         self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
@@ -260,8 +262,7 @@ class DockingMenu():
         can_dock = self._selected_ligands and self._selected_receptor and self._selected_site
         self._check_arrow._file_path = ICONS['can_dock' if can_dock else 'cannot_dock']
 
-    def build_menu(self, current_algorithm):
-        self._menu.title = f'{current_algorithm.title()} Docking'
+    def build_menu(self):
         # panels
         root = self._menu.root
         self._docking_param_panel = root.find_node("LeftSide")
@@ -415,7 +416,7 @@ class DockingMenu():
 class SettingsMenu:
 
     def __init__(self, plugin):
-        self.plugin = plugin
+        self._plugin = plugin
         self._menu = nanome.ui.Menu.io.from_json(SETTINGS_JSON_PATH)
         self._menu.index = 1
         self._exhaustiveness = 10
@@ -424,31 +425,26 @@ class SettingsMenu:
         self.setting_slider_oval = menu_root.find_node("ExhaustOval")
         self.setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
         self._exhaustiveness_txt = menu_root.find_node("ExhaustValue").get_content()
+        self._display_score_btn = menu_root.find_node("VisualScoresButton").get_content()
         self._exhaust_slider = menu_root.find_node("ExhaustSlider").get_content()
         self._visual_scores = False
 
-        self.dd_algorithm = menu_root.find_node("dd_algorithm").get_content()
-        self.dd_algorithm.register_item_clicked_callback(self.on_algorithm_selected)
-
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
+        self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
 
     def enable(self):
         self._menu.enabled = True
-        self.plugin.update_menu(self._menu)
+        self._plugin.update_menu(self._menu)
 
     def exhaust_slider_released_callback(self, slider):
         slider.current_value = round(slider.current_value)
-        self.plugin.update_content(slider)
+        self._plugin.update_content(slider)
         self._exhaustiveness = slider.current_value
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
-        self.plugin.update_content(self._exhaustiveness_txt)
+        self._plugin.update_content(self._exhaustiveness_txt)
 
-    @property
-    def current_algorithm(self):
-        selected_dd_item = next(item for item in self.dd_algorithm.items if item.selected)
-        algorithm = selected_dd_item.name.lower()
-        return algorithm
-
-    def on_algorithm_selected(self, dropdown, item):
-        self.plugin.change_algorithm(item.name)
+    def visual_scores_button_pressed_callback(self, button):
+        self._visual_scores = not self._visual_scores
+        button.selected = self._visual_scores
+        self._plugin.update_content(button)
