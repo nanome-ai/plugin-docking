@@ -16,6 +16,10 @@ from nanome_docking.menus.DockingMenuRhodium import DockingMenuRhodium
 __metaclass__ = type
 
 
+PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
+PDBOPTIONS.write_bonds = True
+
+
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
@@ -68,11 +72,25 @@ class Docking(nanome.AsyncPluginInstance):
 
         ComplexUtils.convert_to_frames(ligands)
 
-        start_timer = timer()
-        self.send_notification(NotificationTypes.message, "Docking started")
-        output_complexes = []
         with tempfile.TemporaryDirectory() as temp_dir:
-            output_sdfs = await self._calculations.start_docking(receptor, ligands, site, temp_dir, **params)
+            # Convert input complexes into PDBs.
+            receptor_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            site_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            receptor.io.to_pdb(receptor_pdb.name, PDBOPTIONS)
+            site.io.to_pdb(site_pdb.name, PDBOPTIONS)
+
+            ligand_pdbs = []
+            for lig in ligands:
+                ligand_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+                ComplexUtils.align_to(lig, receptor)
+                lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
+                ligand_pdbs.append(ligand_pdb)
+
+            start_timer = timer()
+            self.send_notification(NotificationTypes.message, "Docking started")
+            output_complexes = []
+
+            output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
             end = timer()
             Logs.debug("Docking Finished in", end - start_timer, "seconds")
 
@@ -96,17 +114,18 @@ class Docking(nanome.AsyncPluginInstance):
             ligand.visible = False
             ComplexUtils.reset_transform(ligand)
         self.update_structures_shallow(ligands)
-    
+
+        # Add docked complexes to workspace.
         ComplexUtils.convert_to_conformers(output_complexes)
         self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
 
     def add_result_to_workspace(self, results, receptor, site):
-        for complex in results:
-            complex.position = receptor.position
-            complex.rotation = receptor.rotation
-            ComplexUtils.align_to(complex, site)
-            complex.boxed = True
+        for comp in results:
+            comp.position = receptor.position
+            comp.rotation = receptor.rotation
+            ComplexUtils.align_to(comp, site)
+            comp.boxed = True
         self.update_structures_deep(results)
 
     def enable_loading_bar(self, enabled=True):
@@ -167,6 +186,7 @@ class SminaDocking(Docking):
             return '{0:.{1}f}'.format(f, n)
         i, p, d = s.partition('.')
         return '.'.join([i, (d + '0' * n)[:n]])
+
 
 class Autodock4Docking(Docking):
 
