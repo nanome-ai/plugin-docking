@@ -23,93 +23,86 @@ class DockingCalculations():
         self.loading_bar_counter = 0
 
     async def start_docking(self, receptor, ligands, site, exhaustiveness, modes, align, replace, scoring, visual_scores, autobox):
-        _exhaustiveness = exhaustiveness
-        _modes = modes
-        _receptor = receptor
-        _ligands = ligands
-        _combined_ligands = ComplexUtils.combine_ligands(receptor, ligands)
-        _site = site
-        _align = align
-        _autobox = autobox
-
         # Start docking process
-        temp_dir = tempfile.TemporaryDirectory()
-        _receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
-        _ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
-        _site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir.name)
-        _docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir.name)
-        _log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir.name)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            receptor_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            site_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            docking_output = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
+            log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
 
-        # Save all input files
-        _receptor.io.to_pdb(_receptor_input.name, PDBOPTIONS)
-        _combined_ligands.io.to_pdb(_ligands_input.name, PDBOPTIONS)
-        _site.io.to_pdb(_site_input.name, PDBOPTIONS)
+            receptor.io.to_pdb(receptor_input.name, PDBOPTIONS)
+            site.io.to_pdb(site_input.name, PDBOPTIONS)
 
-        smina_args = [
-            '-r', _receptor_input.name,
-            '-l', _ligands_input.name,
-            '--autobox_ligand', _site_input.name,
-            '--out', _docking_output.name,
-            '--log', _log_file.name,
-            '--exhaustiveness', str(_exhaustiveness),
-            '--num_modes', str(_modes),
-            '--autobox_add', str(_autobox),
-            '--atom_term_data'
-        ]
+            # Save all input files
+            docking_outputs = []
+            _start_timer = timer()
+            self.plugin.send_notification(NotificationTypes.message, "Docking started")
+            for lig in ligands:
+                ligands_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+                ComplexUtils.align_to(lig, receptor)
+                lig.io.to_pdb(ligands_input.name, PDBOPTIONS)
 
-        Logs.debug("Run SMINA")
-        _start_timer = timer()
+                ligand_output = tempfile.NamedTemporaryFile(delete=False, suffix=".sdf", dir=temp_dir)
+                smina_args = [
+                    '-r', receptor_input.name,
+                    '-l', ligands_input.name,
+                    '--autobox_ligand', site_input.name,
+                    '--out', ligand_output.name,
+                    '--log', log_file.name,
+                    '--exhaustiveness', str(exhaustiveness),
+                    '--num_modes', str(modes),
+                    '--autobox_add', str(autobox),
+                    '--atom_term_data'
+                ]
 
-        cmd = [SMINA_PATH, *smina_args]
-        self.plugin.send_notification(NotificationTypes.message, "Docking started")
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.handle_loading_bar(process, len(ligands))
-        end = timer()
-        Logs.debug("Docking Finished in", end - _start_timer, "seconds")
+                Logs.debug("Run SMINA")
 
-        # hide ligands
-        for ligand in _ligands:
-            ligand.visible = False
-            ComplexUtils.reset_transform(ligand)
-        self.plugin.update_structures_shallow(_ligands)
+                cmd = [SMINA_PATH, *smina_args]
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+                self.handle_loading_bar(process, len(ligands))
+                docking_outputs.append(ligand_output)
+            end = timer()
+            Logs.debug("Docking Finished in", end - _start_timer, "seconds")
+            
+            # hide ligands
+            for ligand in ligands:
+                ligand.visible = False
+                ComplexUtils.reset_transform(ligand)
+            self.plugin.update_structures_shallow(ligands)
 
-        docking_results = nanome.structure.Complex.io.from_sdf(path=_docking_output.name)
-        ComplexUtils.convert_to_frames([docking_results])
+            output_complexes = []
+            for ligand, result in zip(ligands, docking_outputs):
+                docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
+                docked_complex.full_name = f'{ligand.full_name} (Docked)'
+                ComplexUtils.convert_to_frames([docked_complex])
+                # fix metadata sorting
+                docked_complex._remarks['Minimized Affinity'] = ''
 
-        # fix metadata sorting
-        docking_results._remarks['Minimized Affinity'] = ''
+                Logs.debug("Read SDF", docking_output.name)
+                for molecule in docked_complex.molecules:
+                    self._set_scores(molecule)
 
-        Logs.debug("Read SDF", _docking_output.name)
-        for molecule in docking_results.molecules:
-            self._set_scores(molecule)
+                docked_complex.set_current_frame(0)
+                docked_complex.visible = True
+                docked_complex.locked = True
+                output_complexes.append(docked_complex)
 
-        docking_results.set_current_frame(0)
-
-        if len(_combined_ligands.names) > 1:
-            docking_results.name += "Docking Results"
-        elif len(_combined_ligands.names) == 1:
-            docking_results.name = _combined_ligands.names[0] + " (Docked)"
-
-        docking_results.visible = True
-        docking_results.locked = True
-
-        ComplexUtils.convert_to_conformers([docking_results])
-        self.plugin.add_result_to_workspace([docking_results], _align)
-        self.plugin.send_notification(NotificationTypes.success, "Docking finished")
+            ComplexUtils.convert_to_conformers(output_complexes)
+            self.plugin.add_result_to_workspace(output_complexes, align)
+            self.plugin.send_notification(NotificationTypes.success, "Docking finished")
 
     def handle_loading_bar(self, process, ligand_count):
         """Render loading bar from stdout on the menu.
 
         stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
         """
-        star_count = 0
         stars_per_complex = 51
         total_stars = stars_per_complex * ligand_count
 
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
-                star_count += 1
-                self.plugin.update_loading_bar(star_count, total_stars)
+                self.loading_bar_counter += 1
+                self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
             sys.stdout.buffer.write(c)
 
     def _set_scores(self, molecule):
