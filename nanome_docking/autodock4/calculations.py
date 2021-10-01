@@ -68,7 +68,7 @@ class DockingCalculations():
                     # Convert pdbqt into new Complex object.
                     dock_results_sdf = self.convert_pdbqt_to_sdf(f)
                     new_complex = Complex.io.from_sdf(path=dock_results_sdf.name)
-                    ComplexUtils.convert_to_frames(new_complex)
+                    ComplexUtils.convert_to_frames([new_complex])
                     
                     # Set complex attributes and each individual frame.
                     new_complex.full_name = f'{original_lig.full_name} (Docked)'
