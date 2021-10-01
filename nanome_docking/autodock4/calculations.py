@@ -6,11 +6,6 @@ import tempfile
 
 from nanome.api.structure import Complex
 from nanome_docking.utils import get_complex_center
-from nanome._internal._structure._io._pdb.save import Options as _PDBOptions
-from nanome.util import ComplexUtils
-
-pdb_options = _PDBOptions()
-pdb_options.write_bonds = True
 
 
 class DockingCalculations():
@@ -19,72 +14,39 @@ class DockingCalculations():
         self._plugin = plugin
         self.requires_site = False
 
-    async def start_docking(self, receptor, ligands, site, **params):
-        docked_ligands = []
+    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params):
+        self.temp_dir = temp_dir
         modes = params.get('modes')
         exhaustiveness = params.get('exhaustiveness')
-        align = params.get('align')
 
-        with tempfile.TemporaryDirectory() as self.temp_dir, tempfile.TemporaryDirectory() as self.output_dir:
-            # Save all input files
-            receptor_file_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
-            receptor.io.to_pdb(receptor_file_pdb.name, pdb_options)
+        # Get site center vector from site_pdb
+        site_comp = Complex.io.from_pdb(path=site_pdb.name)
+        site_center = get_complex_center(site_comp)
 
-            # Map ligand index to its pdb file, so that we can find it later
-            lig_files_pdb = []
-            for lig in ligands:
-                lig_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=self.temp_dir)
-                lig.io.to_pdb(lig_pdb.name, pdb_options)
-                lig_files_pdb.append((lig.index, lig_pdb))
+        # Start Ligand/ Receptor prep
+        receptor_file_pdbqt = self._prepare_receptor(receptor_pdb)
 
-            # Start Ligand/ Receptor prep
-            receptor_file_pdbqt = self._prepare_receptor(receptor_file_pdb)
+        ligand_files_pdbqt = []
+        for lig_pdb in ligand_pdbs:
+            lig_file_pdbqt = self._prepare_ligands(lig_pdb)
+            ligand_files_pdbqt.append(lig_file_pdbqt)
 
-            ligand_tracker = []
-            for index, lig_pdb in lig_files_pdb:
-                lig_file_pdbqt = self._prepare_ligands(lig_pdb)
-                ligand_tracker.append((index, lig_file_pdbqt))
-
+        output_files = []
+        # Run vina, and convert output from pdbqt into a Complex object.
+        for lig_file in ligand_files_pdbqt:        
             # Prepare Grid and Docking parameters.
-            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, ligand_tracker[0][1], site)
+            autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, lig_file, site_center)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
-
-            # Creates .map files and saves in the temp folder.
+            
+            # Run autogrid which creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
-
-            # Run vina, and convert output from pdbqt into a Complex object.
-            ligand_files = [f for index, f in ligand_tracker]
-            dock_results_dir = self._start_vina(
-                receptor_file_pdbqt, ligand_files, self.output_dir, num_modes=modes, exhaustiveness=exhaustiveness)
-
-            for dock_result in os.listdir(self.output_dir):
-                filepath = f'{dock_results_dir}/{dock_result}'
-                with open(filepath) as f:
-                    # Look up original ligand complex
-                    result_filename = dock_result.split('_out')[0]
-                    comp_index = next(
-                        index for index, pdbqt_file in ligand_tracker if result_filename in pdbqt_file.name)
-                    original_lig = next(lig for lig in ligands if lig.index == comp_index)
-                    # Convert pdbqt into new Complex object.
-                    dock_results_sdf = self.convert_pdbqt_to_sdf(f)
-                    new_complex = Complex.io.from_sdf(path=dock_results_sdf.name)
-                    ComplexUtils.convert_to_frames([new_complex])
-                    
-                    # Set complex attributes and each individual frame.
-                    new_complex.full_name = f'{original_lig.full_name} (Docked)'
-                    new_complex.boxed = True
-                    new_complex.visible = True
-                    for molecule in new_complex.molecules:
-                        molecule.name = original_lig.full_name
-                    if align:
-                        new_complex.position = receptor.position
-                        new_complex.rotation = receptor.rotation
-                    docked_ligands.append(new_complex)
-
-        # Make original ligands hidden, and add docked ligands to workspace.
-        self.make_complexes_invisible(ligands)
-        nanome.util.Logs.debug("Update workspace")
-        self._plugin.add_result_to_workspace(docked_ligands, align)
+            
+            result_pdbqt = self._start_vina(
+                receptor_file_pdbqt, lig_file, num_modes=modes, exhaustiveness=exhaustiveness)
+            with open(result_pdbqt.name) as f:
+                result_sdf = self.convert_pdbqt_to_sdf(f)
+                output_files.append(result_sdf)
+        return output_files
 
     def _prepare_receptor(self, pdb_file):
         """Convert pdb file into pdbqt."""
@@ -112,12 +74,11 @@ class DockingCalculations():
         subprocess.run(lig_args, cwd=self.temp_dir)
         return ligands_file_pdbqt
 
-    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt, site):
+    def _prepare_grid_params(self, receptor_file_pdbqt, ligands_file_pdbqt, site_center):
         prepare_gpf4_script = os.path.join(os.path.dirname(__file__), 'py2', 'prepare_gpf4.py')
         autogrid_output_gpf = tempfile.NamedTemporaryFile(delete=False, suffix=".gpf", dir=self.temp_dir)
 
         # Write reference gpf file to set gridcenter to site
-        site_center = get_complex_center(site)
         gridcenter_line = f"gridcenter {' '.join([str(round(coord, 3)) for coord in site_center.unpack()])}"
         reference_file = tempfile.NamedTemporaryFile(suffix=".gpf", dir=self.temp_dir)
         with open(reference_file.name, 'w') as f:
@@ -164,28 +125,25 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligand_files_pdbqt, output_dir, num_modes=5, exhaustiveness=8):
+    def _start_vina(self, receptor_file_pdbqt, ligand_file_pdbqt, num_modes=5, exhaustiveness=8):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         # map files created by autogrid call, and are found using the receptor file name.
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
-
-        batch_args = []
-        for lig_file in ligand_files_pdbqt:
-            batch_args += ['--batch', lig_file.name]
+        dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
         args = [
             vina_binary,
             '--scoring', 'ad4',
             '--maps', maps_identifier,
-            *batch_args,
-            '--dir', output_dir,
+            '--ligand', ligand_file_pdbqt.name,
+            '--out', dock_results.name,
             '--exhaustiveness', str(exhaustiveness),
             '--num_modes', str(num_modes)
         ]
         nanome.util.Logs.debug("Start Autodock")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
-        self.handle_loading_bar(process, len(ligand_files_pdbqt))
-        return output_dir
+        self.handle_loading_bar(process, 1)
+        return dock_results
 
     def handle_loading_bar(self, process, ligand_count):
         """Render loading bar from stdout on the menu.
@@ -201,11 +159,6 @@ class DockingCalculations():
                 star_count += 1
                 self._plugin.update_loading_bar(star_count, total_stars)
             sys.stdout.buffer.write(c)
-
-    def make_complexes_invisible(self, complexes):
-        for comp in complexes:
-            comp.visible = False
-        self._plugin.update_structures_shallow(complexes)
 
     def convert_pdbqt_to_sdf(self, pdbqt_file):
         output_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix=".sdf")
