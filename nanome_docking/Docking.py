@@ -62,7 +62,6 @@ class Docking(nanome.AsyncPluginInstance):
 
         complexes = await self.request_complexes(complex_indices)
         receptor = complexes[0]
-        self._receptor = receptor
 
         if site:
             site = complexes[1]
@@ -100,9 +99,9 @@ class Docking(nanome.AsyncPluginInstance):
                 ComplexUtils.convert_to_frames([docked_complex])
                 # fix metadata sorting
                 docked_complex._remarks['Minimized Affinity'] = ''
-                if hasattr(self, '_set_scores'):
+                if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
-                        self._set_scores(molecule)
+                        self.set_scores(molecule)
 
                 docked_complex.set_current_frame(0)
                 docked_complex.visible = True
@@ -142,7 +141,7 @@ class SminaDocking(Docking):
         self.menu = DockingMenu(self)
         self._calculations = Smina(self)
 
-    def _set_scores(self, molecule):
+    def set_scores(self, molecule):
         molecule.min_atom_score = float('inf')
         molecule.max_atom_score = float('-inf')
 
@@ -195,6 +194,14 @@ class Autodock4Docking(Docking):
         self.menu = DockingMenu(self)
         self._calculations = Autodock4(self)
 
+    def set_scores(self, molecule):
+        for associated in molecule.associateds:
+            associated.pop('>  <MODEL>')
+            associated.pop('>  <TORSDO>')
+            remark = associated.pop('>  <REMARK>')
+            split_remark = remark.split('     ')
+            vina_score =split_remark[1]
+            associated['vina_result'] = vina_score
 
 class RhodiumDocking(Docking):
 
