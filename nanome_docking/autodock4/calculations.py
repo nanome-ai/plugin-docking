@@ -33,14 +33,14 @@ class DockingCalculations():
 
         output_files = []
         # Run vina, and convert output from pdbqt into a Complex object.
-        for lig_file in ligand_files_pdbqt:        
+        for lig_file in ligand_files_pdbqt:
             # Prepare Grid and Docking parameters.
             autogrid_input_gpf = self._prepare_grid_params(receptor_file_pdbqt, lig_file, site_center)
             # autodock_input_dpf = self._prepare_docking_params(receptor_file_pdbqt, ligands_file_pdbqt)
-            
+
             # Run autogrid which creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
-            
+
             result_pdbqt = self._start_vina(
                 receptor_file_pdbqt, lig_file, num_modes=modes, exhaustiveness=exhaustiveness)
             with open(result_pdbqt.name) as f:
