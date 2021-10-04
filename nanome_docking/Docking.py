@@ -98,7 +98,6 @@ class Docking(nanome.AsyncPluginInstance):
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
                 ComplexUtils.convert_to_frames([docked_complex])
                 # fix metadata sorting
-                docked_complex._remarks['Minimized Affinity'] = ''
                 if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
@@ -199,9 +198,15 @@ class Autodock4Docking(Docking):
             associated.pop('>  <MODEL>')
             associated.pop('>  <TORSDO>')
             remark = associated.pop('>  <REMARK>')
-            split_remark = remark.split('     ')
-            vina_score = split_remark[1]
-            associated['vina_result'] = vina_score
+
+            split_remark = remark.split()
+            associated['CONF_DEPENDENT'] = split_remark[3]
+            associated['TOTAL_SCORE'] = split_remark[4]
+            associated['INTER + INTRA'] = split_remark[8]
+            associated['INTER'] = split_remark[10]
+            associated['INTRA'] = split_remark[12]
+            associated['CONF_INDEPENDENT'] = split_remark[14]
+            associated['UNBOUND'] = split_remark[16]
 
 
 class RhodiumDocking(Docking):
