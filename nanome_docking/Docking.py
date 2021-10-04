@@ -102,6 +102,8 @@ class Docking(nanome.AsyncPluginInstance):
                 if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
+                if hasattr(self, 'visualize_scores'):
+                    self.visualize_scores(docked_complex)
 
                 docked_complex.set_current_frame(0)
                 docked_complex.visible = True
@@ -142,6 +144,7 @@ class SminaDocking(Docking):
         self._calculations = Smina(self)
 
     def set_scores(self, molecule):
+        """Clean and Parse score information for provided molecule."""
         molecule.min_atom_score = float('inf')
         molecule.max_atom_score = float('-inf')
 
@@ -149,10 +152,8 @@ class SminaDocking(Docking):
         pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
             # make the labels pretty :)
-            associated['Minimized Affinity'] = associated['> <minimizedAffinity>']
-            associated['Atomic Interaction Terms'] = associated['> <atomic_interaction_terms>']
-            del associated['> <minimizedAffinity>']
-            del associated['> <atomic_interaction_terms>']
+            associated['Minimized Affinity'] = associated.pop('> <minimizedAffinity>')
+            associated['Atomic Interaction Terms'] = associated.pop('> <atomic_interaction_terms>')
 
             pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
@@ -167,7 +168,7 @@ class SminaDocking(Docking):
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)
 
-    def _visualize_scores(self, ligand_complex):
+    def visualize_scores(self, ligand_complex):
         for molecule in ligand_complex.molecules:
             for atom in molecule.atoms:
                 if hasattr(atom, "score"):
@@ -176,10 +177,9 @@ class SminaDocking(Docking):
                     norm_score = atom.score / denominator
                     atom.atom_scale = norm_score * 1.5 + 0.1
                     atom.label_text = self._truncate(atom.score, 3)
-                    # atom.labeled = True
 
     def _truncate(self, f, n):
-        '''Truncates/pads a float f to n decimal places without rounding'''
+        """Truncates/pads a float f to n decimal places without rounding."""
         s = '{}'.format(f)
         if 'e' in s or 'E' in s:
             return '{0:.{1}f}'.format(f, n)
@@ -200,8 +200,9 @@ class Autodock4Docking(Docking):
             associated.pop('>  <TORSDO>')
             remark = associated.pop('>  <REMARK>')
             split_remark = remark.split('     ')
-            vina_score =split_remark[1]
+            vina_score = split_remark[1]
             associated['vina_result'] = vina_score
+
 
 class RhodiumDocking(Docking):
 
