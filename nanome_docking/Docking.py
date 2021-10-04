@@ -80,7 +80,8 @@ class Docking(nanome.AsyncPluginInstance):
 
             ligand_pdbs = []
             for lig in ligands:
-                ligand_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+                cleaned_name = lig.full_name.replace(' ', '_')
+                ligand_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir, prefix=f'{cleaned_name}_')
                 ComplexUtils.align_to(lig, receptor)
                 lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
                 ligand_pdbs.append(ligand_pdb)
