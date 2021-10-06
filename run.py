@@ -5,7 +5,7 @@ from nanome_docking.Docking import Autodock4Docking, RhodiumDocking, SminaDockin
 
 def main():
     parser = argparse.ArgumentParser(description='Parse Arguments to determine flavor of Docking to instantiate')
-    parser.add_argument('algorithm', choices=['smina', 'autodock4'])
+    parser.add_argument('--algorithm', choices=['smina', 'autodock4'], default='smina')
 
     args, _ = parser.parse_known_args()
     plugin_class = None
