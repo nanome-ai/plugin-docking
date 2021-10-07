@@ -1,8 +1,10 @@
 import os
 import nanome
-from nanome.util import Logs, async_callback, Vector3
+from nanome.util import Logs, async_callback
 from nanome.api.ui import DropdownItem
 from nanome.api.shapes import Sphere, Shape
+from nanome_docking.utils import get_complex_center
+
 
 BASE_DIR = os.path.dirname(__file__)
 ICONS_DIR = os.path.join(BASE_DIR, 'icons')
@@ -11,10 +13,16 @@ ICONS = {icon.rsplit('.')[0]: os.path.join(ICONS_DIR, icon) for icon in os.listd
 SETTINGS_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_settings.json')
 MENU_JSON_PATH = os.path.join(BASE_DIR, 'jsons', 'docking_menu.json')
 
+
 class DockingMenu():
 
     def __init__(self, docking_plugin):
         self._plugin = docking_plugin
+
+        self._menu = nanome.ui.Menu.io.from_json(MENU_JSON_PATH)
+        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
+        self._menu.title = f'{algo_name} Docking'
+
         self._selected_receptor = None
         self._selected_ligands = []
         self._selected_site = None
@@ -26,19 +34,13 @@ class DockingMenu():
         self._scoring = False
         self._visual_scores = False
 
-        # loading menus
-        self._menu = nanome.ui.Menu.io.from_json(MENU_JSON_PATH)
-
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
         self._run_button = self.ln_run_button.get_content()
+
         # loading bar
         self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
-        self.loading_bar.description = "    Loading...          "
-
-        algo_name = self._plugin.__class__.__name__.split('Docking')[0]
-        self._menu.title = f'{algo_name} Docking'
 
     def get_params(self):
         """Collect parameters from this menu and the Settings Menu."""
@@ -72,37 +74,28 @@ class DockingMenu():
 
     async def _run_docking(self):
         receptor = self._selected_receptor
-        ligands = [item.complex for item in self._selected_ligands]
-
+        ligands = self._selected_ligands
         site = None
         if self._selected_site:
-            site = self._selected_site.complex
+            site = self._selected_site
 
         if not receptor or not ligands:
             if self._selected_site is None:
                 Logs.warning("Trying to run docking without having one receptor, one site and at least one ligand selected")
                 return
 
-        self.show_loading(True)
+        self.loading_bar.percentage = 0
+        self.enable_loading_bar()
         self.make_plugin_usable(False)
         await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
-        self.show_loading(False)
+        self.enable_loading_bar(False)
 
     def make_plugin_usable(self, state=True):
         self._run_button.unusable = (not state) or self.refresh_run_btn_unusable(update=False)
         self._plugin.update_content(self._run_button)
 
-    def show_loading(self, show=False):
-        if show:
-            self.ln_run_button.enabled = False
-            self.ln_loading_bar.enabled = True
-        else:
-            self.ln_run_button.enabled = True
-            self.ln_loading_bar.enabled = False
-        self._plugin.update_menu(self._menu)
-
     def refresh_run_btn_unusable(self, update=True, after=False):
-        site_requirement_met = self._selected_site is not None or not self._plugin._calculations.requires_site
+        site_requirement_met = self._selected_site is not None
         if self._selected_receptor is not None and len(self._selected_ligands) > 0 and site_requirement_met and not after:
             self._run_button.text.value.unusable = "Running..."
             self._run_button.text.size = 0.35
@@ -112,7 +105,7 @@ class DockingMenu():
             self._run_button.text.size = 0.35
             self._run_button.unusable = False
         else:
-            self._run_button.text.value.unusable = "Please Select Complexes"
+            self._run_button.text.value.unusable = "Run"
             self._run_button.text.size = 0.25
             self._run_button.unusable = True
         if update:
@@ -135,13 +128,12 @@ class DockingMenu():
         self.dd_site.items = site_list
 
         # Ligands should allow multiple selections
-        # TODO: Uncomment when ready for multi-select ligands
-        # for item in self.dd_ligands.items:
-        #     item.close_on_selected = False
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
 
         # Reselect previously selected ligands
-        for lig_item in self._selected_ligands:
-            dd_item = next((item for item in self.dd_ligands.items if item.complex.index == lig_item.complex.index), None)
+        for comp in self._selected_ligands:
+            dd_item = next((item for item in self.dd_ligands.items if item.complex.index == comp.index), None)
             if dd_item:
                 dd_item.selected = True
 
@@ -152,7 +144,8 @@ class DockingMenu():
 
         # Reselect previously selected receptor
         if self._selected_receptor:
-            new_receptor_item = next((item for item in self.dd_receptor.items if item.complex.index == self._selected_receptor.index), None)
+            new_receptor_item = next(
+                (item for item in self.dd_receptor.items if item.complex.index == self._selected_receptor.index), None)
             if new_receptor_item:
                 new_receptor_item.selected = True
 
@@ -164,7 +157,7 @@ class DockingMenu():
         # Reselect previously selected site.
         if self._selected_site:
             new_site_item = next(
-                (item for item in self.dd_site.items if item.complex.index == self._selected_site.complex.index), None)
+                (item for item in self.dd_site.items if item.complex.index == self._selected_site.index), None)
             if new_site_item:
                 new_site_item.selected = True
 
@@ -177,26 +170,20 @@ class DockingMenu():
         self._plugin.update_menu(self._menu)
 
     def handle_ligand_selected(self, dropdown, item):
-        # self.multi_select_dropdown(dropdown, item)
-        if not hasattr(self, '_selected_ligands'):
-            self._selected_ligands = []
+        self.multi_select_dropdown(dropdown, item)
 
-        unselecting_complex = (
-            self._selected_ligands
-            and item.complex.index in [ddi.complex.index for ddi in self._selected_ligands]
-        )
-        if unselecting_complex:
-            # Remove all traces on menu of selected ligands.
-            self._selected_ligands.remove(item)
-            item.selected = False
-            self._ligand_txt._text_value = "Ligands"
-            dropdown.use_permanent_title = True
+        dropdown.use_permanent_title = len(dropdown._selected_items) > 1
+        if not dropdown._selected_items:
+            ligand_text = "Ligands"
             dropdown.permanent_title = "None"
         else:
-            # update menu to reflect selected ligand
-            self._selected_ligands.append(item)
-            dropdown.use_permanent_title = False
-            self._ligand_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'            
+            complex_names = ','.join([ddi.complex.full_name for ddi in dropdown._selected_items])
+            ligand_text = complex_names if len(complex_names) <= 8 else f'{complex_names[:7]}...'
+            dropdown.permanent_title = complex_names
+
+        self._ligand_txt._text_value = ligand_text
+        self._selected_ligands = [ddi.complex for ddi in dropdown._selected_items]
+
         self.update_icons()
         self.refresh_run_btn_unusable(update=False)
         self._plugin.update_menu(self._menu)
@@ -208,7 +195,12 @@ class DockingMenu():
 
         if self._selected_receptor:
             dropdown.use_permanent_title = False
-            self._receptor_txt._text_value = item.complex.full_name if len(item.complex.full_name) <= 4 else item.complex.full_name[:8] + '...'
+            receptor_text = ''
+            if len(item.complex.full_name) <= 4:
+                receptor_text = item.complex.full_name
+            else:
+                receptor_text = item.complex.full_name[:8] + '...'
+            self._receptor_txt._text_value = receptor_text
         else:
             self._receptor_txt._text_value = "Receptor"
             dropdown.use_permanent_title = True
@@ -232,27 +224,29 @@ class DockingMenu():
         anchor = self.site_sphere.anchors[0]
         anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
         anchor.target = site_complex.index
-        anchor.local_offset = self.get_center(site_complex)
+        site_center = get_complex_center(site_complex)
+        anchor.local_offset = site_center
         await Shape.upload(self.site_sphere)
         return self.site_sphere
 
     @async_callback
     async def handle_site_selected(self, dropdown, item):
         # If site was previously selected, we are actually unselecting it.
-        unselecting_site = self._selected_site and item.complex.index == self._selected_site.complex.index
-        self._selected_site = None if unselecting_site else item
+        unselecting_site = self._selected_site and item.complex.index == self._selected_site.index
+        self._selected_site = None if unselecting_site else item.complex
 
         if self._selected_site:
-            self.dd_site.use_permanent_title = False
-            comp = next(iter(await self._plugin.request_complexes([self._selected_site.complex.index])))
-            complex_center = comp.get_complex_to_workspace_matrix() * self.get_center(comp)
+            dropdown.use_permanent_title = False
+            comp = next(iter(await self._plugin.request_complexes([self._selected_site.index])))
             # Draw sphere indicating the site
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
-            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in complex_center]
+            complex_center = get_complex_center(comp)
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [
+                round(x, 2) for x in complex_center]
         else:
-            self.dd_site.use_permanent_title = True
-            self.dd_site.permanent_title = "None"
+            dropdown.use_permanent_title = True
+            dropdown.permanent_title = "None"
             item.selected = False
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
             if hasattr(self, 'site_sphere'):
@@ -312,7 +306,7 @@ class DockingMenu():
         location_refresh_btn.register_pressed_callback(self.loc_refresh_pressed_callback)
 
         # dropdowns
-        self.dd_ligands = self._menu.root.find_node("LigandDropdown").get_content()    
+        self.dd_ligands = self._menu.root.find_node("LigandDropdown").get_content()
         self.dd_receptor = self._menu.root.find_node("ReceptorDropdown").get_content()
         self.dd_site = self._menu.root.find_node("SiteDropdown").get_content()
         for dd in [self.dd_ligands, self.dd_receptor, self.dd_site]:
@@ -320,10 +314,8 @@ class DockingMenu():
             dd.permanent_title = "None"
 
         # Ligands should allow multiple selections
-        # TODO: Test and implement multi ligand selections
-        # For now leave commented out
-        # for item in self.dd_ligands.items:
-        #     item.close_on_selected = False
+        for item in self.dd_ligands.items:
+            item.close_on_selected = False
         self.dd_ligands.register_item_clicked_callback(self.handle_ligand_selected)
         self.dd_receptor.register_item_clicked_callback(self.handle_receptor_selected)
         self.dd_site.register_item_clicked_callback(self.handle_site_selected)
@@ -332,29 +324,11 @@ class DockingMenu():
         self._slider = root.find_node("Slider").get_content()
         self._slider.register_released_callback(self.slider_released_callback)
 
-        self._plugin.update_menu(self._menu)
         Logs.debug("Constructed plugin menu")
 
     def enable(self):
         self._menu.enabled = True
         self._plugin.update_menu(self._menu)
-
-    @staticmethod
-    def get_center(complex):
-        """Calculate the center of a complex."""
-        inf = float('inf')
-        min_pos = Vector3(inf, inf, inf)
-        max_pos = Vector3(-inf, -inf, -inf)
-
-        for atom in complex.atoms:
-            min_pos.x = min(min_pos.x, atom.position.x)
-            min_pos.y = min(min_pos.y, atom.position.y)
-            min_pos.z = min(min_pos.z, atom.position.z)
-            max_pos.x = max(max_pos.x, atom.position.x)
-            max_pos.y = max(max_pos.y, atom.position.y)
-            max_pos.z = max(max_pos.z, atom.position.z)
-
-        return (min_pos + max_pos) * 0.5
 
     @async_callback
     async def run_button_pressed_callback(self, button):
@@ -405,9 +379,10 @@ class DockingMenu():
             self._plugin.update_menu(self._menu)
         else:
             Logs.debug("Update the site location")
-            comp = self._selected_site.complex
+            comp = self._selected_site
             comp = (await self._plugin.request_complexes([comp.index]))[0]
-            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [round(x, 2) for x in comp.position]
+            self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [
+                round(x, 2) for x in comp.position]
             radius = self._slider.current_value
             self.draw_site_sphere(comp, radius)
             self._plugin.update_menu(self._menu)
@@ -426,12 +401,16 @@ class DockingMenu():
         for ddi in selected_items:
             ddi.selected = True
 
-        dropdown.use_permanent_title = True
-        permanent_title = ','.join([ddi.name for ddi in selected_items]) if selected_items else 'None'
-        dropdown.permanent_title = permanent_title
+    def enable_loading_bar(self, enabled=True):
+        self.ln_loading_bar.enabled = enabled
+        self._plugin.update_node(self.ln_loading_bar)
 
-        dropdown.use_permanent_title = len(selected_items) > 1
-        self._plugin.update_content(dropdown)
+    def update_loading_bar(self, current, total):
+        self.loading_bar.percentage = current / total
+        self._plugin.update_content(self.loading_bar)
+
+    def update(self):
+        self._plugin.update_menu(self._menu)
 
 
 class SettingsMenu:

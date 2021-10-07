@@ -1,5 +1,11 @@
 import nanome
 from nanome.util import async_callback, ComplexUtils
+import re
+import tempfile
+
+from timeit import default_timer as timer
+from nanome.util.enums import NotificationTypes
+from nanome.util import Logs
 
 from nanome_docking.smina.calculations import DockingCalculations as Smina
 from nanome_docking.autodock4.calculations import DockingCalculations as Autodock4
@@ -7,27 +13,28 @@ from nanome_docking.rhodium.calculations import DockingCalculations as Rhodium
 from nanome_docking.menus.DockingMenu import DockingMenu, SettingsMenu
 from nanome_docking.menus.DockingMenuRhodium import DockingMenuRhodium
 
-
 __metaclass__ = type
+
+
+PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
+PDBOPTIONS.write_bonds = True
 
 
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
-        self.menu = None
-        self._calculations = None
+        self.menu = DockingMenu(self)
+        self.settings_menu = SettingsMenu(self)
+
+    def start(self):
+        self.menu.build_menu()
 
     @async_callback
-    async def start(self):
-        self.settings_menu = SettingsMenu(self)
-        self.menu.build_menu()
-        # Request shallow complex (name, position, orientation), to display them in a list
-        complexes = await self.request_complex_list()
-        self.menu.change_complex_list(complexes)
-
-    def on_run(self):
+    async def on_run(self):
         # Called when user clicks on the "Run" button in Nanome
         self.menu.enable()
+        complexes = await self.request_complex_list()
+        self.menu.change_complex_list(complexes)
 
     def on_advanced_settings(self):
         # Called when user click on the "Advanced Settings" button in Nanome
@@ -55,7 +62,6 @@ class Docking(nanome.AsyncPluginInstance):
 
         complexes = await self.request_complexes(complex_indices)
         receptor = complexes[0]
-        self._receptor = receptor
 
         if site:
             site = complexes[1]
@@ -64,18 +70,70 @@ class Docking(nanome.AsyncPluginInstance):
             ligands = complexes[1:]
 
         ComplexUtils.convert_to_frames(ligands)
-        self._calculations.start_docking(receptor, ligands, site, **params)
 
-    def add_result_to_workspace(self, results, align=False):
-        for complex in results:
-            complex.position = self._receptor.position
-            complex.rotation = self._receptor.rotation
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Convert input complexes into PDBs.
+            receptor_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            site_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
+            receptor.io.to_pdb(receptor_pdb.name, PDBOPTIONS)
+            site.io.to_pdb(site_pdb.name, PDBOPTIONS)
 
-            if align and hasattr(self, '_site'):
-                ComplexUtils.align_to(complex, self._site)
-                complex.boxed = True
+            ligand_pdbs = []
+            for lig in ligands:
+                cleaned_name = lig.full_name.replace(' ', '_')
+                ligand_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir, prefix=f'{cleaned_name}_')
+                ComplexUtils.align_to(lig, receptor)
+                lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
+                ligand_pdbs.append(ligand_pdb)
 
+            start_timer = timer()
+            self.send_notification(NotificationTypes.message, "Docking started")
+            output_complexes = []
+
+            output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
+            end = timer()
+            Logs.debug("Docking Finished in", end - start_timer, "seconds")
+
+            for ligand, result in zip(ligands, output_sdfs):
+                docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
+                docked_complex.full_name = f'{ligand.full_name} (Docked)'
+                ComplexUtils.convert_to_frames([docked_complex])
+                # fix metadata sorting
+                if hasattr(self, 'set_scores'):
+                    for molecule in docked_complex.molecules:
+                        self.set_scores(molecule)
+                if hasattr(self, 'visualize_scores'):
+                    self.visualize_scores(docked_complex)
+
+                docked_complex.set_current_frame(0)
+                docked_complex.visible = True
+                docked_complex.locked = True
+                output_complexes.append(docked_complex)
+
+        # hide ligands
+        for ligand in ligands:
+            ligand.visible = False
+            ComplexUtils.reset_transform(ligand)
+        self.update_structures_shallow(ligands)
+
+        # Add docked complexes to workspace.
+        ComplexUtils.convert_to_conformers(output_complexes)
+        self.add_result_to_workspace(output_complexes, receptor, site)
+        self.send_notification(NotificationTypes.success, "Docking finished")
+
+    def add_result_to_workspace(self, results, receptor, site):
+        for comp in results:
+            comp.position = receptor.position
+            comp.rotation = receptor.rotation
+            ComplexUtils.align_to(comp, site)
+            comp.boxed = True
         self.update_structures_deep(results)
+
+    def enable_loading_bar(self, enabled=True):
+        self.menu.enable_loading_bar(enabled)
+
+    def update_loading_bar(self, current, total):
+        self.menu.update_loading_bar(current, total)
 
 
 class SminaDocking(Docking):
@@ -85,6 +143,49 @@ class SminaDocking(Docking):
         self.menu = DockingMenu(self)
         self._calculations = Smina(self)
 
+    def set_scores(self, molecule):
+        """Clean and Parse score information for provided molecule."""
+        molecule.min_atom_score = float('inf')
+        molecule.max_atom_score = float('-inf')
+
+        num_rgx = '(-?[\d.]+(?:e[+-]\d+)?)'
+        pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
+        for associated in molecule.associateds:
+            # make the labels pretty :)
+            associated['Minimized Affinity'] = associated.pop('> <minimizedAffinity>')
+            associated['Atomic Interaction Terms'] = associated.pop('> <atomic_interaction_terms>')
+
+            pose_score = associated['Minimized Affinity']
+            for residue in molecule.residues:
+                residue.label_text = pose_score + " kcal/mol"
+                residue.labeled = True
+            interaction_terms = associated['Atomic Interaction Terms']
+            interaction_values = re.findall(pattern, interaction_terms)
+            for i, atom in enumerate(molecule.atoms):
+                if i < len(interaction_values) - 1:
+                    Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
+                    atom.score = float(interaction_values[i][5])
+                    molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
+                    molecule.max_atom_score = max(atom.score, molecule.max_atom_score)
+
+    def visualize_scores(self, ligand_complex):
+        for molecule in ligand_complex.molecules:
+            for atom in molecule.atoms:
+                if hasattr(atom, "score"):
+                    atom.atom_mode = nanome.api.structure.Atom.AtomRenderingMode.Point
+                    denominator = -molecule.min_atom_score if atom.score < 0 else molecule.max_atom_score
+                    norm_score = atom.score / denominator
+                    atom.atom_scale = norm_score * 1.5 + 0.1
+                    atom.label_text = self._truncate(atom.score, 3)
+
+    def _truncate(self, f, n):
+        """Truncates/pads a float f to n decimal places without rounding."""
+        s = '{}'.format(f)
+        if 'e' in s or 'E' in s:
+            return '{0:.{1}f}'.format(f, n)
+        i, p, d = s.partition('.')
+        return '.'.join([i, (d + '0' * n)[:n]])
+
 
 class Autodock4Docking(Docking):
 
@@ -92,6 +193,21 @@ class Autodock4Docking(Docking):
         super(Autodock4Docking, self).__init__()
         self.menu = DockingMenu(self)
         self._calculations = Autodock4(self)
+
+    def set_scores(self, molecule):
+        for associated in molecule.associateds:
+            associated.pop('>  <MODEL>')
+            associated.pop('>  <TORSDO>')
+            remark = associated.pop('>  <REMARK>')
+
+            split_remark = remark.split()
+            associated['CONF_DEPENDENT'] = split_remark[3]
+            associated['TOTAL_SCORE'] = split_remark[4]
+            associated['INTER + INTRA'] = split_remark[8]
+            associated['INTER'] = split_remark[10]
+            associated['INTRA'] = split_remark[12]
+            associated['CONF_INDEPENDENT'] = split_remark[14]
+            associated['UNBOUND'] = split_remark[16]
 
 
 class RhodiumDocking(Docking):

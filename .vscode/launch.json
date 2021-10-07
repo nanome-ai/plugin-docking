@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["smina", "-v", "-n", "[wip]-smina-docking"],
+            "args": ["--algorithm", "smina", "-v", "-n", "[wip]-smina-docking"],
             "justMyCode": false
         },
         {
@@ -16,7 +16,7 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["autodock4", "-v", "-n", "[wip]-autodock4-docking"],
+            "args": ["--algorithm", "autodock4", "-v", "-n", "[wip]-autodock4-docking"],
             "justMyCode": false
         },
         {

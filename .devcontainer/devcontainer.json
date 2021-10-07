@@ -25,7 +25,8 @@
   "settings": {
     "python.languageServer": "Pylance",
     "python.analysis.extraPaths": ["/opt/conda/lib/python3.7/site-packages"],
-    "python.formatting.autopep8Path": "/opt/conda/bin/autopep8"
+    "python.formatting.autopep8Path": "/opt/conda/bin/autopep8",
+    "python.formatting.autopep8Args": ["--max-line-length", "200"]
   },
 
   // Add the IDs of extensions you want installed when the container is created.

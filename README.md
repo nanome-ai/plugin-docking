@@ -12,20 +12,21 @@ Supported Docking algorithms:
 [Docker](https://docs.docker.com/get-docker/)
 
 ## Usage
+The docking algorithm used is determined by the `--algorithm` flag on startup. It flag not provided, it defaults to `smina`
 
 To run Smina Docking in a Docker container:
 
 ```sh
 $ cd docker
 $ ./build.sh
-$ ./deploy.sh -a <plugin_server_address> [args]
+$ ./deploy.sh -a <nts_address> [args]
 ```
 
 To run Docking with Autodock4:
 ```
 $ cd docker
 $ ./build.sh
-$ docker run docking python run.py autodock4 [args]
+$ ./deploy.sh --algorithm autodock4 -a <nts_address> [args]
 ```
 ---
 
