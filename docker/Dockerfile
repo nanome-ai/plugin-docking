@@ -13,11 +13,11 @@ RUN pip install -r requirements.txt
 
 COPY adfr-suite.yml .
 
-RUN if [ ! -z "$EXCLUDE_AUTODOCK4" ]; \
+# Install autodock4 requirements unless build-arg passed saying not to 
+RUN if [ -z "$EXCLUDE_AUTODOCK4" ]; \
     then \
-    echo "Installing Autodock4 requirements from Conda." \
     # adfr-suite functions required for autodock4. Requires separate python 2.7 environment.
-    && conda env create --file adfr-suite.yml \
+    conda env create --file adfr-suite.yml \
     # Openbabel also required for autodock4
     && conda install -c conda-forge openbabel; \
     else \
