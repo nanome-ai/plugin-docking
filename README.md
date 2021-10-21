@@ -26,7 +26,7 @@ To run Docking with Autodock4:
 ```
 $ cd docker
 $ ./build.sh --build-arg ALGORITHM=autodock4
-$ ./deploy.sh --algorithm autodock4 -a [args]
+$ ./deploy.sh --algorithm autodock4 [args]
 ```
 ---
 
