@@ -102,7 +102,9 @@ class Docking(nanome.AsyncPluginInstance):
                 if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
-                if hasattr(self, 'visualize_scores'):
+
+                visualize_scores = params.get('visualize_scores', False)
+                if visualize_scores and hasattr(self, 'visualize_scores'):
                     self.visualize_scores(docked_complex)
 
                 docked_complex.set_current_frame(0)

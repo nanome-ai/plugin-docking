@@ -19,14 +19,14 @@ To run Smina Docking in a Docker container:
 ```sh
 $ cd docker
 $ ./build.sh
-$ ./deploy.sh -a <nts_address> [args]
+$ ./deploy.sh [args]
 ```
 
 To run Docking with Autodock4:
 ```
 $ cd docker
-$ ./build.sh
-$ ./deploy.sh --algorithm autodock4 -a <nts_address> [args]
+$ ./build.sh --build-arg ALGORITHM=autodock4
+$ ./deploy.sh --algorithm autodock4 [args]
 ```
 ---
 
