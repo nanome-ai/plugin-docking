@@ -1,8 +1,11 @@
 ARG ALGORITHM=smina
 ARG CACHEBUST
+<<<<<<< HEAD
 
 # Deprecated
 ARG EXCLUDE_AUTODOCK4
+=======
+>>>>>>> ef505b6... remove EXCLUDE_AUTODOCK4 build arg
 
 # Multiple build options based on ALGORITHM build-arg
 # Avoids installing uneecessary dependencies and long build times
