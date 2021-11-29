@@ -71,6 +71,10 @@ class Docking(nanome.AsyncPluginInstance):
 
         ComplexUtils.convert_to_frames(ligands)
 
+        # Get advanced_settings.
+        advanced_settings = self.settings_menu.get_settings()
+        params.update(advanced_settings)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Convert input complexes into PDBs.
             receptor_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
