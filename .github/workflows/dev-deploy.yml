@@ -20,5 +20,5 @@ jobs:
           known_hosts: ${{ secrets.PLUGINS_HQ_SSH_KNOWN_HOSTS }}
       - name: Push to Dev environment
         run: |
-          git remote add plugins-hq plugins-hq:plugins/docking.git
+          git remote add plugins-hq plugins-hq:docking.git
           git push -f plugins-hq master
