@@ -18,6 +18,7 @@ class DockingCalculations():
         self.temp_dir = temp_dir
         modes = params.get('modes')
         exhaustiveness = params.get('exhaustiveness')
+        deterministic = params.get('deterministic')
 
         # Get site center vector from site_pdb
         site_comp = Complex.io.from_pdb(path=site_pdb.name)
@@ -42,7 +43,8 @@ class DockingCalculations():
             self._start_autogrid4(autogrid_input_gpf)
 
             result_pdbqt = self._start_vina(
-                receptor_file_pdbqt, lig_file, num_modes=modes, exhaustiveness=exhaustiveness)
+                receptor_file_pdbqt, lig_file, num_modes=modes, exhaustiveness=exhaustiveness,
+                deterministic=deterministic)
             with open(result_pdbqt.name) as f:
                 result_sdf = self.convert_pdbqt_to_sdf(f)
                 output_files.append(result_sdf)
@@ -125,7 +127,7 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    def _start_vina(self, receptor_file_pdbqt, ligand_file_pdbqt, num_modes=5, exhaustiveness=8):
+    def _start_vina(self, receptor_file_pdbqt, ligand_file_pdbqt, num_modes=5, exhaustiveness=8, deterministic=False):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         # map files created by autogrid call, and are found using the receptor file name.
@@ -140,6 +142,10 @@ class DockingCalculations():
             '--exhaustiveness', str(exhaustiveness),
             '--num_modes', str(num_modes)
         ]
+        if deterministic:
+            seed = '12345'
+            args.extend(['--seed', seed])
+
         nanome.util.Logs.debug("Start Autodock")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, 1)

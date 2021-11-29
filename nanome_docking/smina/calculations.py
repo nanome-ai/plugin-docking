@@ -30,13 +30,6 @@ class DockingCalculations():
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
                   exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
                   deterministic=False):
-        smina_args = []
-
-        # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
-        if deterministic:
-            seed = '12345'
-            smina_args.extend(['--seed', seed])
-
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,
@@ -48,6 +41,11 @@ class DockingCalculations():
             '--autobox_add', str(autobox),
             '--atom_term_data'
         ]
+
+        # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
+        if deterministic:
+            seed = '12345'
+            smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
