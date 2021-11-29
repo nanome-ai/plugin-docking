@@ -1,0 +1,23 @@
+name: Deploy to DEV.
+on:
+  push:
+    branches: [master]
+jobs:
+  deploy:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+          ref: 'master'
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.PLUGINS_HQ_SSH_SECRET_KEY }}
+          config: ${{ secrets.PLUGINS_HQ_SSH_CONFIG }}
+          known_hosts: ${{ secrets.PLUGINS_HQ_SSH_KNOWN_HOSTS }}
+      - name: Push to Dev environment
+        run: |
+          git remote add plugins-hq plugins-hq:docking.git
+          git push -f plugins-hq master
