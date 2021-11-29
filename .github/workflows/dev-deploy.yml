@@ -1,8 +1,7 @@
 name: Deploy to DEV.
 on:
   push:
-    branches: [master]
-
+    branches: [dev-deploy-action]
 jobs:
   deploy:
     name: Deploy to Dev
