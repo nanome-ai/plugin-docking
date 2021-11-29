@@ -146,13 +146,6 @@ class DockingCalculations():
             seed = '12345'
             args.extend(['--seed', seed])
 
-
-
-
-
-
-
-
         nanome.util.Logs.debug("Start Autodock")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, 1)
