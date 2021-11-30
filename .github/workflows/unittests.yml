@@ -21,7 +21,7 @@ jobs:
           python -m pip install --upgrade pip coverage
           pip install -r requirements.txt
           conda env update -f adfr-suite.yml
-          conda install -c conda-forge openbabel
+          conda install -c conda-forge -n base openbabel
           chmod +x nanome_docking/smina/smina_binary
           chmod +x nanome_docking/autodock4/vina_1.2.2_linux_x86_64
 
