@@ -22,6 +22,6 @@ jobs:
           pip install -r requirements.txt
           conda env update -f adfr-suite.yml
       - name: Run tests.py
-        run: coverage run --source=nanome_docking -m unittest discover tests.py
+        run: coverage run --source=nanome_docking -m unittest discover tests
       - name: print coverage percentage
         run: coverage report | grep TOTAL
