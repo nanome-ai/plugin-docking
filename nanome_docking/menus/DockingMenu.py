@@ -3,6 +3,8 @@ import nanome
 from nanome.util import Logs, async_callback
 from nanome.api.ui import DropdownItem
 from nanome.api.shapes import Sphere, Shape
+from nanome.util.enums import NotificationTypes
+
 from nanome_docking.utils import get_complex_center
 
 
@@ -81,7 +83,14 @@ class DockingMenu():
         self.loading_bar.percentage = 0
         self.enable_loading_bar()
         self.make_plugin_usable(False)
-        await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        try:
+            await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        except Exception as e:
+            message = f'{type(e).__name__}: {next(iter(e.args), "Error Occurred. Please Check Logs.")}'
+            Logs.error(message)
+            self._plugin.send_notification(NotificationTypes.error, message)
+
+        self.make_plugin_usable(True)
         self.enable_loading_bar(False)
 
     def make_plugin_usable(self, state=True):

@@ -14,7 +14,7 @@ class DockingCalculations():
         self.requires_site = True
         self.loading_bar_counter = 0
 
-    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, deterministic=None):
+    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, deterministic=None, **kwargs):
         # Start docking process
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
@@ -29,7 +29,7 @@ class DockingCalculations():
 
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
                   exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
-                  deterministic=False):
+                  deterministic=False, **kwargs):
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,

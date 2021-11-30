@@ -100,6 +100,9 @@ class Docking(nanome.AsyncPluginInstance):
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
+                if len(list(docked_complex.molecules)) == 0:
+                    raise Exception("Docking Call Failed, no poses returned. Please check logs")
+
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
                 ComplexUtils.convert_to_frames([docked_complex])
                 # fix metadata sorting
