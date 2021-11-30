@@ -46,7 +46,6 @@ class SminaDockingTestCase(unittest.TestCase):
         comp = result[0]
         self.assertEqual(next(comp.molecules).conformer_count, mode_count)
 
-    @unittest.skip('temp skip')
     @patch('nanome.api.plugin_instance.PluginInstance.request_complexes')
     def test_autodock4_docking(self, request_complexes_mock):
         # Set future result for request_complexes mock
