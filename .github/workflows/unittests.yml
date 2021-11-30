@@ -21,7 +21,10 @@ jobs:
           python -m pip install --upgrade pip coverage
           pip install -r requirements.txt
           conda env update -f adfr-suite.yml
+          chmod +x nanome_docking/smina/smina_binary
+          chmod +x nanome_docking/autodock4/vina_1.2.2_linux_x86_64
+
       - name: Run tests.py
-        run: coverage run --source=nanome_docking -m unittest discover tests
+        run: coverage run --source=nanome_docking --omit nanome_docking/rhodium/calculations.py,nanome_docking/menus/DockingMenuRhodium.py -m unittest discover tests
       - name: print coverage percentage
         run: coverage report | grep TOTAL
