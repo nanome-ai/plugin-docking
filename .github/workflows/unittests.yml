@@ -19,6 +19,8 @@ jobs:
       - name: Install dependencies
         run: |
           echo $(which python)
+          conda init base
+          exec $SHELL
           conda activate base
           echo $(which python)
           python -m pip install --upgrade pip coverage
