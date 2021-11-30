@@ -15,7 +15,6 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          activate-environment: "base"
       - name: Install dependencies
         run: |
           echo $(which python)
