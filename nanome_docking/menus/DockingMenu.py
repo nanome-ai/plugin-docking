@@ -432,8 +432,8 @@ class SettingsMenu:
         self._exhaust_slider = menu_root.find_node("ExhaustSlider").get_content()
         self._visual_scores = False
 
-        self._btn_deterministic_results = menu_root.find_node("btn_deterministic_results").get_content()
-        self._btn_deterministic_results.register_pressed_callback(self.btn_determinisitc_results_pressed_callback)
+        self._btn_deterministic = menu_root.find_node("btn_deterministic_results").get_content()
+        self._btn_deterministic.toggle_on_press = True
 
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
@@ -455,13 +455,9 @@ class SettingsMenu:
         button.selected = self._visual_scores
         self._plugin.update_content(button)
 
-    def btn_determinisitc_results_pressed_callback(self, button):
-        button.selected = not button.selected
-        self._plugin.update_content(button)
-
     def get_settings(self):
         return {
             'exhaustiveness': self._exhaustiveness,
             'visual_scores': self._visual_scores,
-            'deterministic': self._btn_deterministic_results.selected
+            'deterministic': self._btn_deterministic.selected
         }
