@@ -1,0 +1,27 @@
+name: Unittests
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  python3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Python 3
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7.12
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip coverage
+          pip install -r requirements.txt
+          conda env update -f adfr-suite.yml
+      - name: Run tests.py
+        run: coverage run --source=nanome_docking -m unittest discover tests.py
+      - name: print coverage percentage
+        run: coverage report | grep TOTAL

@@ -59,7 +59,6 @@ class Docking(nanome.AsyncPluginInstance):
         if site:
             complex_indices += [site.index]
         complex_indices += [x.index for x in ligands]
-
         complexes = await self.request_complexes(complex_indices)
         receptor = complexes[0]
 
@@ -129,6 +128,7 @@ class Docking(nanome.AsyncPluginInstance):
         ComplexUtils.convert_to_conformers(output_complexes)
         self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
+        return output_complexes
 
     def add_result_to_workspace(self, results, receptor, site):
         for comp in results:
