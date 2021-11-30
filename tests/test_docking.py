@@ -34,7 +34,7 @@ class SminaDockingTestCase(unittest.TestCase):
         request_complexes_mock.return_value = fut
 
         loop = asyncio.get_event_loop()
-        mode_count = 5
+        mode_count = 2
         params = {
             'modes': mode_count,
             'exhaustiveness': 1,
@@ -55,7 +55,7 @@ class SminaDockingTestCase(unittest.TestCase):
         request_complexes_mock.return_value = fut
 
         loop = asyncio.get_event_loop()
-        mode_count = 5
+        mode_count = 2
         params = {
             'modes': mode_count,
             'exhaustiveness': 1,
