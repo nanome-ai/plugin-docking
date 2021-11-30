@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           echo $(which python)
-          conda init base
+          conda init bash
           exec $SHELL
           conda activate base
           echo $(which python)
