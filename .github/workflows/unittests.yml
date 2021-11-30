@@ -15,12 +15,10 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-activate-base: true
-          activate-environment: ""
+          activate-environment: "base"
       - name: Install dependencies
         run: |
           echo $(which python)
-          conda init bash
-          exec $SHELL
           conda activate base
           echo $(which python)
           python -m pip install --upgrade pip coverage
