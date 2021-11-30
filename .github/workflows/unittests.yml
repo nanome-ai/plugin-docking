@@ -21,9 +21,12 @@ jobs:
           python -m pip install --upgrade pip coverage
           pip install -r requirements.txt
           conda env update -f adfr-suite.yml
-          conda install -c conda-forge -n base openbabel
+          conda install -c conda-forge openbabel
           chmod +x nanome_docking/smina/smina_binary
           chmod +x nanome_docking/autodock4/vina_1.2.2_linux_x86_64
+          echo $(which python)
+          conda activate
+          echo $(which python)
 
       - name: Run tests.py
         run: coverage run --source=nanome_docking --omit nanome_docking/rhodium/calculations.py,nanome_docking/menus/DockingMenuRhodium.py -m unittest discover tests
