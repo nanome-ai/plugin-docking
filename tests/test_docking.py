@@ -27,29 +27,17 @@ class SminaDockingTestCase(unittest.TestCase):
 
     @patch('nanome.api.plugin_instance.PluginInstance.request_complexes')
     def test_smina_docking_complex(self, request_complexes_mock):
-        # Set future result for request_complexes mock
         print("Running Smina test")
-        fut = asyncio.Future()
-        fut.set_result([self.receptor, self.ligand, self.ligand])
-        request_complexes_mock.return_value = fut
-
-        loop = asyncio.get_event_loop()
-        mode_count = 2
-        params = {
-            'modes': mode_count,
-            'exhaustiveness': 1,
-            'autobox': 5,
-        }
-        result = loop.run_until_complete(
-            self.plugin_smina.run_docking(self.receptor, [self.ligand], self.ligand, params)
-        )
-        comp = result[0]
-        self.assertEqual(next(comp.molecules).conformer_count, mode_count)
+        self.run_docking_test(self.plugin_smina, request_complexes_mock)
 
     @patch('nanome.api.plugin_instance.PluginInstance.request_complexes')
     def test_autodock4_docking(self, request_complexes_mock):
-        # Set future result for request_complexes mock
         print("Running autodock4 test")
+        self.run_docking_test(self.plugin_autodock4, request_complexes_mock)
+
+    def run_docking_test(self, plugin_instance, request_complexes_mock):
+        """Test run_docking function on provided plugin_instance."""
+        # Set future result for request_complexes mock
         fut = asyncio.Future()
         fut.set_result([self.receptor, self.ligand, self.ligand])
         request_complexes_mock.return_value = fut
@@ -62,7 +50,7 @@ class SminaDockingTestCase(unittest.TestCase):
             'autobox': 5,
         }
         result = loop.run_until_complete(
-            self.plugin_autodock4.run_docking(self.receptor, [self.ligand], self.ligand, params)
+            plugin_instance.run_docking(self.receptor, [self.ligand], self.ligand, params)
         )
         comp = result[0]
         self.assertEqual(next(comp.molecules).conformer_count, mode_count)
