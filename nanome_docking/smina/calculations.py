@@ -14,19 +14,22 @@ class DockingCalculations():
         self.requires_site = True
         self.loading_bar_counter = 0
 
-    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, **kwargs):
+    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, deterministic=None, **kwargs):
         # Start docking process
+        self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
         ligand_count = len(ligand_pdbs)
         for ligand_pdb in ligand_pdbs:
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
-            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count)
+            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count, deterministic)
             self.handle_loading_bar(process, ligand_count)
             smina_output_sdfs.append(output_sdf)
         return smina_output_sdfs
 
-    def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness=None, modes=None, autobox=None, ligand_count=1):
+    def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
+                  exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
+                  deterministic=False, **kwargs):
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,
@@ -38,6 +41,11 @@ class DockingCalculations():
             '--autobox_add', str(autobox),
             '--atom_term_data'
         ]
+
+        # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
+        if deterministic:
+            seed = '12345'
+            smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)

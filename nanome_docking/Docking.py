@@ -59,7 +59,6 @@ class Docking(nanome.AsyncPluginInstance):
         if site:
             complex_indices += [site.index]
         complex_indices += [x.index for x in ligands]
-
         complexes = await self.request_complexes(complex_indices)
         receptor = complexes[0]
 
@@ -70,6 +69,10 @@ class Docking(nanome.AsyncPluginInstance):
             ligands = complexes[1:]
 
         ComplexUtils.convert_to_frames(ligands)
+
+        # Get advanced_settings.
+        advanced_settings = self.settings_menu.get_settings()
+        params.update(advanced_settings)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Convert input complexes into PDBs.
@@ -96,6 +99,9 @@ class Docking(nanome.AsyncPluginInstance):
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
+                if len(list(docked_complex.molecules)) == 0:
+                    raise Exception("Docking Call Failed, no poses returned. Please check logs")
+
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
                 ComplexUtils.convert_to_frames([docked_complex])
                 # fix metadata sorting
@@ -122,6 +128,7 @@ class Docking(nanome.AsyncPluginInstance):
         ComplexUtils.convert_to_conformers(output_complexes)
         self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
+        return output_complexes
 
     def add_result_to_workspace(self, results, receptor, site):
         for comp in results:

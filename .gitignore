@@ -3,3 +3,4 @@ __pycache__
 /docker/redeploy.sh
 /nanome_docking/Rh_x64.exe
 *.log
+.coverage

@@ -3,6 +3,8 @@ import nanome
 from nanome.util import Logs, async_callback
 from nanome.api.ui import DropdownItem
 from nanome.api.shapes import Sphere, Shape
+from nanome.util.enums import NotificationTypes
+
 from nanome_docking.utils import get_complex_center
 
 
@@ -45,23 +47,17 @@ class DockingMenu():
     def get_params(self):
         """Collect parameters from this menu and the Settings Menu."""
         params = {
-            "exhaustiveness": None,
             "modes": None,
             "align": None,
             "replace": None,
             "scoring": None,
-            "visual_scores": None,
             "autobox": None
         }
-        settings_menu = self._plugin.settings_menu
         for key in params.keys():
             attr_key = f'_{key}'
             if hasattr(self, attr_key):
                 newvalue = getattr(self, attr_key)
-            else:
-                # Get value from Settings menu
-                newvalue = getattr(settings_menu, attr_key)
-            params[key] = newvalue
+                params[key] = newvalue
         return params
 
     def create_complex_dropdown_items(self, complex_list):
@@ -87,7 +83,14 @@ class DockingMenu():
         self.loading_bar.percentage = 0
         self.enable_loading_bar()
         self.make_plugin_usable(False)
-        await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        try:
+            await self._plugin.run_docking(self._selected_receptor, ligands, site, self.get_params())
+        except Exception as e:
+            message = f'{type(e).__name__}: {next(iter(e.args), "Error Occurred. Please Check Logs.")}'
+            Logs.error(message)
+            self._plugin.send_notification(NotificationTypes.error, message)
+
+        self.make_plugin_usable(True)
         self.enable_loading_bar(False)
 
     def make_plugin_usable(self, state=True):
@@ -429,6 +432,9 @@ class SettingsMenu:
         self._exhaust_slider = menu_root.find_node("ExhaustSlider").get_content()
         self._visual_scores = False
 
+        self._btn_deterministic = menu_root.find_node("btn_deterministic_results").get_content()
+        self._btn_deterministic.toggle_on_press = True
+
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
         self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
@@ -448,3 +454,10 @@ class SettingsMenu:
         self._visual_scores = not self._visual_scores
         button.selected = self._visual_scores
         self._plugin.update_content(button)
+
+    def get_settings(self):
+        return {
+            'exhaustiveness': self._exhaustiveness,
+            'visual_scores': self._visual_scores,
+            'deterministic': self._btn_deterministic.selected
+        }
