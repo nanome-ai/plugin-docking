@@ -9,9 +9,7 @@ from nanome.util import Logs
 
 from nanome_docking.smina.calculations import DockingCalculations as Smina
 from nanome_docking.autodock4.calculations import DockingCalculations as Autodock4
-from nanome_docking.rhodium.calculations import DockingCalculations as Rhodium
 from nanome_docking.menus.DockingMenu import DockingMenu, SettingsMenu
-from nanome_docking.menus.DockingMenuRhodium import DockingMenuRhodium
 
 __metaclass__ = type
 
@@ -218,11 +216,3 @@ class Autodock4Docking(Docking):
             associated['INTRA'] = split_remark[12]
             associated['CONF_INDEPENDENT'] = split_remark[14]
             associated['UNBOUND'] = split_remark[16]
-
-
-class RhodiumDocking(Docking):
-
-    def __init__(self):
-        super(RhodiumDocking, self).__init__()
-        self.menu = DockingMenuRhodium(self)
-        self._calculations = Rhodium(self)
