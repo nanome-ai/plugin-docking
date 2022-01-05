@@ -19,14 +19,5 @@
             "args": ["--algorithm", "autodock4", "-v", "-n", "[wip]-autodock4-docking"],
             "justMyCode": false
         },
-        {
-            "name": "Rhodium run.py",
-            "type": "python",
-            "request": "launch",
-            "program": "run.py",
-            "console": "integratedTerminal",
-            "args": ["rhodium", "-v", "-n", "[wip]-rhodium-docking"],
-            "justMyCode": false
-        },
     ]
 }

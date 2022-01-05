@@ -27,6 +27,6 @@ jobs:
           chmod +x nanome_docking/autodock4/vina_1.2.2_linux_x86_64
 
       - name: Run tests.py
-        run: conda run -n base --live-stream coverage run --source=nanome_docking --omit nanome_docking/rhodium/calculations.py,nanome_docking/menus/DockingMenuRhodium.py -m unittest discover tests
+        run: conda run -n base --live-stream coverage run --source=nanome_docking -m unittest discover tests
       - name: print coverage percentage
         run: coverage report | grep TOTAL
