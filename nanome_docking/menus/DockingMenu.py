@@ -45,7 +45,7 @@ class DockingMenu():
         self.loading_bar = self.ln_loading_bar.get_content()
 
     def get_params(self):
-        """Collect parameters from this menu and the Settings Menu."""
+        """Collect parameters from this menu."""
         params = {
             "modes": None,
             "align": None,

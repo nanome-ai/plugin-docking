@@ -103,14 +103,14 @@ class Docking(nanome.AsyncPluginInstance):
                     raise Exception("Docking Call Failed, no poses returned. Please check logs")
 
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
-                ComplexUtils.convert_to_frames([docked_complex])
+                docked_complex = docked_complex.convert_to_frames()
                 # fix metadata sorting
                 if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
 
-                visualize_scores = params.get('visualize_scores', False)
-                if visualize_scores and hasattr(self, 'visualize_scores'):
+                visual_scores = params.get('visual_scores', False)
+                if visual_scores and hasattr(self, 'visualize_scores'):
                     self.visualize_scores(docked_complex)
 
                 docked_complex.set_current_frame(0)
@@ -125,7 +125,6 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_shallow(ligands)
 
         # Add docked complexes to workspace.
-        ComplexUtils.convert_to_conformers(output_complexes)
         self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
         return output_complexes
@@ -157,7 +156,7 @@ class SminaDocking(Docking):
         molecule.min_atom_score = float('inf')
         molecule.max_atom_score = float('-inf')
 
-        num_rgx = '(-?[\d.]+(?:e[+-]\d+)?)'
+        num_rgx = r'(-?[\d.]+(?:e[+-]\d+)?)'
         pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
             # make the labels pretty :)
