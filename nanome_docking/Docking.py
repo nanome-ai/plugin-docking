@@ -166,7 +166,9 @@ class SminaDocking(Docking):
             pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
                 residue.label_text = pose_score + " kcal/mol"
-                residue.labeled = True
+                # TODO: Re-enable this when core-bug with frame labels is fixed.
+                # https://nanome.slack.com/archives/CBDV1975K/p1641410333253500
+                residue.labeled = False
             interaction_terms = associated['Atomic Interaction Terms']
             interaction_values = re.findall(pattern, interaction_terms)
             for i, atom in enumerate(molecule.atoms):
