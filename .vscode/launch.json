@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "run.py",
             "console": "integratedTerminal",
-            "args": ["--algorithm", "smina", "-v", "-n", "[wip]-smina-docking"],
+            "args": ["--algorithm", "smina", "-v", "-r", "-n", "[wip]-smina-docking"],
             "justMyCode": false
         },
         {
