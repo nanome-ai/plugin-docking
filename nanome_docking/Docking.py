@@ -103,7 +103,7 @@ class Docking(nanome.AsyncPluginInstance):
                     raise Exception("Docking Call Failed, no poses returned. Please check logs")
 
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
-                docked_complex = docked_complex.convert_to_frames()
+                ComplexUtils.convert_to_frames([docked_complex])
                 # fix metadata sorting
                 if hasattr(self, 'set_scores'):
                     for molecule in docked_complex.molecules:
