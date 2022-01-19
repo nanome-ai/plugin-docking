@@ -220,9 +220,10 @@ class DockingMenu():
         :arg radius: int, radius of sphere.
         """
         Logs.debug('Drawing site sphere.')
-        if not hasattr(self, 'site_sphere'):
-            self.site_sphere = Sphere()
-            self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
+        if hasattr(self, 'site_sphere'):
+            Shape.destroy(self.site_sphere)
+        self.site_sphere = Sphere()
+        self.site_sphere.color = nanome.util.Color(0, 100, 0, 120)
         self.site_sphere.radius = radius
         anchor = self.site_sphere.anchors[0]
         anchor.anchor_type = nanome.util.enums.ShapeAnchorType.Complex
