@@ -8,25 +8,34 @@ on:
       - master
 
 jobs:
-  python3:
+  smina-unittests:
+    env:
+      DOCKER_BUILDKIT: 1
+    name: Smina Tests
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-activate-base: true
-          activate-environment: ""
-      - name: Install dependencies
-        run: |
-          echo $(which python)
-          python -m pip install --upgrade pip coverage
-          pip install -r requirements.txt
-          conda env update -f adfr-suite.yml
-          conda install -c conda-forge openbabel
-          chmod +x nanome_docking/smina/smina_binary
-          chmod +x nanome_docking/autodock4/vina_1.2.2_linux_x86_64
 
-      - name: Run tests.py
-        run: conda run -n base --live-stream coverage run --source=nanome_docking --omit nanome_docking/rhodium/calculations.py,nanome_docking/menus/DockingMenuRhodium.py -m unittest discover tests
-      - name: print coverage percentage
-        run: coverage report | grep TOTAL
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build docker image
+      run: cd docker && ./build.sh --algorithm smina
+
+    - name: Run tests
+      run: docker run --rm docking-smina python -m unittest discover tests.smina
+  
+  autodock4-unittests:
+    env:
+      DOCKER_BUILDKIT: 1
+    name: Autodock4 Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build docker image
+      run: cd docker && ./build.sh --algorithm autodock4
+
+    - name: Run tests
+      run: docker run --rm docking-autodock4 python -m unittest discover tests.autodock4
