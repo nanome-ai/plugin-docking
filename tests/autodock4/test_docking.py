@@ -42,4 +42,4 @@ class Autodock4DockingTestCase(unittest.TestCase):
             plugin_instance.run_docking(self.receptor, [self.ligand], self.ligand, params)
         )
         comp = result[0]
-        self.assertEqual(next(comp.molecules).conformer_count, mode_count)
+        self.assertEqual(len(list(comp.molecules)), mode_count)
