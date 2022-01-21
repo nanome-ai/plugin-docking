@@ -6,11 +6,10 @@ on:
   pull_request:
     branches:
       - master
-  env:
-    DOCKER_BUILDKIT: 1
-  
 
 jobs:
+  env:
+    DOCKER_BUILDKIT: 1
   smina-unittests:
     name: Smina Tests
     runs-on: ubuntu-latest
