@@ -5,7 +5,6 @@ A Nanome Plugin to interface with a variety of docking softwares to dock ligands
 Supported Docking algorithms:
 - Smina
 - Autodock4
-- Rhodium (Coming soon)
 
 ## Dependencies
 

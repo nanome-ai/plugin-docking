@@ -1,6 +1,6 @@
 import argparse
 import nanome
-from nanome_docking.Docking import Autodock4Docking, RhodiumDocking, SminaDocking
+from nanome_docking.Docking import Autodock4Docking, SminaDocking
 
 
 def main():
@@ -17,9 +17,6 @@ def main():
     elif algo == "autodock4":
         name = "Autodock4"
         plugin_class = Autodock4Docking
-    elif algo == "rhodium":
-        name = "Rhodium"
-        plugin_class = RhodiumDocking
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
     plugin_name = f'{name} Docking'
