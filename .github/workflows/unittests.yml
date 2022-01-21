@@ -23,3 +23,19 @@ jobs:
 
     - name: Run tests
       run: docker run --rm docking-smina python -m unittest discover tests.smina
+  
+  autodock4-unittests:
+    env:
+      DOCKER_BUILDKIT: 1
+    name: Autodock4 Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build docker image
+      run: cd docker && ./build.sh --algorithm autodock4
+
+    - name: Run tests
+      run: docker run --rm docking-autodock4 python -m unittest discover tests.autodock4
