@@ -8,9 +8,9 @@ on:
       - master
 
 jobs:
-  env:
-    DOCKER_BUILDKIT: 1
   smina-unittests:
+    env:
+      DOCKER_BUILDKIT: 1
     name: Smina Tests
     runs-on: ubuntu-latest
 
