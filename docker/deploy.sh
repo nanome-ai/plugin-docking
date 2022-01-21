@@ -1,21 +1,32 @@
 #!/bin/bash
 
-parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$parent_path"
-
 echo "./deploy.sh $*" > redeploy.sh
 chmod +x redeploy.sh
 
-existing=$(docker ps -aq -f name=docking)
+ARGS="$*"
+algorithm=smina
+while [ $# -gt 0 ]; do
+  case $1 in
+    --algorithm )
+      shift
+      if ! [[ "$1" =~ ^(smina|autodock4)$ ]]; then
+        echo "Algorithm must be either smina or autodock4"
+        exit 1
+      fi
+      algorithm=$1
+      ;;
+  esac
+  shift
+done
+
+existing=$(docker ps -aq -f name=docking-$algorithm)
 if [ -n "$existing" ]; then
     echo "removing existing container"
     docker rm -f $existing
 fi
 
-ARGS="$*"
-
 docker run -d \
---name docking \
+--name docking-$algorithm \
 --restart unless-stopped \
 -e ARGS="${ARGS[*]}" \
-docking
+docking-$algorithm

@@ -1,14 +1,18 @@
 #!/bin/bash
 
-parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
-cd "$parent_path"
-
-build_args=""
+algorithm=smina
 cachebust=0
 while [ $# -gt 0 ]; do
   case $1 in
+    --algorithm )
+      shift
+      if ! [[ "$1" =~ ^(smina|autodock4)$ ]]; then
+        echo "Algorithm must be either smina or autodock4"
+        exit 1
+      fi
+      algorithm=$1
+      ;;
     -u | --update ) cachebust=1 ;;
-    *) build_args=$build_args" $1" ;;
   esac
   shift
 done
@@ -18,4 +22,4 @@ if [ ! -f ".cachebust" ] || (($cachebust)); then
 fi
 
 cachebust=`cat .cachebust`
-docker build -f Dockerfile --build-arg CACHEBUST=$cachebust $build_args -t docking:latest ..
+docker build -f Dockerfile --build-arg CACHEBUST=$cachebust --build-arg ALGORITHM=$algorithm -t docking-$algorithm:latest ..
