@@ -8,7 +8,7 @@ on:
     branches:
       - master
 jobs:
-  build:
+  smina:
     name: Build Image
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +19,7 @@ jobs:
         git_repository="${{github.repository}}"
         repo_name=${git_repository/#$prefix}-smina
         echo "::set-output name=repo_name::$(echo $repo_name)"
+        echo $repo_name
     - name: Check out code
       uses: actions/checkout@v2
     - name: Configure AWS credentials
@@ -38,5 +39,5 @@ jobs:
         dockerfile: docker/Dockerfile
         context: .
         tags: |
-          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}-smina:latest
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
         create_repo: true
