@@ -3,9 +3,11 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 from nanome.api.structure import Complex
 from nanome_docking.utils import get_complex_center
+from nanome.util import Logs
 
 
 class DockingCalculations():
@@ -15,6 +17,8 @@ class DockingCalculations():
         self.requires_site = False
 
     async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params):
+        start_time = time.time()
+        Logs.message("Autodock4 Calculation started.")
         self.temp_dir = temp_dir
         modes = params.get('modes')
         exhaustiveness = params.get('exhaustiveness')
@@ -48,6 +52,8 @@ class DockingCalculations():
             with open(result_pdbqt.name) as f:
                 result_sdf = self.convert_pdbqt_to_sdf(f)
                 output_files.append(result_sdf)
+        end_time = time.time()
+        Logs.message("Autodock4 Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
         return output_files
 
     def _prepare_receptor(self, pdb_file):

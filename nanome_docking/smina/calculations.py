@@ -1,8 +1,9 @@
 import sys
+import time
 import os
 import tempfile
 import subprocess
-
+from nanome.util import Logs
 
 SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
 
@@ -16,6 +17,8 @@ class DockingCalculations():
 
     async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, deterministic=None, **kwargs):
         # Start docking process
+        start_time = time.time()
+        Logs.message("Smina Calculation started.")
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
@@ -25,6 +28,8 @@ class DockingCalculations():
             process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count, deterministic)
             self.handle_loading_bar(process, ligand_count)
             smina_output_sdfs.append(output_sdf)
+        end_time = time.time()
+        Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
         return smina_output_sdfs
 
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
