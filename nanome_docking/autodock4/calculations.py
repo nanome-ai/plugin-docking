@@ -9,6 +9,7 @@ from nanome.api.structure import Complex
 from nanome_docking.utils import get_complex_center
 from nanome.util import Logs
 
+
 class DockingCalculations():
 
     def __init__(self, plugin):
