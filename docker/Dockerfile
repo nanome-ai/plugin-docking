@@ -1,3 +1,5 @@
+ARG ALGORITHM=smina
+
 # Multiple build options based on ALGORITHM build-arg
 # Avoids installing uneecessary dependencies and long build times
 
