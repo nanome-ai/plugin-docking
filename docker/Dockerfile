@@ -1,6 +1,3 @@
-ARG ALGORITHM=smina
-ARG CACHEBUST
-
 # Multiple build options based on ALGORITHM build-arg
 # Avoids installing uneecessary dependencies and long build times
 
@@ -10,6 +7,7 @@ ENV ARGS=''
 WORKDIR /app
 COPY requirements.txt .
 ENV ALGORITHM=smina
+ARG CACHEBUST
 RUN pip install -r requirements.txt
 
 COPY . .
