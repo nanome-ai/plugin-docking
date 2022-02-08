@@ -11,7 +11,7 @@ jobs:
   smina:
     env:
       DOCKER_BUILDKIT: 1
-    name: Build Image
+    name: Tag Smina latest
     runs-on: ubuntu-latest
     steps:
     - name: Get repo name
@@ -39,7 +39,7 @@ jobs:
         tags: |
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
   tag-autodock4:
-    name: Build Image
+    name: Tag Autodock4 latest
     env:
       DOCKER_BUILDKIT: 1
     runs-on: ubuntu-latest
@@ -65,7 +65,6 @@ jobs:
       uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
       with:
         dockerfile: docker/Dockerfile
-        context: --build-arg ALGORITHM=autodock4
+        context: --build-arg ALGORITHM=autodock4 .
         tags: |
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
-        create_repo: true
