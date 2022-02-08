@@ -1,0 +1,67 @@
+name: Update ECR Registry
+
+on:
+  push:
+    branches:
+      - master
+jobs:
+  smina:
+    env:
+      DOCKER_BUILDKIT: 1
+    name: Tag Smina latest
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get repo name
+      id: repoName
+      run: |
+        echo "::set-output name=repo_name::docking-smina"
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and Push docking-smina to ECR public
+      id: build-and-push
+      uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
+      with:
+        dockerfile: docker/Dockerfile
+        context: .
+        tags: |
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
+  tag-autodock4:
+    name: Tag Autodock4 latest
+    env:
+      DOCKER_BUILDKIT: 1
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get repo name
+      id: repoName
+      run: |
+        echo "::set-output name=repo_name::docking-autodock4"
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and Push docking-autodock4 to ECR public
+      id: build-and-push
+      uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
+      with:
+        dockerfile: docker/Dockerfile
+        context: --build-arg ALGORITHM=autodock4 .
+        tags: |
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
