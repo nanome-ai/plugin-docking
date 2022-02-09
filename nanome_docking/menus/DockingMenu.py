@@ -39,10 +39,16 @@ class DockingMenu():
         # Run button
         self.ln_run_button = self._menu.root.find_node("RunButton")
         self._run_button = self.ln_run_button.get_content()
+        self._menu.register_closed_callback(self.close_menu)
 
         # loading bar
         self.ln_loading_bar = self._menu.root.find_node("LoadingBar")
         self.loading_bar = self.ln_loading_bar.get_content()
+
+    def close_menu(self, menu):
+        Logs.message("Menu closed")
+        if hasattr(self, 'site_sphere') and self.site_sphere:
+            Shape.destroy(self.site_sphere)
 
     def get_params(self):
         """Collect parameters from this menu."""
