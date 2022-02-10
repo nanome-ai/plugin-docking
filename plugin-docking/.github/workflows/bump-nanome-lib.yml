@@ -1,0 +1,37 @@
+name: Bump nanome-lib
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_number:
+        type: string
+        description: nanome-lib version (e.g `0.34.8`)
+
+jobs:
+  bump-nanome-lib:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirm version number is available on PyPi
+        run: |
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/project/nanome/${{ github.event.inputs.version_number }}/)
+          if [[ "200" != "$status_code" ]];
+          then
+            echo "nanome-lib ${{ github.event.inputs.version_number }} not found"
+            exit 1
+          fi
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.NANOME_BOT_PAT }}
+      - name: git setup
+        run: |
+          git pull
+          git config --global user.name 'nanome-bot'
+          git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
+      - name: Update requirements-txt
+        run: |
+          sed -i 's/^nanome.*/nanome==${{ github.event.inputs.version_number }}/' requirements.txt
+      - name: Commit and Push
+        run: |
+          git commit -am "Bump nanome-lib version to ${{ github.event.inputs.version_number }}"
+          git push --follow-tags
