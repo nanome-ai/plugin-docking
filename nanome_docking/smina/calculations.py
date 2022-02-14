@@ -22,14 +22,24 @@ class DockingCalculations():
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
-        ligand_count = len(ligand_pdbs)
-        for ligand_pdb in ligand_pdbs:
+
+        for i, ligand_pdb in enumerate(ligand_pdbs):
+            # Read first line to get the number of frames
+            nummdl_line = ligand_pdb.readline().decode()
+            if nummdl_line.startswith("NUMMDL"):
+                frame_count = int(nummdl_line.split()[1])
+            else:
+                Logs.warning("NUMMDL line not found in PDB file. Assuming 1 frame.")
+                frame_count = 1
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
-            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count, deterministic)
-            self.handle_loading_bar(process, ligand_count)
+            if len(ligand_pdbs) > 1:
+                self.plugin.update_run_btn_text(f"Running... ({i + 1}/{len(ligand_pdbs)})")
+            self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             smina_output_sdfs.append(output_sdf)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
+        if len(ligand_pdbs) > 1:
+            self.plugin.update_run_btn_text("Running...")
         return smina_output_sdfs
 
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
@@ -49,22 +59,21 @@ class DockingCalculations():
 
         # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
         if deterministic:
-            seed = '12345'
+            seed = '0'
             smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.handle_loading_bar(process, ligand_count)
-        return process
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
+            self.handle_loading_bar(process, ligand_count)
 
-    def handle_loading_bar(self, process, ligand_count):
+    def handle_loading_bar(self, process, frame_count):
         """Render loading bar from stdout on the menu.
 
         stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
         """
         stars_per_complex = 51
-        total_stars = stars_per_complex * ligand_count
-
+        total_stars = stars_per_complex * frame_count
+        self.loading_bar_counter = 0
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 self.loading_bar_counter += 1

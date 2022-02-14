@@ -87,13 +87,9 @@ class Docking(nanome.AsyncPluginInstance):
                 lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
                 ligand_pdbs.append(ligand_pdb)
 
-            start_timer = timer()
             self.send_notification(NotificationTypes.message, "Docking started")
             output_complexes = []
-
             output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
-            end = timer()
-            Logs.debug("Docking Finished in", end - start_timer, "seconds")
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
@@ -141,6 +137,9 @@ class Docking(nanome.AsyncPluginInstance):
     def update_loading_bar(self, current, total):
         self.menu.update_loading_bar(current, total)
 
+    def update_run_btn_text(self, new_text):
+        self.menu.update_run_btn_text(new_text)
+
 
 class SminaDocking(Docking):
 
@@ -171,7 +170,7 @@ class SminaDocking(Docking):
             interaction_values = re.findall(pattern, interaction_terms)
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
-                    Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
+                    # Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
                     atom.score = float(interaction_values[i][5])
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)

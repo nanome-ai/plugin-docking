@@ -419,6 +419,10 @@ class DockingMenu():
         self.loading_bar.percentage = current / total
         self._plugin.update_content(self.loading_bar)
 
+    def update_run_btn_text(self, new_text):
+        self._run_button.text.value.unusable = new_text
+        self._plugin.update_content(self._run_button)
+
     def update(self):
         self._plugin.update_menu(self._menu)
 
