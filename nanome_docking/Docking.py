@@ -140,7 +140,7 @@ class Docking(nanome.AsyncPluginInstance):
 
     def update_loading_bar(self, current, total):
         self.menu.update_loading_bar(current, total)
-    
+
     def update_run_btn_text(self, new_text):
         self.menu.update_run_btn_text(new_text)
 
