@@ -33,11 +33,9 @@ class DockingCalculations():
                 frame_count = 1
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
             if len(ligand_pdbs) > 1:
-                self.plugin.update_run_btn_text(f"({i + 1}/{len(ligand_pdbs)}) Running...")
-            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
-            self.handle_loading_bar(process, frame_count)
+                self.plugin.update_run_btn_text(f"Running... ({i + 1}/{len(ligand_pdbs)})")
+            self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             smina_output_sdfs.append(output_sdf)
-            process.wait()
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
         if len(ligand_pdbs) > 1:
@@ -65,10 +63,8 @@ class DockingCalculations():
             smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        self.handle_loading_bar(process, ligand_count)
-        process.wait()
-        return process
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
+            self.handle_loading_bar(process, ligand_count)
 
     def handle_loading_bar(self, process, frame_count):
         """Render loading bar from stdout on the menu.
