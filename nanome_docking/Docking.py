@@ -87,13 +87,9 @@ class Docking(nanome.AsyncPluginInstance):
                 lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
                 ligand_pdbs.append(ligand_pdb)
 
-            start_timer = timer()
             self.send_notification(NotificationTypes.message, "Docking started")
             output_complexes = []
-
             output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
-            end = timer()
-            Logs.debug("Docking Finished in", end - start_timer, "seconds")
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
