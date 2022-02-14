@@ -61,7 +61,7 @@ class DockingCalculations():
 
         # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
         if deterministic:
-            seed = 0
+            seed = '0'
             smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
