@@ -149,12 +149,13 @@ class DockingCalculations():
             '--num_modes', str(num_modes)
         ]
         if deterministic:
-            seed = '12345'
+            seed = 0
             args.extend(['--seed', seed])
 
         nanome.util.Logs.debug("Start Autodock")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, 1)
+        process.terminate()
         return dock_results
 
     def handle_loading_bar(self, process, ligand_count):

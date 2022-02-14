@@ -24,12 +24,21 @@ class DockingCalculations():
         smina_output_sdfs = []
         ligand_count = len(ligand_pdbs)
         for ligand_pdb in ligand_pdbs:
+            # Read first line to get the number of frames
+            nummdl_line = ligand_pdb.readline().decode()
+            if nummdl_line.startswith("NUMMDL"):
+                frame_count = int(nummdl_line.split()[1])
+            else:
+                Logs.warning("NUMMDL line not found in PDB file. Assuming 1 frame.")
+                frame_count = 1
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
             process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count, deterministic)
-            self.handle_loading_bar(process, ligand_count)
+            self.handle_loading_bar(process, frame_count)
             smina_output_sdfs.append(output_sdf)
+            self.plugin.update_loading_bar(self.loading_bar_counter, 1)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
+        process.terminate()
         return smina_output_sdfs
 
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
@@ -49,7 +58,7 @@ class DockingCalculations():
 
         # To make runs deterministic, we manually set the seed. Otherwise random seed is used.
         if deterministic:
-            seed = '12345'
+            seed = 0
             smina_args.extend(['--seed', seed])
 
         cmd = [SMINA_PATH, *smina_args]
@@ -57,13 +66,13 @@ class DockingCalculations():
         self.handle_loading_bar(process, ligand_count)
         return process
 
-    def handle_loading_bar(self, process, ligand_count):
+    def handle_loading_bar(self, process, frame_count):
         """Render loading bar from stdout on the menu.
 
         stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
         """
         stars_per_complex = 51
-        total_stars = stars_per_complex * ligand_count
+        total_stars = stars_per_complex * frame_count
 
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
