@@ -34,7 +34,6 @@ class DockingCalculations():
             process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             self.handle_loading_bar(process, frame_count)
             smina_output_sdfs.append(output_sdf)
-            self.plugin.update_loading_bar(self.loading_bar_counter, 1)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
         process.terminate()
@@ -73,7 +72,7 @@ class DockingCalculations():
         """
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
-
+        self.loading_bar_counter = 0
         for c in iter(lambda: process.stdout.read(1), b''):
             if c.decode() == '*':
                 self.loading_bar_counter += 1
