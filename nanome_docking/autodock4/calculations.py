@@ -155,7 +155,7 @@ class DockingCalculations():
         nanome.util.Logs.message("Autodock4 calculation started.")
         process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, 1)
-        process.terminate()
+        process.wait()
         return dock_results
 
     def handle_loading_bar(self, process, ligand_count):

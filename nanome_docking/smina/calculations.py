@@ -37,11 +37,11 @@ class DockingCalculations():
             process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             self.handle_loading_bar(process, frame_count)
             smina_output_sdfs.append(output_sdf)
+            process.wait()
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
         if len(ligand_pdbs) > 1:
             self.plugin.update_run_btn_text("Running...")
-        process.terminate()
         return smina_output_sdfs
 
     def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
@@ -67,7 +67,7 @@ class DockingCalculations():
         cmd = [SMINA_PATH, *smina_args]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, ligand_count)
-        process.terminate()
+        process.wait()
         return process
 
     def handle_loading_bar(self, process, frame_count):
