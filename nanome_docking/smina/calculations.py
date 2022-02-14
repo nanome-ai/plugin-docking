@@ -22,7 +22,8 @@ class DockingCalculations():
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
-        for ligand_pdb in ligand_pdbs:
+
+        for i, ligand_pdb in enumerate(ligand_pdbs):
             # Read first line to get the number of frames
             nummdl_line = ligand_pdb.readline().decode()
             if nummdl_line.startswith("NUMMDL"):
@@ -31,11 +32,15 @@ class DockingCalculations():
                 Logs.warning("NUMMDL line not found in PDB file. Assuming 1 frame.")
                 frame_count = 1
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
+            if len(ligand_pdbs) > 1:
+                self.plugin.update_run_btn_text(f"({i + 1}/{len(ligand_pdbs)}) Running...")
             process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             self.handle_loading_bar(process, frame_count)
             smina_output_sdfs.append(output_sdf)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
+        if len(ligand_pdbs) > 1:
+            self.plugin.update_run_btn_text("Running...")
         process.terminate()
         return smina_output_sdfs
 
