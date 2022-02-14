@@ -171,7 +171,7 @@ class SminaDocking(Docking):
             interaction_values = re.findall(pattern, interaction_terms)
             for i, atom in enumerate(molecule.atoms):
                 if i < len(interaction_values) - 1:
-                    Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
+                    # Logs.debug("interaction values for atom " + str(i) + ": " + str(interaction_values[i]))
                     atom.score = float(interaction_values[i][5])
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)

@@ -22,7 +22,6 @@ class DockingCalculations():
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
-        ligand_count = len(ligand_pdbs)
         for ligand_pdb in ligand_pdbs:
             # Read first line to get the number of frames
             nummdl_line = ligand_pdb.readline().decode()
@@ -32,7 +31,7 @@ class DockingCalculations():
                 Logs.warning("NUMMDL line not found in PDB file. Assuming 1 frame.")
                 frame_count = 1
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
-            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, ligand_count, deterministic)
+            process = self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             self.handle_loading_bar(process, frame_count)
             smina_output_sdfs.append(output_sdf)
             self.plugin.update_loading_bar(self.loading_bar_counter, 1)
@@ -64,6 +63,7 @@ class DockingCalculations():
         cmd = [SMINA_PATH, *smina_args]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, ligand_count)
+        process.terminate()
         return process
 
     def handle_loading_bar(self, process, frame_count):
