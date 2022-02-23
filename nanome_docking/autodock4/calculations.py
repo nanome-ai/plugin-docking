@@ -4,8 +4,6 @@ import subprocess
 import sys
 import tempfile
 import time
-from functools import partial
-from nanome.util import Logs, Process
 
 from nanome.api.structure import Complex
 from nanome_docking.utils import get_complex_center
@@ -48,7 +46,7 @@ class DockingCalculations():
             # Run autogrid which creates .map files and saves in the temp folder.
             self._start_autogrid4(autogrid_input_gpf)
 
-            result_pdbqt = await self._start_vina(
+            result_pdbqt = self._start_vina(
                 receptor_file_pdbqt, lig_file, num_modes=modes, exhaustiveness=exhaustiveness,
                 deterministic=deterministic)
             with open(result_pdbqt.name) as f:
@@ -135,13 +133,14 @@ class DockingCalculations():
         ]
         return generated_filepaths
 
-    async def _start_vina(self, receptor_file_pdbqt, ligand_file_pdbqt, num_modes=5, exhaustiveness=8, deterministic=False):
+    def _start_vina(self, receptor_file_pdbqt, ligand_file_pdbqt, num_modes=5, exhaustiveness=8, deterministic=False):
         # Start VINA Docking, using the autodock4 scoring.
         vina_binary = os.path.join(os.path.dirname(__file__), 'vina_1.2.2_linux_x86_64')
         # map files created by autogrid call, and are found using the receptor file name.
         maps_identifier = receptor_file_pdbqt.name.split('.pdbqt')[0]
         dock_results = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir, suffix='.pdbqt')
         args = [
+            vina_binary,
             '--scoring', 'ad4',
             '--maps', maps_identifier,
             '--ligand', ligand_file_pdbqt.name,
@@ -154,15 +153,9 @@ class DockingCalculations():
             args.extend(['--seed', seed])
 
         nanome.util.Logs.message("Autodock4 calculation started.")
-        # process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
+        process = subprocess.Popen(args, cwd=self.temp_dir, stdout=subprocess.PIPE)
         self.handle_loading_bar(process, 1)
-        self.loading_bar_counter = 0
-        p = Process(vina_binary, args, buffer_lines=False)
-        p.on_error = Logs.error
-        p.output_text = True
-        p.on_output = partial(self.handle_loading_bar, ligand_count)
-        exit_code = await p.start()
-        Logs.message('Autodock4 exit code: {}'.format(exit_code))
+        process.wait()
         return dock_results
 
     def handle_loading_bar(self, process, ligand_count):
