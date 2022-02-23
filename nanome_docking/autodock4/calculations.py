@@ -160,7 +160,7 @@ class DockingCalculations():
         p = Process(vina_binary, args, buffer_lines=False)
         p.on_error = Logs.error
         p.output_text = True
-        p.on_output = partial(self.handle_loading_bar, ligand_count) 
+        p.on_output = partial(self.handle_loading_bar, ligand_count)
         exit_code = await p.start()
         Logs.message('Autodock4 exit code: {}'.format(exit_code))
         return dock_results
