@@ -63,32 +63,16 @@ class DockingCalculations():
             smina_args.extend(['--seed', seed])
 
         self.loading_bar_counter = 0
-        p = Process(SMINA_PATH, smina_args)
+        p = Process(SMINA_PATH, smina_args, buffer_lines=False)
         p.on_error = Logs.error
+        p.output_text = True
         p.on_output = partial(self.handle_loading_bar, ligand_count) 
         exit_code = await p.start()
         Logs.message('Smina exit code: {}'.format(exit_code))
-        # with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
-        #     self.handle_loading_bar(process, ligand_count)
-        print("Wait here")
 
     def handle_loading_bar(self, frame_count, msg):
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
-        if msg.decode() == '*':
+        if msg == '*':
             self.loading_bar_counter += 1
             self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
-
-    def handle_loading_bar_old(self, process, frame_count):
-        """Render loading bar from stdout on the menu.
-
-        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
-        """
-        stars_per_complex = 51
-        total_stars = stars_per_complex * frame_count
-        self.loading_bar_counter = 0
-        for c in iter(lambda: process.stdout.read(1), b''):
-            if c.decode() == '*':
-                self.loading_bar_counter += 1
-                self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
-            sys.stdout.buffer.write(c)
