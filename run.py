@@ -20,7 +20,7 @@ def main():
 
     # Create the plugin, register Docking as the class to instantiate, and start listening
     plugin_name = f'{name} Docking'
-    description = f'Run docking using {plugin_name}. Lets user choose the receptor, ligands, and diverse options'
+    description = f'Run docking using {plugin_name}. Lets user choose the ligands, receptor, and docking site.'
     category = "Docking"
     advanced_settings = True
     plugin = nanome.Plugin(plugin_name, description, category, advanced_settings)
