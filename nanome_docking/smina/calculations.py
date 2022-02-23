@@ -70,6 +70,10 @@ class DockingCalculations():
         Logs.message('Smina exit code: {}'.format(exit_code))
 
     def handle_loading_bar(self, frame_count, msg):
+        """Render loading bar from stdout on the menu.
+
+        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        """
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
         if msg == '*':
