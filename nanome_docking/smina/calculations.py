@@ -42,8 +42,8 @@ class DockingCalculations():
         return smina_output_sdfs
 
     async def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
-                  exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
-                  deterministic=False, **kwargs):
+                        exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
+                        deterministic=False, **kwargs):
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,
@@ -65,7 +65,7 @@ class DockingCalculations():
         p = Process(SMINA_PATH, smina_args, buffer_lines=False)
         p.on_error = Logs.error
         p.output_text = True
-        p.on_output = partial(self.handle_loading_bar, ligand_count) 
+        p.on_output = partial(self.handle_loading_bar, ligand_count)
         exit_code = await p.start()
         Logs.message('Smina exit code: {}'.format(exit_code))
 
@@ -74,7 +74,7 @@ class DockingCalculations():
 
         :param frame_count: int: number of frames in the ligand, used to calculate number of frames to render.
         :param msg: Unbuffered character from stdout.
-        
+
         stdout has a loading bar of asterisks. Every asterisk represents about 2% completed.
         Every frame of the complex has a loading bar of 51 asterisks.
         Combine into one loading bar for menu.
