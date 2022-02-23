@@ -72,7 +72,12 @@ class DockingCalculations():
     def handle_loading_bar(self, frame_count, msg):
         """Render loading bar from stdout on the menu.
 
-        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        :param frame_count: int: number of frames in the ligand, used to calculate number of frames to render.
+        :param msg: Unbuffered character from stdout.
+        
+        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed.
+        Every frame of the complex has a loading bar of 51 asterisks.
+        Combine into one loading bar for menu.
         """
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
