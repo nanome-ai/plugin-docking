@@ -483,7 +483,7 @@ class SettingsMenu:
         self._plugin.update_content(button)
 
     def btn_deterministic_pressed_callback(self, btn):
-        Logs.message(f"Deterministic Runs to {btn.selected}")
+        Logs.message(f"Deterministic Runs set to {btn.selected}")
 
     def close_menu(self, menu):
         Logs.message("closing advanced menu")
