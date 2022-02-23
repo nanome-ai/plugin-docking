@@ -81,6 +81,7 @@ class DockingCalculations():
         """
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
-        if msg == '*':
-            self.loading_bar_counter += 1
-            self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
+        for char in msg:
+            if char == '*':
+                self.loading_bar_counter += 1
+        self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
