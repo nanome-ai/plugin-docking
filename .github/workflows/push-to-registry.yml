@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 jobs:
   push-smina-to-registry:
-    name: Build Image
+    name: Push docking-smina to ECR
     runs-on: ubuntu-latest
     steps:
     - name: Get repo name
@@ -41,7 +41,7 @@ jobs:
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.sha.outputs.sha7 }}
   push-autodock4-to-registry:
-    name: Build Image
+    name: Push docking-autodock4 to ECR
     runs-on: ubuntu-latest
     steps:
     - name: Get repo name

@@ -1,9 +1,8 @@
-import sys
 import time
 import os
 import tempfile
-import subprocess
-from nanome.util import Logs
+from functools import partial
+from nanome.util import Logs, Process
 
 SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
 
@@ -34,7 +33,7 @@ class DockingCalculations():
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
             if len(ligand_pdbs) > 1:
                 self.plugin.update_run_btn_text(f"Running... ({i + 1}/{len(ligand_pdbs)})")
-            self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
+            await self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
             smina_output_sdfs.append(output_sdf)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
@@ -42,9 +41,9 @@ class DockingCalculations():
             self.plugin.update_run_btn_text("Running...")
         return smina_output_sdfs
 
-    def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
-                  exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
-                  deterministic=False, **kwargs):
+    async def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
+                        exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
+                        deterministic=False, **kwargs):
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,
@@ -62,20 +61,26 @@ class DockingCalculations():
             seed = '0'
             smina_args.extend(['--seed', seed])
 
-        cmd = [SMINA_PATH, *smina_args]
-        with subprocess.Popen(cmd, stdout=subprocess.PIPE) as process:
-            self.handle_loading_bar(process, ligand_count)
+        self.loading_bar_counter = 0
+        p = Process(SMINA_PATH, smina_args, output_text=True, buffer_lines=False)
+        p.on_error = Logs.error
+        p.on_output = partial(self.handle_loading_bar, ligand_count)
+        exit_code = await p.start()
+        Logs.message('Smina exit code: {}'.format(exit_code))
 
-    def handle_loading_bar(self, process, frame_count):
+    def handle_loading_bar(self, frame_count, msg):
         """Render loading bar from stdout on the menu.
 
-        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed
+        :param frame_count: int: number of frames in the ligand, used to calculate number of frames to render.
+        :param msg: Unbuffered character from stdout.
+
+        stdout has a loading bar of asterisks. Every asterisk represents about 2% completed.
+        Every frame of the complex has a loading bar of 51 asterisks.
+        Combine into one loading bar for menu.
         """
         stars_per_complex = 51
         total_stars = stars_per_complex * frame_count
-        self.loading_bar_counter = 0
-        for c in iter(lambda: process.stdout.read(1), b''):
-            if c.decode() == '*':
+        for char in msg:
+            if char == '*':
                 self.loading_bar_counter += 1
-                self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)
-            sys.stdout.buffer.write(c)
+        self.plugin.update_loading_bar(self.loading_bar_counter, total_stars)

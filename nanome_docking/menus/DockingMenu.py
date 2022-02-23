@@ -135,16 +135,21 @@ class DockingMenu():
         self.dd_ligands.items = ligand_list
         self.dd_receptor.items = receptor_list
         self.dd_site.items = site_list
+        self.dd_ligands.max_displayed_items = len(ligand_list)
+        self.dd_receptor.max_displayed_items = len(receptor_list)
+        self.dd_site.max_displayed_items = len(site_list)
 
         # Ligands should allow multiple selections
         for item in self.dd_ligands.items:
             item.close_on_selected = False
 
         # Reselect previously selected ligands
+        self.dd_ligands._selected_items = []
         for comp in self._selected_ligands:
             dd_item = next((item for item in self.dd_ligands.items if item.complex.index == comp.index), None)
             if dd_item:
                 dd_item.selected = True
+                self.dd_ligands._selected_items.append(dd_item)
 
         if not any([item.selected for item in self.dd_ligands.items]):
             self.dd_ligands.use_permanent_title = True
@@ -200,6 +205,10 @@ class DockingMenu():
     def handle_receptor_selected(self, dropdown, item):
         # If selected complex was previously selected, we are actually unselecting it.
         unselecting_complex = self._selected_receptor and item.complex.index == self._selected_receptor.index
+        if unselecting_complex:
+            Logs.message(f"Receptor {item.complex.index} Deselected.")
+        else:
+            Logs.message(f"Receptor {item.complex.index} Selected.")
         self._selected_receptor = None if unselecting_complex else item.complex
 
         if self._selected_receptor:
@@ -243,6 +252,10 @@ class DockingMenu():
     async def handle_site_selected(self, dropdown, item):
         # If site was previously selected, we are actually unselecting it.
         unselecting_site = self._selected_site and item.complex.index == self._selected_site.index
+        if unselecting_site:
+            Logs.message(f"Site {item.complex.index} Deselected.")
+        else:
+            Logs.message(f"Site {item.complex.index} Selected.")
         self._selected_site = None if unselecting_site else item.complex
 
         if self._selected_site:
@@ -382,13 +395,10 @@ class DockingMenu():
 
     @async_callback
     async def loc_refresh_pressed_callback(self, button):
-
         if not self._selected_site:
-            Logs.debug("No Site Selected")
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = '', '', ''
             self._plugin.update_menu(self._menu)
         else:
-            Logs.debug("Update the site location")
             comp = self._selected_site
             comp = (await self._plugin.request_complexes([comp.index]))[0]
             self._site_x.input_text, self._site_y.input_text, self._site_z.input_text = [
@@ -403,8 +413,10 @@ class DockingMenu():
 
         selected_items = dropdown._selected_items
         if item not in selected_items:
+            Logs.message(f"Ligand {item.complex.index} Selected")
             selected_items.append(item)
         else:
+            Logs.message(f"Ligand {item.complex.index} Deselected")
             selected_items.remove(item)
             item.selected = False
 
@@ -436,6 +448,7 @@ class SettingsMenu:
         self._exhaustiveness = 10
 
         menu_root = self._menu.root
+        self._menu.register_closed_callback(self.close_menu)
         self.setting_slider_oval = menu_root.find_node("ExhaustOval")
         self.setting_slider_oval.add_new_image(file_path=ICONS['DarkOval'])
         self._exhaustiveness_txt = menu_root.find_node("ExhaustValue").get_content()
@@ -445,6 +458,7 @@ class SettingsMenu:
 
         self._btn_deterministic = menu_root.find_node("btn_deterministic_results").get_content()
         self._btn_deterministic.toggle_on_press = True
+        self._btn_deterministic.register_pressed_callback(self.btn_deterministic_pressed_callback)
 
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
@@ -459,12 +473,20 @@ class SettingsMenu:
         self._plugin.update_content(slider)
         self._exhaustiveness = slider.current_value
         self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
+        Logs.message(f"Exhaustiveness set to {self._exhaustiveness}")
         self._plugin.update_content(self._exhaustiveness_txt)
 
     def visual_scores_button_pressed_callback(self, button):
         self._visual_scores = not self._visual_scores
+        Logs.message(f"Visual Scores set to {self._visual_scores}")
         button.selected = self._visual_scores
         self._plugin.update_content(button)
+
+    def btn_deterministic_pressed_callback(self, btn):
+        Logs.message(f"Deterministic Runs set to {btn.selected}")
+
+    def close_menu(self, menu):
+        Logs.message("closing advanced menu")
 
     def get_settings(self):
         return {
