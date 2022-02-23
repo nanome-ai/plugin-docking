@@ -94,7 +94,10 @@ class Docking(nanome.AsyncPluginInstance):
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
                 if len(list(docked_complex.molecules)) == 0:
-                    raise Exception("Docking Call Failed, no poses returned. Please check logs")
+                    msg = "Smina run returned 0 results."
+                    Logs.warning(msg)
+                    self.send_notification(NotificationTypes.warning, msg)
+                    return
 
                 docked_complex.full_name = f'{ligand.full_name} (Docked)'
                 docked_complex = docked_complex.convert_to_frames()
