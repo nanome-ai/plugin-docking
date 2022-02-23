@@ -4,7 +4,7 @@ on:
   push:
     branches: [ master ]
 jobs:
-  build:
+  push-smina-to-registry:
     name: Build Image
     runs-on: ubuntu-latest
     steps:
@@ -13,7 +13,7 @@ jobs:
       run: |
         prefix=nanome-ai/plugin-
         git_repository="${{github.repository}}"
-        repo_name=${git_repository/#$prefix} 
+        repo_name="${git_repository/#$prefix}-smina"
         echo $repo_name
         echo "::set-output name=repo_name::$(echo $repo_name)"
     - name: Get short SHA
@@ -36,7 +36,43 @@ jobs:
       uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
       with:
         dockerfile: docker/Dockerfile
-        context: .
+        context: . --algorithm smina
+        tags: |
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
+          public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.sha.outputs.sha7 }}
+  push-autodock4-to-registry:
+    name: Build Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get repo name
+      id: repoName
+      run: |
+        prefix=nanome-ai/plugin-
+        git_repository="${{github.repository}}"
+        repo_name="${git_repository/#$prefix}-autodock4"
+        echo $repo_name
+        echo "::set-output name=repo_name::$(echo $repo_name)"
+    - name: Get short SHA
+      id: sha
+      run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and Push to ECR public
+      id: build-and-push
+      uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
+      with:
+        dockerfile: docker/Dockerfile
+        context: . --algorithm autodock4
         tags: |
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:latest
           public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.sha.outputs.sha7 }}
