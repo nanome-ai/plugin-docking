@@ -1,0 +1,80 @@
+name: Bump version number
+on:
+  workflow_dispatch:
+    inputs:
+      version_part:
+        type: choice
+        description: Part of version number to bump
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repository, bump version with ./version.sh, and commit
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.NANOME_BOT_PAT }}
+      - name: git setup
+        run: |
+          git config --global user.name 'nanome-bot'
+          git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
+      - name: Run version.sh
+        run: |
+          pip install bump2version
+          chmod +x ./version.sh
+          ./version.sh ${{ github.event.inputs.version_part }}
+      - name: get new version number
+        id: new_version_number
+        run: |
+          new_ver=$(cat setup.cfg | grep current_version | awk -F "=" '{print $2}' | xargs)
+          echo "::set-output name=version_number::$(echo $new_ver)"
+      - name: Push to GitHub
+        run: |
+          git push --follow-tags
+  push-to-ecr:
+    runs-on: ubuntu-latest
+    needs: bump-version
+    steps:
+      # Push image to ECR and tag with new version number
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.NANOME_BOT_PAT }}
+      - name: git setup
+        run: |
+          git pull
+          git config --global user.name 'nanome-bot'
+          git config --global user.email '45469149+nanome-bot@users.noreply.github.com'
+      - name: get version number
+        id: new_version_number
+        run: |
+          new_ver=$(cat setup.cfg | grep current_version | awk -F "=" '{print $2}' | xargs)
+          echo "::set-output name=version_number::$(echo $new_ver)"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: Get ECR repo name
+        id: repoName
+        run: |
+          prefix=nanome-ai/plugin-
+          git_repository="${{github.repository}}"
+          repo_name=${git_repository/#$prefix} 
+          echo $repo_name
+          echo "::set-output name=repo_name::$(echo $repo_name)"
+      - name: Build and Push version number to ECR public
+        id: build-and-push
+        uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
+        with:
+          dockerfile: docker/Dockerfile
+          context: .
+          tags: |
+            public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.new_version_number.outputs.version_number }}
