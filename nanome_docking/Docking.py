@@ -21,6 +21,7 @@ PDBOPTIONS.write_bonds = True
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):
+        super().__init__()
         self.menu = DockingMenu(self)
         self.settings_menu = SettingsMenu(self)
 
