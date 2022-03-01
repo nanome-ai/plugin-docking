@@ -63,7 +63,7 @@ class DockingCalculations():
 
         self.loading_bar_counter = 0
         p = Process(SMINA_PATH, smina_args, output_text=True, buffer_lines=False)
-        p.on_error = Logs.error
+        p.on_error = Logs.warning
         p.on_output = partial(self.handle_loading_bar, ligand_count)
         exit_code = await p.start()
         Logs.message('Smina exit code: {}'.format(exit_code))
