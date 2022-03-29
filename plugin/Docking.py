@@ -167,9 +167,7 @@ class SminaDocking(Docking):
             pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
                 residue.label_text = pose_score + " kcal/mol"
-                # TODO: Re-enable this when core-bug with frame labels is fixed.
-                # https://nanome.slack.com/archives/CBDV1975K/p1641410333253500
-                residue.labeled = False
+                residue.labeled = True
             interaction_terms = associated['Atomic Interaction Terms']
             interaction_values = re.findall(pattern, interaction_terms)
             for i, atom in enumerate(molecule.atoms):
@@ -183,11 +181,9 @@ class SminaDocking(Docking):
         for molecule in ligand_complex.molecules:
             for atom in molecule.atoms:
                 if hasattr(atom, "score"):
-                    atom.atom_mode = nanome.api.structure.Atom.AtomRenderingMode.Point
-                    denominator = -molecule.min_atom_score if atom.score < 0 else molecule.max_atom_score
-                    norm_score = atom.score / denominator
-                    atom.atom_scale = norm_score * 1.5 + 0.1
                     atom.label_text = self._truncate(atom.score, 3)
+                    if atom.score != float(0):
+                        atom.labeled = True
 
     def _truncate(self, f, n):
         """Truncates/pads a float f to n decimal places without rounding."""
