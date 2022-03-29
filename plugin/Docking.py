@@ -135,6 +135,9 @@ class Docking(nanome.AsyncPluginInstance):
             ComplexUtils.align_to(comp, site)
             comp.boxed = True
         updated_complexes = await self.add_to_workspace(results)
+        for c1, c2 in zip(updated_complexes, results):
+            c1.position = c2.position
+            c1.rotation = c2.rotation
         self.docked_complexes.extend(updated_complexes)
 
     def enable_loading_bar(self, enabled=True):
