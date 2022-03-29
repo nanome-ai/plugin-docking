@@ -24,6 +24,7 @@ class Docking(nanome.AsyncPluginInstance):
         super().__init__()
         self.menu = DockingMenu(self)
         self.settings_menu = SettingsMenu(self)
+        self.docked_complexes = []
 
     def start(self):
         self.menu.build_menu()
@@ -107,9 +108,9 @@ class Docking(nanome.AsyncPluginInstance):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
 
-                visual_scores = params.get('visual_scores', False)
-                if visual_scores and hasattr(self, 'visualize_scores'):
-                    self.visualize_scores(docked_complex)
+                show_atom_labels = params.get('visual_scores', False)
+                if hasattr(self, 'visualize_scores'):
+                    self.visualize_scores(docked_complex, show_atom_labels=show_atom_labels)
 
                 docked_complex.set_current_frame(0)
                 docked_complex.visible = True
@@ -123,17 +124,18 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_shallow(ligands)
 
         # Add docked complexes to workspace.
-        self.add_result_to_workspace(output_complexes, receptor, site)
+        await self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
         return output_complexes
 
-    def add_result_to_workspace(self, results, receptor, site):
+    async def add_result_to_workspace(self, results, receptor, site):
         for comp in results:
             comp.position = receptor.position
             comp.rotation = receptor.rotation
             ComplexUtils.align_to(comp, site)
             comp.boxed = True
-        self.update_structures_deep(results)
+        updated_complexes = await self.add_to_workspace(results)
+        self.docked_complexes.extend(updated_complexes)
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)
@@ -143,6 +145,13 @@ class Docking(nanome.AsyncPluginInstance):
 
     def update_run_btn_text(self, new_text):
         self.menu.update_run_btn_text(new_text)
+
+    async def toggle_atom_labels(self, enabled: bool):
+        for comp in self.docked_complexes:
+            for molecule in comp.molecules:
+                for atom in molecule.atoms:
+                    atom.labeled = bool(enabled and atom.label_text)
+        await self.update_structures_deep(self.docked_complexes)
 
 
 class SminaDocking(Docking):
@@ -177,13 +186,12 @@ class SminaDocking(Docking):
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)
 
-    def visualize_scores(self, ligand_complex):
+    def visualize_scores(self, ligand_complex, show_atom_labels=False):
         for molecule in ligand_complex.molecules:
             for atom in molecule.atoms:
-                if hasattr(atom, "score"):
+                if hasattr(atom, "score") and atom.score != 0.0:
                     atom.label_text = self._truncate(atom.score, 3)
-                    if atom.score != float(0):
-                        atom.labeled = True
+                    atom.labeled = show_atom_labels
 
     def _truncate(self, f, n):
         """Truncates/pads a float f to n decimal places without rounding."""

@@ -476,10 +476,12 @@ class SettingsMenu:
         Logs.message(f"Exhaustiveness set to {self._exhaustiveness}")
         self._plugin.update_content(self._exhaustiveness_txt)
 
-    def visual_scores_button_pressed_callback(self, button):
+    @async_callback
+    async def visual_scores_button_pressed_callback(self, button):
         self._visual_scores = not self._visual_scores
         Logs.message(f"Visual Scores set to {self._visual_scores}")
         button.selected = self._visual_scores
+        await self._plugin.toggle_atom_labels(self._visual_scores)
         self._plugin.update_content(button)
 
     def btn_deterministic_pressed_callback(self, btn):
