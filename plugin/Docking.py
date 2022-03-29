@@ -135,6 +135,7 @@ class Docking(nanome.AsyncPluginInstance):
             ComplexUtils.align_to(comp, site)
             comp.boxed = True
         updated_complexes = await self.add_to_workspace(results)
+        # Due to bug in add_to_workspace, manually set position on updated_complexes
         for c1, c2 in zip(updated_complexes, results):
             c1.position = c2.position
             c1.rotation = c2.rotation
