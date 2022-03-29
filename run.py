@@ -1,11 +1,17 @@
 import argparse
+import os
 import nanome
 from plugin.Docking import Autodock4Docking, SminaDocking
 
+default_algorithm = os.environ.get('ALGORITHM', 'smina').lower()
 
 def main():
     parser = argparse.ArgumentParser(description='Parse Arguments to determine flavor of Docking to instantiate')
-    parser.add_argument('--algorithm', choices=['smina', 'autodock4'], default='smina')
+    parser.add_argument(
+        '--algorithm',
+        choices=['smina', 'autodock4'],
+        default=default_algorithm,
+        help='Docking algorithm to use')
 
     args, _ = parser.parse_known_args()
     plugin_class = None
