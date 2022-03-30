@@ -19,7 +19,6 @@ FROM base AS smina-build
 RUN echo "ALGORITHM=smina"
 ENV SMINA_BINARY=plugin/smina/smina_binary
 RUN chmod +x $SMINA_BINARY
-CMD python run.py --algorithm smina ${ARGS}
 
 # Section of build that runs when autodock4 selected
 FROM base AS autodock4-build
@@ -30,7 +29,6 @@ COPY adfr-suite.yml .
 RUN conda env create --file adfr-suite.yml
 RUN conda install -c conda-forge openbabel
 RUN chmod +x $VINA_BINARY
-CMD python run.py --algorithm autodock4 ${ARGS}
 
 # Determine which branch to build based on build-arg.
 FROM ${ALGORITHM}-build
