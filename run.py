@@ -7,6 +7,7 @@ default_algorithm = os.environ.get('ALGORITHM', 'smina').lower()
 
 default_algorithm = os.environ.get('ALGORITHM', 'smina').lower()
 
+
 def main():
     parser = argparse.ArgumentParser(description='Parse Arguments to determine flavor of Docking to instantiate')
     parser.add_argument(
