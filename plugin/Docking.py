@@ -134,12 +134,15 @@ class Docking(nanome.AsyncPluginInstance):
             comp.rotation = receptor.rotation
             ComplexUtils.align_to(comp, site)
             comp.boxed = True
-        updated_complexes = await self.add_to_workspace(results)
-        # Due to bug in add_to_workspace, manually set position on updated_complexes
-        for c1, c2 in zip(updated_complexes, results):
+        created_complexes = await self.add_to_workspace(results)
+        # add_to_workspace doesn't store correct current frame, so set it back to 0.
+        # Due to bug in add_to_workspace, also manually reset position and rotation
+        for c1, c2 in zip(created_complexes, results):
             c1.position = c2.position
             c1.rotation = c2.rotation
-        self.docked_complexes.extend(updated_complexes)
+            c1.set_current_frame(0)
+        self.update_structures_shallow(created_complexes)
+        self.docked_complexes.extend(created_complexes)
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)
@@ -151,10 +154,11 @@ class Docking(nanome.AsyncPluginInstance):
         self.menu.update_run_btn_text(new_text)
 
     async def toggle_atom_labels(self, enabled: bool):
+        self.docked_complexes = await self.request_complexes(
+            [cmp.index for cmp in self.docked_complexes])
         for comp in self.docked_complexes:
-            for molecule in comp.molecules:
-                for atom in molecule.atoms:
-                    atom.labeled = bool(enabled and atom.label_text)
+            for atom in comp.atoms:
+                atom.labeled = bool(enabled and atom.label_text)
         await self.update_structures_deep(self.docked_complexes)
 
 
