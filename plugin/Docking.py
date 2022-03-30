@@ -23,7 +23,7 @@ class Docking(nanome.AsyncPluginInstance):
         super().__init__()
         self.menu = DockingMenu(self)
         self.settings_menu = SettingsMenu(self)
-        self.docked_complexes = []
+        self.docked_complex_indices = []
 
     def start(self):
         self.menu.build_menu()
@@ -50,12 +50,9 @@ class Docking(nanome.AsyncPluginInstance):
         # Called when a complex is removed from the workspace in Nanome
         complexes = await self.request_complex_list()
         self.menu.change_complex_list(complexes)
-        # If docked complex has been deleted, remove from list
+        # If docked complex has been deleted, remove index from list
         comp_indices = [cmp.index for cmp in complexes]
-        for i in range(len(self.docked_complexes) - 1, -1, -1):
-            comp = self.docked_complexes[i]
-            if comp.index not in comp_indices:
-                self.docked_complexes.remove(comp)
+        self.docked_complex_indices = [x for x in self.docked_complex_indices if x in comp_indices]
 
     async def run_docking(self, receptor, ligands, site, params):
         # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
@@ -147,7 +144,8 @@ class Docking(nanome.AsyncPluginInstance):
             c1.rotation = c2.rotation
             c1.set_current_frame(0)
         self.update_structures_shallow(created_complexes)
-        self.docked_complexes.extend(created_complexes)
+        indices = [cmp.index for cmp in created_complexes]
+        self.docked_complex_indices.extend(indices)
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)
@@ -159,12 +157,11 @@ class Docking(nanome.AsyncPluginInstance):
         self.menu.update_run_btn_text(new_text)
 
     async def toggle_atom_labels(self, enabled: bool):
-        self.docked_complexes = await self.request_complexes(
-            [cmp.index for cmp in self.docked_complexes])
-        for comp in self.docked_complexes:
+        docked_complexes = await self.request_complexes(self.docked_complex_indices)
+        for comp in docked_complexes:
             for atom in comp.atoms:
                 atom.labeled = bool(enabled and atom.label_text)
-        await self.update_structures_deep(self.docked_complexes)
+        await self.update_structures_deep(docked_complexes)
 
 
 class SminaDocking(Docking):
