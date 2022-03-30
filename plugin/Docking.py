@@ -136,7 +136,7 @@ class Docking(nanome.AsyncPluginInstance):
             comp.boxed = True
         created_complexes = await self.add_to_workspace(results)
         # add_to_workspace doesn't store correct current frame, so set it back to 0.
-        # Due to bug in add_to_workspace, also manually reset position and rotation
+        # Also need to manually reset position and rotation
         for c1, c2 in zip(created_complexes, results):
             c1.position = c2.position
             c1.rotation = c2.rotation
