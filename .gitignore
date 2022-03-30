@@ -4,3 +4,4 @@ __pycache__
 /plugin/Rh_x64.exe
 *.log
 .coverage
+.env*
