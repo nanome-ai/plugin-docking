@@ -3,7 +3,6 @@ from nanome.util import async_callback, ComplexUtils
 import re
 import tempfile
 
-from timeit import default_timer as timer
 from nanome.util.enums import NotificationTypes
 from nanome.util import Logs
 
@@ -51,6 +50,12 @@ class Docking(nanome.AsyncPluginInstance):
         # Called when a complex is removed from the workspace in Nanome
         complexes = await self.request_complex_list()
         self.menu.change_complex_list(complexes)
+        # If docked complex has been deleted, remove from list
+        comp_indices = [cmp.index for cmp in complexes]
+        for i in range(len(self.docked_complexes) - 1, -1, -1):
+            comp = self.docked_complexes[i]
+            if comp.index not in comp_indices:
+                self.docked_complexes.remove(comp)
 
     async def run_docking(self, receptor, ligands, site, params):
         # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
