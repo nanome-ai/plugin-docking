@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from nanome.api.structure import Complex
 
-from nanome_docking.Docking import SminaDocking
+from plugin.Docking import SminaDocking
 
 fixtures_dir = os.path.join(os.getcwd(), 'tests', 'fixtures')
 

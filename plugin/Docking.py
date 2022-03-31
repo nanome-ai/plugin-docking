@@ -7,9 +7,9 @@ from timeit import default_timer as timer
 from nanome.util.enums import NotificationTypes
 from nanome.util import Logs
 
-from nanome_docking.smina.calculations import DockingCalculations as Smina
-from nanome_docking.autodock4.calculations import DockingCalculations as Autodock4
-from nanome_docking.menus.DockingMenu import DockingMenu, SettingsMenu
+from plugin.smina.calculations import DockingCalculations as Smina
+from plugin.autodock4.calculations import DockingCalculations as Autodock4
+from plugin.menus.DockingMenu import DockingMenu, SettingsMenu
 
 __metaclass__ = type
 

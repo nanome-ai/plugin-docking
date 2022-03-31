@@ -1,6 +1,6 @@
 __pycache__
 *.cachebust
 /docker/redeploy.sh
-/nanome_docking/Rh_x64.exe
+/plugin/Rh_x64.exe
 *.log
 .coverage

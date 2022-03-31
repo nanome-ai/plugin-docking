@@ -1,2 +1,9 @@
 .git
 **/__pycache__
+*
+!plugin
+!tests
+!adfr-suite.yml
+!requirements.txt
+!run.py
+!run_tests.py

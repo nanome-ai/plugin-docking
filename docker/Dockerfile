@@ -17,14 +17,14 @@ COPY . .
 # Section of build that runs when smina selected (Default)
 FROM base AS smina-build
 RUN echo "ALGORITHM=smina"
-ENV SMINA_BINARY=nanome_docking/smina/smina_binary
+ENV SMINA_BINARY=plugin/smina/smina_binary
 RUN chmod +x $SMINA_BINARY
 
 # Section of build that runs when autodock4 selected
 FROM base AS autodock4-build
 RUN echo "ALGORITHM=autodock4"
 ENV ALGORITHM=autodock4
-ENV VINA_BINARY=nanome_docking/autodock4/vina_1.2.2_linux_x86_64
+ENV VINA_BINARY=plugin/autodock4/vina_1.2.2_linux_x86_64
 COPY adfr-suite.yml .
 RUN conda env create --file adfr-suite.yml
 RUN conda install -c conda-forge openbabel

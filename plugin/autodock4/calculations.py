@@ -6,7 +6,7 @@ import tempfile
 import time
 
 from nanome.api.structure import Complex
-from nanome_docking.utils import get_complex_center
+from plugin.utils import get_complex_center
 from nanome.util import Logs
 
 

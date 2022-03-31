@@ -5,7 +5,7 @@ from nanome.api.ui import DropdownItem
 from nanome.api.shapes import Sphere, Shape
 from nanome.util.enums import NotificationTypes
 
-from nanome_docking.utils import get_complex_center
+from plugin.utils import get_complex_center
 
 
 BASE_DIR = os.path.dirname(__file__)

@@ -1,6 +1,6 @@
 import argparse
 import nanome
-from nanome_docking.Docking import Autodock4Docking, SminaDocking
+from plugin.Docking import Autodock4Docking, SminaDocking
 
 
 def main():

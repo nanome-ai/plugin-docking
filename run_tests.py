@@ -4,7 +4,7 @@ import sys
 
 from nanome.util import Logs
 
-docking_dir = f'{os.getcwd()}/nanome_docking/'
+docking_dir = f'{os.getcwd()}/plugin/'
 sys.path.append(docking_dir)
 
 test_directory = 'tests'

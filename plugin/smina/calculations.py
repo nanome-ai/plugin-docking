@@ -4,7 +4,7 @@ import tempfile
 from functools import partial
 from nanome.util import Logs, Process
 
-SMINA_PATH = os.path.join(os.getcwd(), 'nanome_docking', 'smina', 'smina_binary')
+SMINA_PATH = os.path.join(os.getcwd(), 'plugin', 'smina', 'smina_binary')
 
 
 class DockingCalculations():
