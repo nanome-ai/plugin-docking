@@ -32,5 +32,5 @@ RUN chmod +x $VINA_BINARY
 
 # Determine which branch to build based on build-arg.
 FROM ${ALGORITHM}-build
+CMD python run.py --algorithm ${ALGORITHM} ${ARGS}
 
-CMD python run.py ${ARGS}

@@ -21,8 +21,10 @@ class SminaDockingTestCase(unittest.TestCase):
         self.plugin_smina.start()
         self.plugin_smina._network = MagicMock()
 
+    @patch('nanome.api.plugin_instance.PluginInstance.update_structures_shallow')
+    @patch('nanome.api.plugin_instance.PluginInstance.add_to_workspace')
     @patch('nanome.api.plugin_instance.PluginInstance.request_complexes')
-    def test_smina_docking_complex(self, request_complexes_mock):
+    def test_smina_docking_complex(self, request_complexes_mock, add_to_workspace_mock, *mocks):
         """Test run_docking function on provided plugin_instance."""
         plugin_instance = self.plugin_smina
 
@@ -30,6 +32,10 @@ class SminaDockingTestCase(unittest.TestCase):
         fut = asyncio.Future()
         fut.set_result([self.receptor, self.ligand, self.ligand])
         request_complexes_mock.return_value = fut
+
+        fut = asyncio.Future()
+        fut.set_result([self.receptor, self.ligand, self.ligand])
+        add_to_workspace_mock.return_value = fut
 
         loop = asyncio.get_event_loop()
         mode_count = 2

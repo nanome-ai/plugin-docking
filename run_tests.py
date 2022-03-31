@@ -2,7 +2,6 @@ import os
 import unittest
 import sys
 
-from nanome.util import Logs
 
 docking_dir = f'{os.getcwd()}/plugin/'
 sys.path.append(docking_dir)

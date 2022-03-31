@@ -3,7 +3,6 @@ from nanome.util import async_callback, ComplexUtils
 import re
 import tempfile
 
-from timeit import default_timer as timer
 from nanome.util.enums import NotificationTypes
 from nanome.util import Logs
 
@@ -24,6 +23,7 @@ class Docking(nanome.AsyncPluginInstance):
         super().__init__()
         self.menu = DockingMenu(self)
         self.settings_menu = SettingsMenu(self)
+        self.docked_complex_indices = []
 
     def start(self):
         self.menu.build_menu()
@@ -50,6 +50,9 @@ class Docking(nanome.AsyncPluginInstance):
         # Called when a complex is removed from the workspace in Nanome
         complexes = await self.request_complex_list()
         self.menu.change_complex_list(complexes)
+        # If docked complex has been deleted, remove index from list
+        comp_indices = [cmp.index for cmp in complexes]
+        self.docked_complex_indices = [x for x in self.docked_complex_indices if x in comp_indices]
 
     async def run_docking(self, receptor, ligands, site, params):
         # Request complexes to Nanome in this order: [receptor, <site>, ligand, ligand,...]
@@ -107,9 +110,9 @@ class Docking(nanome.AsyncPluginInstance):
                     for molecule in docked_complex.molecules:
                         self.set_scores(molecule)
 
-                visual_scores = params.get('visual_scores', False)
-                if visual_scores and hasattr(self, 'visualize_scores'):
-                    self.visualize_scores(docked_complex)
+                show_atom_labels = params.get('visual_scores', False)
+                if hasattr(self, 'visualize_scores'):
+                    self.visualize_scores(docked_complex, show_atom_labels=show_atom_labels)
 
                 docked_complex.set_current_frame(0)
                 docked_complex.visible = True
@@ -123,17 +126,26 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_shallow(ligands)
 
         # Add docked complexes to workspace.
-        self.add_result_to_workspace(output_complexes, receptor, site)
+        await self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
         return output_complexes
 
-    def add_result_to_workspace(self, results, receptor, site):
+    async def add_result_to_workspace(self, results, receptor, site):
         for comp in results:
             comp.position = receptor.position
             comp.rotation = receptor.rotation
             ComplexUtils.align_to(comp, site)
             comp.boxed = True
-        self.update_structures_deep(results)
+        created_complexes = await self.add_to_workspace(results)
+        # add_to_workspace doesn't set correct current frame, so set it back to 0.
+        # Also need to manually reset position and rotation
+        for c1, c2 in zip(created_complexes, results):
+            c1.position = c2.position
+            c1.rotation = c2.rotation
+            c1.set_current_frame(0)
+        self.update_structures_shallow(created_complexes)
+        indices = [cmp.index for cmp in created_complexes]
+        self.docked_complex_indices.extend(indices)
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)
@@ -143,6 +155,13 @@ class Docking(nanome.AsyncPluginInstance):
 
     def update_run_btn_text(self, new_text):
         self.menu.update_run_btn_text(new_text)
+
+    async def toggle_atom_labels(self, enabled: bool):
+        docked_complexes = await self.request_complexes(self.docked_complex_indices)
+        for comp in docked_complexes:
+            for atom in comp.atoms:
+                atom.labeled = bool(enabled and atom.label_text)
+        await self.update_structures_deep(docked_complexes)
 
 
 class SminaDocking(Docking):
@@ -167,9 +186,7 @@ class SminaDocking(Docking):
             pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
                 residue.label_text = pose_score + " kcal/mol"
-                # TODO: Re-enable this when core-bug with frame labels is fixed.
-                # https://nanome.slack.com/archives/CBDV1975K/p1641410333253500
-                residue.labeled = False
+                residue.labeled = True
             interaction_terms = associated['Atomic Interaction Terms']
             interaction_values = re.findall(pattern, interaction_terms)
             for i, atom in enumerate(molecule.atoms):
@@ -179,15 +196,12 @@ class SminaDocking(Docking):
                     molecule.min_atom_score = min(atom.score, molecule.min_atom_score)
                     molecule.max_atom_score = max(atom.score, molecule.max_atom_score)
 
-    def visualize_scores(self, ligand_complex):
+    def visualize_scores(self, ligand_complex, show_atom_labels=False):
         for molecule in ligand_complex.molecules:
             for atom in molecule.atoms:
-                if hasattr(atom, "score"):
-                    atom.atom_mode = nanome.api.structure.Atom.AtomRenderingMode.Point
-                    denominator = -molecule.min_atom_score if atom.score < 0 else molecule.max_atom_score
-                    norm_score = atom.score / denominator
-                    atom.atom_scale = norm_score * 1.5 + 0.1
+                if hasattr(atom, "score") and atom.score != 0.0:
                     atom.label_text = self._truncate(atom.score, 3)
+                    atom.labeled = show_atom_labels
 
     def _truncate(self, f, n):
         """Truncates/pads a float f to n decimal places without rounding."""
