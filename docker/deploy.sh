@@ -19,14 +19,16 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-existing=$(docker ps -aq -f name=docking-$algorithm)
+container_name="docking-$algorithm"
+existing=$(docker ps -aq -f name=$container_name)
 if [ -n "$existing" ]; then
     echo "removing existing container"
     docker rm -f $existing
 fi
 
 docker run -d \
---name docking-$algorithm \
+--name $container_name \
 --restart unless-stopped \
+-h $(hostname)-$container_name \
 -e ARGS="${ARGS[*]}" \
-docking-$algorithm
+$container_name
