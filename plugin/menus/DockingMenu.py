@@ -462,6 +462,7 @@ class SettingsMenu:
 
         self._exhaust_slider.register_released_callback(self.exhaust_slider_released_callback)
         self._exhaust_slider.current_value = self._exhaustiveness
+        self._exhaustiveness_txt.text_value = str(self._exhaustiveness)
         self._display_score_btn.register_pressed_callback(self.visual_scores_button_pressed_callback)
 
     def enable(self):
