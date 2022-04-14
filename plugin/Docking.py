@@ -81,6 +81,7 @@ class Docking(nanome.AsyncPluginInstance):
         advanced_settings = self.settings_menu.get_settings()
         params.update(advanced_settings)
 
+        output_complexes = []
         with tempfile.TemporaryDirectory() as temp_dir:
             # Convert input complexes into PDBs.
             receptor_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
@@ -96,26 +97,25 @@ class Docking(nanome.AsyncPluginInstance):
                 lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
                 ligand_pdbs.append(ligand_pdb)
 
-            self.send_notification(NotificationTypes.message, "Docking started")
-            output_complexes = []
+            self.log_calculation_data(receptor, ligands, params)
             frame_count = 0
             for lig in ligands:
                 frame_count += sum(1 for _ in lig.molecules)
+            self.send_notification(NotificationTypes.message, "Docking started")
             timeout = TIMEOUT_PER_FRAME * frame_count
-            Logs.message(f'Running Docking on {len(ligands)} ligand(s), containing a total of {frame_count} frame(s)'.format(frame_count, timeout))
             try:
                 output_sdfs = await self._calculations.start_docking(
                     receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
             except TimeoutError:
-                message = "Docking run timed out"
+                message = "Docking calculation timed out"
                 self.send_notification(NotificationTypes.error, message)
-                Logs.error(message)
+                # Logs.error(message)
                 return
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
                 if len(list(docked_complex.molecules)) == 0:
-                    msg = "Docking run returned 0 results."
+                    msg = "Docking returned 0 results."
                     Logs.warning(msg)
                     self.send_notification(NotificationTypes.warning, msg)
                     return
@@ -146,6 +146,22 @@ class Docking(nanome.AsyncPluginInstance):
         await self.add_result_to_workspace(output_complexes, receptor, site)
         self.send_notification(NotificationTypes.success, "Docking finished")
         return output_complexes
+
+    @staticmethod
+    def log_calculation_data(receptor, ligands, params):
+        """Log useful information about parameters and complexes being docked."""
+        frame_count = 0
+        for lig in ligands:
+            frame_count += sum(1 for _ in lig.molecules)
+        log_extra = {
+            'ligand_count': len(ligands),
+            'ligand_frame_count': sum(sum(1 for _ in lig.molecules) for lig in ligands),
+            'receptor_atom_count': sum(1 for _ in receptor.atoms),
+            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands)/ len(ligands)),
+            **params
+        }
+        Logs.message(
+            f'Docking {len(ligands)} ligand(s), containing {frame_count} frame(s)', extra=log_extra)
 
     async def add_result_to_workspace(self, results, receptor, site):
         for comp in results:
