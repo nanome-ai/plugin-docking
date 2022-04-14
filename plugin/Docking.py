@@ -21,6 +21,7 @@ PDBOPTIONS.write_bonds = True
 DEFAULT_TIMEOUT = 300
 TIMEOUT_PER_FRAME = int(os.environ.get('TIMEOUT_PER_FRAME', DEFAULT_TIMEOUT))
 
+
 class Docking(nanome.AsyncPluginInstance):
 
     def __init__(self):

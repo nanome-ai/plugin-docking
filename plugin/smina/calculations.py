@@ -70,7 +70,7 @@ class DockingCalculations():
         if timeout:
             p.timeout = timeout
         p.on_error = Logs.warning
-        p.on_output = partial(self.handle_loading_bar, ligand_count)    
+        p.on_output = partial(self.handle_loading_bar, ligand_count)
         exit_code = await p.start()
         Logs.message('Smina exit code: {}'.format(exit_code))
         if exit_code == -9:
