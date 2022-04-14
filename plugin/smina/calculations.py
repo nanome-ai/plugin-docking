@@ -22,7 +22,7 @@ class DockingCalculations():
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
-        
+
         receptor_size_kb = os.path.getsize(receptor_pdb.name) / 1000
         for i, ligand_pdb in enumerate(ligand_pdbs):
             ligand_size_kb = os.path.getsize(ligand_pdb.name) / 1000
@@ -36,7 +36,7 @@ class DockingCalculations():
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
             if len(ligand_pdbs) > 1:
                 self.plugin.update_run_btn_text(f"Running... ({i + 1}/{len(ligand_pdbs)})")
-            
+
             log_extra = {'receptor_size_kb': receptor_size_kb, 'ligand_size_kb': ligand_size_kb}
             Logs.message("Smina Calculation started.", extra=log_extra)
             await self.run_smina(

@@ -96,7 +96,7 @@ class Docking(nanome.AsyncPluginInstance):
             site_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
             receptor.io.to_pdb(receptor_pdb.name, PDBOPTIONS)
             site.io.to_pdb(site_pdb.name, PDBOPTIONS)
-            
+
             ligand_pdbs = []
             for lig in ligands:
                 cleaned_name = lig.full_name.replace(' ', '_')
@@ -182,7 +182,7 @@ class Docking(nanome.AsyncPluginInstance):
             'ligand_count': len(ligands),
             'ligand_frame_count': sum(sum(1 for _ in lig.molecules) for lig in ligands),
             'receptor_atom_count': sum(1 for _ in receptor.atoms),
-            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands)/ len(ligands)),
+            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands) / len(ligands)),
             **params
         }
         Logs.message(
