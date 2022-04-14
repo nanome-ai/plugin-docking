@@ -93,12 +93,22 @@ class Docking(nanome.AsyncPluginInstance):
 
             self.send_notification(NotificationTypes.message, "Docking started")
             output_complexes = []
-            output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
+            # Timeout should be 10 minutes per frame (Very generous, but avoids permanent hangs)
+            frame_count = 0
+            for lig in ligands:
+                frame_count += sum(1 for _ in lig.molecules)
+            timeout = 300 * frame_count
+            try:
+                output_sdfs = await self._calculations.start_docking(
+                    receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
+            except TimeoutError:
+                self.send_notification(NotificationTypes.error, "Docking run timed out")
+                return
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
                 if len(list(docked_complex.molecules)) == 0:
-                    msg = "Smina run returned 0 results."
+                    msg = "Docking run returned 0 results."
                     Logs.warning(msg)
                     self.send_notification(NotificationTypes.warning, msg)
                     return
