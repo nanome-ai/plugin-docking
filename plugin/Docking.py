@@ -102,7 +102,7 @@ class Docking(nanome.AsyncPluginInstance):
             for lig in ligands:
                 frame_count += sum(1 for _ in lig.molecules)
             timeout = TIMEOUT_PER_FRAME * frame_count
-            Logs.message(f'Running Docking on {len(ligands)} ligands, containing a total of {frame_count} frames'.format(frame_count, timeout))
+            Logs.message(f'Running Docking on {len(ligands)} ligand(s), containing a total of {frame_count} frame(s)'.format(frame_count, timeout))
             try:
                 output_sdfs = await self._calculations.start_docking(
                     receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
