@@ -106,7 +106,9 @@ class Docking(nanome.AsyncPluginInstance):
                 output_sdfs = await self._calculations.start_docking(
                     receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
             except TimeoutError:
-                self.send_notification(NotificationTypes.error, "Docking run timed out")
+                message = "Docking run timed out"
+                self.send_notification(NotificationTypes.error, message)
+                Logs.error(message)
                 return
 
             for ligand, result in zip(ligands, output_sdfs):
