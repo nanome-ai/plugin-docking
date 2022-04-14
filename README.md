@@ -37,7 +37,6 @@ In Nanome:
 - If using Smina, click on "Site", and select which molecule should be used to define the docking site
 - Choose number of poses to return for each ligand
 - Choose size of the box to generate around the site molecule (Smina only)
-- If visual scoring is turned on, atom size and labels will indicate each atom's contribution to the ligand's score
 - Click Run
 
 ## Development

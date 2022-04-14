@@ -1,5 +1,6 @@
 import nanome
 from nanome.util import async_callback, ComplexUtils
+import os
 import re
 import tempfile
 
@@ -16,6 +17,9 @@ __metaclass__ = type
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
 
+# Default Timeout should be 5 minutes per frame
+DEFAULT_TIMEOUT = 300
+TIMEOUT_PER_FRAME = int(os.environ.get('TIMEOUT_PER_FRAME', DEFAULT_TIMEOUT))
 
 class Docking(nanome.AsyncPluginInstance):
 
@@ -93,11 +97,11 @@ class Docking(nanome.AsyncPluginInstance):
 
             self.send_notification(NotificationTypes.message, "Docking started")
             output_complexes = []
-            # Timeout should be 10 minutes per frame (Very generous, but avoids permanent hangs)
             frame_count = 0
             for lig in ligands:
                 frame_count += sum(1 for _ in lig.molecules)
-            timeout = 300 * frame_count
+            timeout = TIMEOUT_PER_FRAME * frame_count
+            Logs.message(f'Running Docking on {len(ligands)} ligands, containing a total of {frame_count} frames'.format(frame_count, timeout))
             try:
                 output_sdfs = await self._calculations.start_docking(
                     receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
