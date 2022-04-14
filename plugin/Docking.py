@@ -77,6 +77,14 @@ class Docking(nanome.AsyncPluginInstance):
 
         ComplexUtils.convert_to_frames(ligands)
 
+        # Make sure receptor is larger than all ligands
+        valid_selections = self.validate_complex_sizes(receptor, ligands)
+        if not valid_selections:
+            msg = "Receptor must be larger than ligands."
+            Logs.warning(msg)
+            self.send_notification(NotificationTypes.warning, msg)
+            return
+
         # Get advanced_settings.
         advanced_settings = self.settings_menu.get_settings()
         params.update(advanced_settings)
@@ -88,7 +96,7 @@ class Docking(nanome.AsyncPluginInstance):
             site_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
             receptor.io.to_pdb(receptor_pdb.name, PDBOPTIONS)
             site.io.to_pdb(site_pdb.name, PDBOPTIONS)
-
+            
             ligand_pdbs = []
             for lig in ligands:
                 cleaned_name = lig.full_name.replace(' ', '_')
@@ -147,22 +155,6 @@ class Docking(nanome.AsyncPluginInstance):
         self.send_notification(NotificationTypes.success, "Docking finished")
         return output_complexes
 
-    @staticmethod
-    def log_calculation_data(receptor, ligands, params):
-        """Log useful information about parameters and complexes being docked."""
-        frame_count = 0
-        for lig in ligands:
-            frame_count += sum(1 for _ in lig.molecules)
-        log_extra = {
-            'ligand_count': len(ligands),
-            'ligand_frame_count': sum(sum(1 for _ in lig.molecules) for lig in ligands),
-            'receptor_atom_count': sum(1 for _ in receptor.atoms),
-            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands)/ len(ligands)),
-            **params
-        }
-        Logs.message(
-            f'Docking {len(ligands)} ligand(s), containing {frame_count} frame(s)', extra=log_extra)
-
     async def add_result_to_workspace(self, results, receptor, site):
         for comp in results:
             comp.position = receptor.position
@@ -179,6 +171,30 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_shallow(created_complexes)
         indices = [cmp.index for cmp in created_complexes]
         self.docked_complex_indices.extend(indices)
+
+    @staticmethod
+    def log_calculation_data(receptor, ligands, params):
+        """Log useful information about parameters and complexes being docked."""
+        frame_count = 0
+        for lig in ligands:
+            frame_count += sum(1 for _ in lig.molecules)
+        log_extra = {
+            'ligand_count': len(ligands),
+            'ligand_frame_count': sum(sum(1 for _ in lig.molecules) for lig in ligands),
+            'receptor_atom_count': sum(1 for _ in receptor.atoms),
+            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands)/ len(ligands)),
+            **params
+        }
+        Logs.message(
+            f'Docking {len(ligands)} ligand(s), containing {frame_count} frame(s)', extra=log_extra)
+
+    def validate_complex_sizes(self, receptor, ligands):
+        """Validate that the receptor is larger than all ligands."""
+        receptor_size = sum(1 for _ in receptor.atoms)
+        ligand_sizes = [sum(1 for _ in lig.atoms) for lig in ligands]
+        if any(receptor_size <= lig_size for lig_size in ligand_sizes):
+            return False
+        return True
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)
