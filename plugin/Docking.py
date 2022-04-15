@@ -1,5 +1,6 @@
 import nanome
 from nanome.util import async_callback, ComplexUtils
+import os
 import re
 import tempfile
 
@@ -15,6 +16,10 @@ __metaclass__ = type
 
 PDBOPTIONS = nanome.api.structure.Complex.io.PDBSaveOptions()
 PDBOPTIONS.write_bonds = True
+
+# Default Timeout should be 5 minutes per frame
+DEFAULT_TIMEOUT = 300
+TIMEOUT_PER_FRAME = int(os.environ.get('TIMEOUT_PER_FRAME', DEFAULT_TIMEOUT))
 
 
 class Docking(nanome.AsyncPluginInstance):
@@ -72,10 +77,19 @@ class Docking(nanome.AsyncPluginInstance):
 
         ComplexUtils.convert_to_frames(ligands)
 
+        # Make sure receptor is larger than all ligands
+        valid_selections = self.validate_complex_sizes(receptor, ligands)
+        if not valid_selections:
+            msg = "Receptor must be larger than ligands."
+            Logs.warning(msg)
+            self.send_notification(NotificationTypes.warning, msg)
+            return
+
         # Get advanced_settings.
         advanced_settings = self.settings_menu.get_settings()
         params.update(advanced_settings)
 
+        output_complexes = []
         with tempfile.TemporaryDirectory() as temp_dir:
             # Convert input complexes into PDBs.
             receptor_pdb = tempfile.NamedTemporaryFile(delete=False, suffix=".pdb", dir=temp_dir)
@@ -91,14 +105,25 @@ class Docking(nanome.AsyncPluginInstance):
                 lig.io.to_pdb(ligand_pdb.name, PDBOPTIONS)
                 ligand_pdbs.append(ligand_pdb)
 
+            self.log_calculation_data(receptor, ligands, params)
+            frame_count = 0
+            for lig in ligands:
+                frame_count += sum(1 for _ in lig.molecules)
             self.send_notification(NotificationTypes.message, "Docking started")
-            output_complexes = []
-            output_sdfs = await self._calculations.start_docking(receptor_pdb, ligand_pdbs, site_pdb, temp_dir, **params)
+            timeout = TIMEOUT_PER_FRAME * frame_count
+            try:
+                output_sdfs = await self._calculations.start_docking(
+                    receptor_pdb, ligand_pdbs, site_pdb, temp_dir, timeout=timeout, **params)
+            except TimeoutError:
+                message = "Docking calculation timed out"
+                self.send_notification(NotificationTypes.error, message)
+                # Logs.error(message)
+                return
 
             for ligand, result in zip(ligands, output_sdfs):
                 docked_complex = nanome.structure.Complex.io.from_sdf(path=result.name)
                 if len(list(docked_complex.molecules)) == 0:
-                    msg = "Smina run returned 0 results."
+                    msg = "Docking returned 0 results."
                     Logs.warning(msg)
                     self.send_notification(NotificationTypes.warning, msg)
                     return
@@ -146,6 +171,30 @@ class Docking(nanome.AsyncPluginInstance):
         self.update_structures_shallow(created_complexes)
         indices = [cmp.index for cmp in created_complexes]
         self.docked_complex_indices.extend(indices)
+
+    @staticmethod
+    def log_calculation_data(receptor, ligands, params):
+        """Log useful information about parameters and complexes being docked."""
+        frame_count = 0
+        for lig in ligands:
+            frame_count += sum(1 for _ in lig.molecules)
+        log_extra = {
+            'ligand_count': len(ligands),
+            'ligand_frame_count': sum(sum(1 for _ in lig.molecules) for lig in ligands),
+            'receptor_atom_count': sum(1 for _ in receptor.atoms),
+            'ligand_atom_count_avg': int(sum(sum(1 for _ in lig.atoms) for lig in ligands) / len(ligands)),
+            **params
+        }
+        Logs.message(
+            f'Docking {len(ligands)} ligand(s), containing {frame_count} frame(s)', extra=log_extra)
+
+    def validate_complex_sizes(self, receptor, ligands):
+        """Validate that the receptor is larger than all ligands."""
+        receptor_size = sum(1 for _ in receptor.atoms)
+        ligand_sizes = [sum(1 for _ in lig.atoms) for lig in ligands]
+        if any(receptor_size <= lig_size for lig_size in ligand_sizes):
+            return False
+        return True
 
     def enable_loading_bar(self, enabled=True):
         self.menu.enable_loading_bar(enabled)

@@ -14,15 +14,18 @@ class DockingCalculations():
         self.requires_site = True
         self.loading_bar_counter = 0
 
-    async def start_docking(self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None, modes=None, autobox=None, deterministic=None, **kwargs):
+    async def start_docking(
+        self, receptor_pdb, ligand_pdbs, site_pdb, temp_dir, exhaustiveness=None,
+            modes=None, autobox=None, deterministic=None, timeout=None, **kwargs):
         # Start docking process
         start_time = time.time()
-        Logs.message("Smina Calculation started.")
         self.loading_bar_counter = 0
         log_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
         smina_output_sdfs = []
 
+        receptor_size_kb = os.path.getsize(receptor_pdb.name) / 1000
         for i, ligand_pdb in enumerate(ligand_pdbs):
+            ligand_size_kb = os.path.getsize(ligand_pdb.name) / 1000
             # Read first line to get the number of frames
             nummdl_line = ligand_pdb.readline().decode()
             if nummdl_line.startswith("NUMMDL"):
@@ -33,7 +36,12 @@ class DockingCalculations():
             output_sdf = tempfile.NamedTemporaryFile(delete=False, prefix="output", suffix=".sdf", dir=temp_dir)
             if len(ligand_pdbs) > 1:
                 self.plugin.update_run_btn_text(f"Running... ({i + 1}/{len(ligand_pdbs)})")
-            await self.run_smina(ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file, exhaustiveness, modes, autobox, frame_count, deterministic)
+
+            log_extra = {'receptor_size_kb': receptor_size_kb, 'ligand_size_kb': ligand_size_kb}
+            Logs.message("Smina Calculation started.", extra=log_extra)
+            await self.run_smina(
+                ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
+                exhaustiveness, modes, autobox, frame_count, deterministic, timeout=timeout)
             smina_output_sdfs.append(output_sdf)
         end_time = time.time()
         Logs.message("Smina Calculation finished in {} seconds.".format(round(end_time - start_time, 2)))
@@ -43,7 +51,7 @@ class DockingCalculations():
 
     async def run_smina(self, ligand_pdb, receptor_pdb, site_pdb, output_sdf, log_file,
                         exhaustiveness=None, modes=None, autobox=None, ligand_count=1,
-                        deterministic=False, **kwargs):
+                        deterministic=False, timeout=None, **kwargs):
         smina_args = [
             '-r', receptor_pdb.name,
             '-l', ligand_pdb.name,
@@ -62,11 +70,15 @@ class DockingCalculations():
             smina_args.extend(['--seed', seed])
 
         self.loading_bar_counter = 0
-        p = Process(SMINA_PATH, smina_args, output_text=True, buffer_lines=False)
+        p = Process(SMINA_PATH, smina_args, output_text=True, buffer_lines=False, label="Smina")
+        if timeout:
+            p.timeout = timeout
         p.on_error = Logs.warning
         p.on_output = partial(self.handle_loading_bar, ligand_count)
         exit_code = await p.start()
         Logs.message('Smina exit code: {}'.format(exit_code))
+        if exit_code == Process.TIMEOUT_CODE:
+            raise TimeoutError("Smina calculation timed out.")
 
     def handle_loading_bar(self, frame_count, msg):
         """Render loading bar from stdout on the menu.
