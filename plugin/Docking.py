@@ -229,8 +229,8 @@ class SminaDocking(Docking):
         pattern = re.compile('<{},{},{}> {} {} {} {} {}'.format(*([num_rgx] * 8)), re.U)
         for associated in molecule.associateds:
             # make the labels pretty :)
-            associated['Minimized Affinity'] = associated.pop('> <minimizedAffinity>')
-            associated['Atomic Interaction Terms'] = associated.pop('> <atomic_interaction_terms>')
+            associated['Minimized Affinity'] = associated.pop('minimizedAffinity')
+            associated['Atomic Interaction Terms'] = associated.pop('atomic_interaction_terms')
 
             pose_score = associated['Minimized Affinity']
             for residue in molecule.residues:
@@ -270,9 +270,9 @@ class Autodock4Docking(Docking):
 
     def set_scores(self, molecule):
         for associated in molecule.associateds:
-            associated.pop('>  <MODEL>')
-            associated.pop('>  <TORSDO>')
-            remark = associated.pop('>  <REMARK>')
+            associated.pop('MODEL')
+            associated.pop('TORSDO')
+            remark = associated.pop('REMARK')
 
             split_remark = remark.split()
             associated['CONF_DEPENDENT'] = split_remark[3]
