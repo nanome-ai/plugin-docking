@@ -270,9 +270,9 @@ class Autodock4Docking(Docking):
 
     def set_scores(self, molecule):
         for associated in molecule.associateds:
-            associated.pop('>  <MODEL>')
-            associated.pop('>  <TORSDO>')
-            remark = associated.pop('>  <REMARK>')
+            associated.pop('MODEL')
+            associated.pop('TORSDO')
+            remark = associated.pop('REMARK')
 
             split_remark = remark.split()
             associated['CONF_DEPENDENT'] = split_remark[3]
