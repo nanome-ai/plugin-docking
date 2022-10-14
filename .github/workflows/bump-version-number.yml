@@ -78,7 +78,7 @@ jobs:
         uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
         with:
           dockerfile: docker/Dockerfile
-          context: . --algorithm smina
+          context: --build-arg ALGORITHM=smina .
           tags: |
             public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.new_version_number.outputs.version_number }}
   push-autodock4-to-ecr:
@@ -121,6 +121,6 @@ jobs:
         uses: pahud/ecr-public-action@8cd826db40befb59b0cd0b60b22a7ba72d06a7f7
         with:
           dockerfile: docker/Dockerfile
-          context: . --algorithm autodock4
+          context: --build-arg ALGORITHM=autodock4 .
           tags: |
             public.ecr.aws/h7r1e4h2/${{ steps.repoName.outputs.repo_name }}:${{ steps.new_version_number.outputs.version_number }}
