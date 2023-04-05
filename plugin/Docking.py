@@ -191,7 +191,7 @@ class Docking(nanome.AsyncPluginInstance):
     def validate_complex_sizes(self, receptor, ligands):
         """Validate that the receptor is larger than all ligands."""
         receptor_size = sum(1 for _ in receptor.atoms)
-        ligand_sizes = [sum(1 for _ in lig.atoms) for lig in ligands]
+        ligand_sizes = [sum(1 for _ in lig.atoms) for c in ligands for lig in c.molecules]
         if any(receptor_size <= lig_size for lig_size in ligand_sizes):
             return False
         return True
